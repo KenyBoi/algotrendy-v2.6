@@ -1,3 +1,5 @@
+using AlgoTrendy.API.Hubs;
+using AlgoTrendy.API.Services;
 using AlgoTrendy.Core.Interfaces;
 using AlgoTrendy.Infrastructure.Repositories;
 using Serilog;
@@ -19,6 +21,14 @@ builder.Host.UseSerilog();
 
 // Add services to the container
 builder.Services.AddControllers();
+
+// Add SignalR
+builder.Services.AddSignalR(options =>
+{
+    options.EnableDetailedErrors = builder.Environment.IsDevelopment();
+    options.KeepAliveInterval = TimeSpan.FromSeconds(15);
+    options.ClientTimeoutInterval = TimeSpan.FromSeconds(30);
+});
 
 // Configure Swagger/OpenAPI
 builder.Services.AddEndpointsApiExplorer();
@@ -51,6 +61,9 @@ var questDbConnectionString = builder.Configuration.GetConnectionString("QuestDB
 
 builder.Services.AddScoped<IMarketDataRepository>(sp =>
     new MarketDataRepository(questDbConnectionString));
+
+// Add background services
+builder.Services.AddHostedService<MarketDataBroadcastService>();
 
 // Configure CORS
 builder.Services.AddCors(options =>
@@ -91,6 +104,8 @@ app.UseCors("AllowFrontend");
 app.UseAuthorization();
 
 app.MapControllers();
+
+app.MapHub<MarketDataHub>("/hubs/marketdata");
 
 app.MapHealthChecks("/health");
 
