@@ -1,0 +1,209 @@
+# AlgoTrendy v2.6 - Comprehensive .gitignore
+# Generated for multi-stack project: .NET 8, Next.js 15, Python, QuestDB
+
+# ============================================================================
+# CRITICAL: Secrets and Credentials (NEVER COMMIT)
+# ============================================================================
+.env
+.env.local
+.env.*.local
+*.env
+secrets/
+*.key
+*.pem
+*.p12
+*.pfx
+credentials.json
+appsettings.*.json
+!appsettings.json
+!appsettings.Development.json.example
+*.secrets
+vault_keys/
+
+# ============================================================================
+# .NET / C# (Backend Trading Engine)
+# ============================================================================
+[Bb]in/
+[Oo]bj/
+[Ll]og/
+[Ll]ogs/
+*.user
+*.userosscache
+*.sln.docstates
+*.suo
+*.cache
+*.dll
+*.exe
+*.pdb
+*.nupkg
+*.snupkg
+project.lock.json
+project.fragment.lock.json
+artifacts/
+.vs/
+.vscode/settings.json
+.vscode/tasks.json
+.vscode/launch.json
+.dotnet/
+
+# ============================================================================
+# Python (Legacy v2.5 & Migration Scripts)
+# ============================================================================
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.venv/
+venv/
+ENV/
+env/
+*.pyc
+celerybeat-schedule
+celerybeat.pid
+
+# ============================================================================
+# Node.js / Next.js 15 (Frontend)
+# ============================================================================
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+.next/
+out/
+.nuxt/
+.cache/
+.parcel-cache/
+.vercel/
+.turbo/
+*.tsbuildinfo
+next-env.d.ts
+.env*.local
+
+# ============================================================================
+# Database Files (QuestDB, TimescaleDB backups)
+# ============================================================================
+*.db
+*.sqlite
+*.sqlite3
+database/backups/*.sql
+database/dumps/
+*.dump
+questdb-data/
+timescaledb-data/
+postgresql-data/
+*.log
+*.pid
+*.conf.local
+
+# ============================================================================
+# AI/ML Models & Training Data
+# ============================================================================
+models/saved_models/
+models/checkpoints/
+*.h5
+*.pkl
+*.joblib
+*.model
+*.weights
+training_data/raw/
+embeddings/cache/
+.ipynb_checkpoints/
+
+# ============================================================================
+# IDE / Editor Files
+# ============================================================================
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# ============================================================================
+# Logs & Monitoring
+# ============================================================================
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+combined.log
+error.log
+exceptions.log
+
+# ============================================================================
+# Docker & Container Build Artifacts
+# ============================================================================
+docker-compose.override.yml
+.dockerignore.local
+*.tar
+.docker-cache/
+
+# ============================================================================
+# Testing & Coverage
+# ============================================================================
+coverage/
+*.cover
+.hypothesis/
+.pytest_cache/
+test-results/
+playwright-report/
+test-output/
+
+# ============================================================================
+# Temporary & OS Files
+# ============================================================================
+*.tmp
+*.temp
+*.bak
+*.swp
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ============================================================================
+# Build Artifacts & Distribution
+# ============================================================================
+dist/
+build/
+*.zip
+*.tar.gz
+*.rar
+release/
+
+# ============================================================================
+# Git-specific
+# ============================================================================
+*.orig
+*.rej
+.git-rewrite/
+
+# ============================================================================
+# Keep Important Example Files
+# ============================================================================
+!.env.example
+!appsettings.json.example
+!docker-compose.example.yml
