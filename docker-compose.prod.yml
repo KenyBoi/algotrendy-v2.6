@@ -1,0 +1,240 @@
+version: '3.8'
+
+# ============================================================================
+# AlgoTrendy v2.6 - Production Docker Compose Configuration
+# ============================================================================
+# This file contains production-optimized settings including:
+#   - Resource limits and reservations
+#   - Enhanced security settings
+#   - Log rotation configuration
+#   - Production-grade health checks
+#   - No exposed ports except HTTPS (443)
+# ============================================================================
+# Usage:
+#   docker compose -f docker-compose.prod.yml up -d
+# ============================================================================
+
+networks:
+  algotrendy-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
+
+volumes:
+  questdb_data:
+    driver: local
+  api_logs:
+    driver: local
+  nginx_ssl:
+    driver: local
+
+services:
+  # ==========================================================================
+  # QuestDB - Time-Series Database (Production Configuration)
+  # ==========================================================================
+  questdb:
+    image: questdb/questdb:latest
+    container_name: algotrendy-questdb-prod
+    restart: always
+    networks:
+      algotrendy-network:
+        ipv4_address: 172.20.0.10
+    ports:
+      # Only expose PostgreSQL wire protocol internally
+      # Do NOT expose to host in production
+      - "127.0.0.1:8812:8812"
+      # Web console only on localhost
+      - "127.0.0.1:9000:9000"
+    volumes:
+      - questdb_data:/var/lib/questdb
+    environment:
+      - QDB_TELEMETRY_ENABLED=false
+      - QDB_PG_USER=${QUESTDB_USER:-admin}
+      - QDB_PG_PASSWORD=${QUESTDB_PASSWORD:-quest}
+      # Production optimizations
+      - QDB_CAIRO_COMMIT_LAG=10000
+      - QDB_CAIRO_MAX_UNCOMMITTED_ROWS=500000
+      - JAVA_OPTS=-Xms2g -Xmx4g
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 90s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "5"
+        compress: "true"
+    deploy:
+      resources:
+        limits:
+          cpus: '4.0'
+          memory: 6G
+        reservations:
+          cpus: '2.0'
+          memory: 2G
+    security_opt:
+      - no-new-privileges:true
+    read_only: false
+    tmpfs:
+      - /tmp
+
+  # ==========================================================================
+  # AlgoTrendy API - .NET 8 Application (Production Configuration)
+  # ==========================================================================
+  api:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      args:
+        - BUILDKIT_INLINE_CACHE=1
+    image: algotrendy-api:v2.6-prod
+    container_name: algotrendy-api-prod
+    restart: always
+    depends_on:
+      - questdb
+    networks:
+      algotrendy-network:
+        ipv4_address: 172.20.0.20
+    ports:
+      # Only expose API on localhost (Nginx will proxy)
+      - "127.0.0.1:5002:5002"
+    volumes:
+      - api_logs:/app/logs
+    environment:
+      # Application Settings
+      - ASPNETCORE_ENVIRONMENT=Production
+      - ASPNETCORE_URLS=http://+:5002
+
+      # Database Connection
+      - ConnectionStrings__QuestDB=Host=questdb;Port=8812;Database=qdb;Username=${QUESTDB_USER:-admin};Password=${QUESTDB_PASSWORD:-quest};Timeout=30;CommandTimeout=30;Pooling=true;MinPoolSize=2;MaxPoolSize=20
+
+      # Logging (Production level)
+      - Serilog__MinimumLevel__Default=Warning
+      - Serilog__MinimumLevel__Override__AlgoTrendy=Information
+
+      # Binance API
+      - Binance__ApiKey=${BINANCE_API_KEY}
+      - Binance__ApiSecret=${BINANCE_API_SECRET}
+      - Binance__UseTestnet=${BINANCE_TESTNET:-false}
+
+      # CORS Settings (Restrict to production domain)
+      - AllowedOrigins=${ALLOWED_ORIGINS:-https://yourdomain.com}
+
+      # Market Data Settings
+      - MarketData__FetchIntervalSeconds=${MARKET_DATA_FETCH_INTERVAL:-60}
+
+      # Production Security
+      - ASPNETCORE_FORWARDEDHEADERS_ENABLED=true
+      - ASPNETCORE_HTTPS_PORT=443
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5002/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 90s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "100m"
+        max-file: "10"
+        compress: "true"
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 2G
+        reservations:
+          cpus: '1.0'
+          memory: 1G
+    security_opt:
+      - no-new-privileges:true
+    read_only: false
+    tmpfs:
+      - /tmp
+
+  # ==========================================================================
+  # Nginx - Reverse Proxy with SSL Termination (Production Configuration)
+  # ==========================================================================
+  nginx:
+    image: nginx:alpine
+    container_name: algotrendy-nginx-prod
+    restart: always
+    depends_on:
+      - api
+    networks:
+      algotrendy-network:
+        ipv4_address: 172.20.0.30
+    ports:
+      # ONLY expose HTTPS in production
+      # HTTP port for Let's Encrypt validation only
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./ssl:/etc/nginx/ssl:ro
+      - ./certbot/www:/var/www/certbot:ro
+      - ./certbot/conf:/etc/letsencrypt:ro
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "5"
+        compress: "true"
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 512M
+        reservations:
+          cpus: '0.5'
+          memory: 256M
+    security_opt:
+      - no-new-privileges:true
+    read_only: true
+    tmpfs:
+      - /var/run
+      - /var/cache/nginx
+      - /tmp
+
+  # ==========================================================================
+  # Certbot - SSL Certificate Renewal (Optional, for Let's Encrypt)
+  # ==========================================================================
+  # Uncomment this service if using Let's Encrypt certificates
+  # certbot:
+  #   image: certbot/certbot:latest
+  #   container_name: algotrendy-certbot
+  #   volumes:
+  #     - ./certbot/conf:/etc/letsencrypt
+  #     - ./certbot/www:/var/www/certbot
+  #   entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew; sleep 12h & wait $${!}; done;'"
+  #   restart: unless-stopped
+  #   logging:
+  #     driver: "json-file"
+  #     options:
+  #       max-size: "10m"
+  #       max-file: "3"
+
+# ============================================================================
+# Production Deployment Notes:
+# ============================================================================
+# 1. Set ASPNETCORE_ENVIRONMENT=Production in .env
+# 2. Use valid SSL certificates (Let's Encrypt recommended)
+# 3. Configure firewall to allow only ports 80 (redirect) and 443
+# 4. Set strong passwords for QUESTDB_PASSWORD
+# 5. Restrict ALLOWED_ORIGINS to your actual domain
+# 6. Enable monitoring and alerting
+# 7. Set up automated backups (see DEPLOYMENT_DOCKER.md)
+# 8. Review and adjust resource limits based on load
+# 9. Enable fail2ban or similar for brute-force protection
+# 10. Regularly update images and apply security patches
+# ============================================================================
