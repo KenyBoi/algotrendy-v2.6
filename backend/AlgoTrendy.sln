@@ -1,0 +1,52 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AlgoTrendy.Core", "AlgoTrendy.Core\AlgoTrendy.Core.csproj", "{FFA2ABAD-CD44-44E2-BF29-65195DD86723}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AlgoTrendy.Infrastructure", "AlgoTrendy.Infrastructure\AlgoTrendy.Infrastructure.csproj", "{17D5B977-BC34-41E1-ACA8-C1F0C5948D1B}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AlgoTrendy.API", "AlgoTrendy.API\AlgoTrendy.API.csproj", "{BE454B31-2953-47A9-808D-66636FEA32A8}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AlgoTrendy.TradingEngine", "AlgoTrendy.TradingEngine\AlgoTrendy.TradingEngine.csproj", "{B8777736-65D1-4050-AEE3-AF8D78C2CA3C}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AlgoTrendy.DataChannels", "AlgoTrendy.DataChannels\AlgoTrendy.DataChannels.csproj", "{F3E8AA4E-6135-4495-B9DE-30C22C480A0B}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AlgoTrendy.Tests", "AlgoTrendy.Tests\AlgoTrendy.Tests.csproj", "{7562D4D7-71BE-4918-81A1-8573513B0DC2}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{FFA2ABAD-CD44-44E2-BF29-65195DD86723}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{FFA2ABAD-CD44-44E2-BF29-65195DD86723}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{FFA2ABAD-CD44-44E2-BF29-65195DD86723}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{FFA2ABAD-CD44-44E2-BF29-65195DD86723}.Release|Any CPU.Build.0 = Release|Any CPU
+		{17D5B977-BC34-41E1-ACA8-C1F0C5948D1B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{17D5B977-BC34-41E1-ACA8-C1F0C5948D1B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{17D5B977-BC34-41E1-ACA8-C1F0C5948D1B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{17D5B977-BC34-41E1-ACA8-C1F0C5948D1B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{BE454B31-2953-47A9-808D-66636FEA32A8}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{BE454B31-2953-47A9-808D-66636FEA32A8}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{BE454B31-2953-47A9-808D-66636FEA32A8}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{BE454B31-2953-47A9-808D-66636FEA32A8}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B8777736-65D1-4050-AEE3-AF8D78C2CA3C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B8777736-65D1-4050-AEE3-AF8D78C2CA3C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B8777736-65D1-4050-AEE3-AF8D78C2CA3C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B8777736-65D1-4050-AEE3-AF8D78C2CA3C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F3E8AA4E-6135-4495-B9DE-30C22C480A0B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F3E8AA4E-6135-4495-B9DE-30C22C480A0B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F3E8AA4E-6135-4495-B9DE-30C22C480A0B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F3E8AA4E-6135-4495-B9DE-30C22C480A0B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{7562D4D7-71BE-4918-81A1-8573513B0DC2}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7562D4D7-71BE-4918-81A1-8573513B0DC2}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7562D4D7-71BE-4918-81A1-8573513B0DC2}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7562D4D7-71BE-4918-81A1-8573513B0DC2}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+EndGlobal
