@@ -38,12 +38,11 @@ public class BinanceBroker : IBroker
             // Configure testnet/production environment
             if (_options.UseTestnet)
             {
-                // Configure for testnet
+                Environment.SetEnvironmentVariable("BINANCE_API_TESTNET", "true");
                 _logger.LogInformation("Binance broker configured for TESTNET");
             }
             else
             {
-                // Configure for production
                 _logger.LogInformation("Binance broker configured for PRODUCTION");
             }
         });
