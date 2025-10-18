@@ -2,6 +2,8 @@ using AlgoTrendy.API.Hubs;
 using AlgoTrendy.API.Services;
 using AlgoTrendy.Core.Interfaces;
 using AlgoTrendy.Infrastructure.Repositories;
+using AlgoTrendy.DataChannels.Channels.REST;
+using AlgoTrendy.DataChannels.Services;
 using Serilog;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -62,8 +64,18 @@ var questDbConnectionString = builder.Configuration.GetConnectionString("QuestDB
 builder.Services.AddScoped<IMarketDataRepository>(sp =>
     new MarketDataRepository(questDbConnectionString));
 
+// Add HttpClient factory for REST channels
+builder.Services.AddHttpClient();
+
+// Register all market data channels as scoped services
+builder.Services.AddScoped<BinanceRestChannel>();
+builder.Services.AddScoped<OKXRestChannel>();
+builder.Services.AddScoped<CoinbaseRestChannel>();
+builder.Services.AddScoped<KrakenRestChannel>();
+
 // Add background services
 builder.Services.AddHostedService<MarketDataBroadcastService>();
+builder.Services.AddHostedService<MarketDataChannelService>();
 
 // Configure CORS
 builder.Services.AddCors(options =>
@@ -126,3 +138,6 @@ finally
 {
     Log.CloseAndFlush();
 }
+
+// Make Program class accessible for integration tests
+public partial class Program { }

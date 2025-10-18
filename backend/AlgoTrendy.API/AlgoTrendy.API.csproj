@@ -4,6 +4,7 @@
     <TargetFramework>net8.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
+    <UserSecretsId>algotrendy-v2.6-api-secrets</UserSecretsId>
   </PropertyGroup>
 
   <ItemGroup>
@@ -19,6 +20,7 @@
     <ProjectReference Include="..\AlgoTrendy.Core\AlgoTrendy.Core.csproj" />
     <ProjectReference Include="..\AlgoTrendy.Infrastructure\AlgoTrendy.Infrastructure.csproj" />
     <ProjectReference Include="..\AlgoTrendy.TradingEngine\AlgoTrendy.TradingEngine.csproj" />
+    <ProjectReference Include="..\AlgoTrendy.DataChannels\AlgoTrendy.DataChannels.csproj" />
   </ItemGroup>
 
 </Project>
