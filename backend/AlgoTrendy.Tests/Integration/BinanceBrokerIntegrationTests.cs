@@ -66,7 +66,7 @@ public class BinanceBrokerIntegrationTests : IAsyncLifetime
         return Task.CompletedTask;
     }
 
-    [Fact]
+    [SkippableFact]
     public async Task ConnectAsync_WithValidCredentials_Succeeds()
     {
         // Arrange & Act
