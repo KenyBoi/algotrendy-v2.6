@@ -159,18 +159,78 @@ builder.Services.Configure<FinnhubSettings>(options =>
 
 builder.Services.AddHttpClient<IFinnhubService, FinnhubService>();
 
-// Register broker services
+// Register broker services (Multi-broker support)
+
+// Configure Binance broker options
+builder.Services.Configure<AlgoTrendy.TradingEngine.Brokers.BinanceOptions>(options =>
+{
+    options.ApiKey = builder.Configuration["Binance__ApiKey"] ?? Environment.GetEnvironmentVariable("BINANCE_API_KEY") ?? "";
+    options.ApiSecret = builder.Configuration["Binance__ApiSecret"] ?? Environment.GetEnvironmentVariable("BINANCE_API_SECRET") ?? "";
+    options.UseTestnet = builder.Configuration.GetValue<bool>("Binance__UseTestnet", true);
+    options.UseBinanceUS = builder.Configuration.GetValue<bool>("Binance__UseBinanceUS", false);
+});
+
+// Configure Bybit broker options
+builder.Services.Configure<AlgoTrendy.TradingEngine.Brokers.BybitOptions>(options =>
+{
+    options.ApiKey = builder.Configuration["BYBIT_API_KEY"] ?? Environment.GetEnvironmentVariable("BYBIT_API_KEY") ?? "";
+    options.ApiSecret = builder.Configuration["BYBIT_API_SECRET"] ?? Environment.GetEnvironmentVariable("BYBIT_API_SECRET") ?? "";
+    options.UseTestnet = builder.Configuration.GetValue<bool>("BYBIT_TESTNET", true);
+});
+
+// Configure TradeStation broker options
+builder.Services.Configure<AlgoTrendy.TradingEngine.Brokers.TradeStationOptions>(options =>
+{
+    options.ApiKey = builder.Configuration["TRADESTATION_API_KEY"] ?? Environment.GetEnvironmentVariable("TRADESTATION_API_KEY") ?? "";
+    options.ApiSecret = builder.Configuration["TRADESTATION_API_SECRET"] ?? Environment.GetEnvironmentVariable("TRADESTATION_API_SECRET") ?? "";
+    options.AccountId = builder.Configuration["TRADESTATION_ACCOUNT_ID"] ?? Environment.GetEnvironmentVariable("TRADESTATION_ACCOUNT_ID") ?? "";
+    options.UsePaperTrading = builder.Configuration.GetValue<bool>("TRADESTATION_USE_PAPER", true);
+});
+
+// Configure NinjaTrader broker options
+builder.Services.Configure<AlgoTrendy.TradingEngine.Brokers.NinjaTraderOptions>(options =>
+{
+    options.Username = builder.Configuration["NINJATRADER_USERNAME"] ?? Environment.GetEnvironmentVariable("NINJATRADER_USERNAME") ?? "";
+    options.Password = builder.Configuration["NINJATRADER_PASSWORD"] ?? Environment.GetEnvironmentVariable("NINJATRADER_PASSWORD") ?? "";
+    options.AccountId = builder.Configuration["NINJATRADER_ACCOUNT_ID"] ?? Environment.GetEnvironmentVariable("NINJATRADER_ACCOUNT_ID") ?? "";
+    options.ConnectionType = builder.Configuration["NINJATRADER_CONNECTION_TYPE"] ?? Environment.GetEnvironmentVariable("NINJATRADER_CONNECTION_TYPE") ?? "REST";
+    options.Host = builder.Configuration["NINJATRADER_HOST"] ?? Environment.GetEnvironmentVariable("NINJATRADER_HOST") ?? "localhost";
+    options.Port = builder.Configuration.GetValue<int>("NINJATRADER_PORT", 36973);
+});
+
+// Configure Interactive Brokers options
+builder.Services.Configure<AlgoTrendy.TradingEngine.Brokers.InteractiveBrokersOptions>(options =>
+{
+    options.Username = builder.Configuration["IBKR_USERNAME"] ?? Environment.GetEnvironmentVariable("IBKR_USERNAME") ?? "";
+    options.Password = builder.Configuration["IBKR_PASSWORD"] ?? Environment.GetEnvironmentVariable("IBKR_PASSWORD") ?? "";
+    options.AccountId = builder.Configuration["IBKR_ACCOUNT_ID"] ?? Environment.GetEnvironmentVariable("IBKR_ACCOUNT_ID") ?? "";
+    options.GatewayHost = builder.Configuration["IBKR_GATEWAY_HOST"] ?? Environment.GetEnvironmentVariable("IBKR_GATEWAY_HOST") ?? "localhost";
+    options.GatewayPort = builder.Configuration.GetValue<int>("IBKR_GATEWAY_PORT", 4002); // 4002 for paper, 4001 for live
+    options.ClientId = builder.Configuration.GetValue<int>("IBKR_CLIENT_ID", 1);
+    options.UsePaperTrading = builder.Configuration.GetValue<bool>("IBKR_USE_PAPER", true);
+});
+
+// Register all brokers as named services
+builder.Services.AddScoped<AlgoTrendy.TradingEngine.Brokers.BinanceBroker>();
+builder.Services.AddScoped<AlgoTrendy.TradingEngine.Brokers.BybitBroker>();
+builder.Services.AddScoped<AlgoTrendy.TradingEngine.Brokers.TradeStationBroker>();
+builder.Services.AddScoped<AlgoTrendy.TradingEngine.Brokers.NinjaTraderBroker>();
+builder.Services.AddScoped<AlgoTrendy.TradingEngine.Brokers.InteractiveBrokersBroker>();
+
+// Register default broker (can be configured via environment variable)
 builder.Services.AddScoped<IBroker>(sp =>
 {
-    var logger = sp.GetRequiredService<ILogger<AlgoTrendy.Infrastructure.Brokers.Bybit.BybitBroker>>();
-    var config = sp.GetRequiredService<IConfiguration>();
+    var defaultBroker = builder.Configuration["DEFAULT_BROKER"] ?? Environment.GetEnvironmentVariable("DEFAULT_BROKER") ?? "bybit";
 
-    // Get broker configuration from settings or environment
-    var bybitApiKey = config["Brokers:Bybit:ApiKey"] ?? Environment.GetEnvironmentVariable("BYBIT_API_KEY") ?? "";
-    var bybitApiSecret = config["Brokers:Bybit:ApiSecret"] ?? Environment.GetEnvironmentVariable("BYBIT_API_SECRET") ?? "";
-    var useTestnet = config.GetValue<bool>("Brokers:Bybit:UseTestnet", true);
-
-    return new AlgoTrendy.Infrastructure.Brokers.Bybit.BybitBroker(bybitApiKey, bybitApiSecret, useTestnet, logger);
+    return defaultBroker.ToLower() switch
+    {
+        "binance" => sp.GetRequiredService<AlgoTrendy.TradingEngine.Brokers.BinanceBroker>(),
+        "bybit" => sp.GetRequiredService<AlgoTrendy.TradingEngine.Brokers.BybitBroker>(),
+        "tradestation" => sp.GetRequiredService<AlgoTrendy.TradingEngine.Brokers.TradeStationBroker>(),
+        "ninjatrader" => sp.GetRequiredService<AlgoTrendy.TradingEngine.Brokers.NinjaTraderBroker>(),
+        "interactivebrokers" or "ibkr" => sp.GetRequiredService<AlgoTrendy.TradingEngine.Brokers.InteractiveBrokersBroker>(),
+        _ => sp.GetRequiredService<AlgoTrendy.TradingEngine.Brokers.BybitBroker>() // Default to Bybit
+    };
 });
 
 // Add background services

@@ -169,7 +169,7 @@ public class MarketDataRepository : IMarketDataRepository
         await connection.OpenAsync(cancellationToken);
 
         await using var command = new NpgsqlCommand(sql, connection);
-        command.Parameters.AddWithValue("symbols", symbolList.ToArray());
+        command.Parameters.Add(new NpgsqlParameter("symbols", NpgsqlTypes.NpgsqlDbType.Array | NpgsqlTypes.NpgsqlDbType.Text) { Value = symbolList.ToArray() });
 
         var result = new Dictionary<string, MarketData>();
 

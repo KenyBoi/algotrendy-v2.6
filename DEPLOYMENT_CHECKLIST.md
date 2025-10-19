@@ -1,8 +1,9 @@
-# AlgoTrendy v2.6 - Production Deployment Checklist
+# AlgoTrendy v2.6 - Multi-Broker Production Deployment Checklist
 
-**Date:** October 18, 2025
+**Date:** October 19, 2025
 **Version:** 2.6.0
-**Status:** Ready for Production Deployment
+**Status:** Ready for Multi-Broker Production Deployment
+**Brokers:** Binance, Bybit, TradeStation, NinjaTrader, Interactive Brokers
 
 ---
 
@@ -37,6 +38,101 @@
 - [ ] Non-root user created for deployment
 - [ ] System packages updated: `sudo apt update && sudo apt upgrade`
 - [ ] Required packages installed: `git`, `curl`, `wget`, `nano`
+
+---
+
+## 🏦 Multi-Broker Credential Setup (NEW)
+
+### Option A: Retrieve from GCP Secret Manager (Recommended)
+
+- [ ] **Provide GCP Service Account JSON**
+  ```bash
+  # Place service account key at:
+  /root/gcp-credentials.json
+
+  # Or set environment variable:
+  export GOOGLE_APPLICATION_CREDENTIALS="/path/to/service-account-key.json"
+  ```
+
+- [ ] **Set GCP Project ID**
+  ```bash
+  export GCP_PROJECT_ID="your-gcp-project-id"
+  ```
+
+- [ ] **Run Credential Retrieval Script**
+  ```bash
+  cd /root/AlgoTrendy_v2.6
+  python3 scripts/retrieve_gcp_secrets.py
+  ```
+  - Expected: Credentials written to `.env` file
+  - Verify: `grep -v "your_.*_here" .env | grep "API_KEY"`
+
+### Option B: Manual Credential Entry
+
+- [ ] **Add Bybit Credentials** (CRITICAL - restored from v2.5)
+  ```bash
+  BYBIT_API_KEY=<actual_api_key>
+  BYBIT_API_SECRET=<actual_secret>
+  BYBIT_TESTNET=true  # Set to false for production
+  ```
+
+- [ ] **Add TradeStation Credentials**
+  ```bash
+  TRADESTATION_API_KEY=<actual_client_id>
+  TRADESTATION_API_SECRET=<actual_client_secret>
+  TRADESTATION_ACCOUNT_ID=<actual_account_id>
+  TRADESTATION_USE_PAPER=true  # Set to false for production
+  ```
+
+- [ ] **Add NinjaTrader Credentials**
+  ```bash
+  NINJATRADER_USERNAME=<actual_username>
+  NINJATRADER_PASSWORD=<actual_password>
+  NINJATRADER_ACCOUNT_ID=<actual_account_id>
+  NINJATRADER_CONNECTION_TYPE=REST
+  NINJATRADER_HOST=localhost
+  NINJATRADER_PORT=36973
+  ```
+
+- [ ] **Add Interactive Brokers Credentials**
+  ```bash
+  IBKR_USERNAME=<actual_username>
+  IBKR_PASSWORD=<actual_password>
+  IBKR_ACCOUNT_ID=<actual_account_id>
+  IBKR_GATEWAY_HOST=localhost
+  IBKR_GATEWAY_PORT=4002  # 4002 for paper, 4001 for live
+  IBKR_CLIENT_ID=1
+  IBKR_USE_PAPER=true  # Set to false for production
+  ```
+
+### Verify Broker-Specific Prerequisites
+
+- [ ] **Binance:**
+  - [ ] API key has trading permissions enabled
+  - [ ] IP whitelist configured (if using IP restrictions)
+  - [ ] For Binance US: Verify `Binance__UseBinanceUS=true` in .env
+
+- [ ] **Bybit:**
+  - [ ] Unified Trading Account created
+  - [ ] API key has contract trading permissions
+  - [ ] Testnet account for testing: https://testnet.bybit.com
+
+- [ ] **TradeStation:**
+  - [ ] OAuth app registered in TradeStation portal
+  - [ ] Redirect URIs configured (if using OAuth flow)
+  - [ ] Paper trading account accessible
+
+- [ ] **NinjaTrader:**
+  - [ ] NinjaTrader 8 platform installed (if using locally)
+  - [ ] Automated Trading Interface (ATI) enabled
+  - [ ] Listening on port 36973
+  - [ ] Sim account configured for testing
+
+- [ ] **Interactive Brokers:**
+  - [ ] TWS or IB Gateway installed
+  - [ ] API connections enabled in TWS/Gateway settings
+  - [ ] Paper trading account for testing
+  - [ ] Client ID configured (default: 1)
 
 ---
 
@@ -222,6 +318,24 @@ openssl req -x509 -newkey rsa:2048 -keyout ssl/key.pem -out ssl/cert.pem -days 3
   - [ ] Call POST /api/orders with test credentials
   - [ ] Verify order created with ID
   - [ ] Check order appears in Binance testnet account
+
+- [ ] **Multi-Broker Integration Testing (NEW):**
+  - [ ] Test Bybit connection:
+    ```bash
+    dotnet test --filter "Broker=Bybit&Category=Integration" --verbosity detailed
+    ```
+  - [ ] Test TradeStation connection:
+    ```bash
+    dotnet test --filter "Broker=TradeStation&Category=Integration" --verbosity detailed
+    ```
+  - [ ] Test NinjaTrader connection (requires NT8 running):
+    ```bash
+    dotnet test --filter "Broker=NinjaTrader&Category=Integration" --verbosity detailed
+    ```
+  - [ ] Test Interactive Brokers connection (requires TWS/Gateway running):
+    ```bash
+    dotnet test --filter "Broker=InteractiveBrokers&Category=Integration" --verbosity detailed
+    ```
 
 - [ ] **Strategy signal generation:**
   - [ ] Momentum strategy should generate signals

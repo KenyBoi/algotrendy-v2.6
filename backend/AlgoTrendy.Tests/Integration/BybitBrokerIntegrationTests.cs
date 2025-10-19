@@ -136,7 +136,7 @@ public class BybitBrokerIntegrationTests
         var orderRequest = new OrderRequest
         {
             Symbol = "BTCUSDT",
-            Exchange = "Bybit",
+            Exchange = "bybit",
             Side = OrderSide.Buy,
             Type = OrderType.Market,
             Quantity = 0.001m,

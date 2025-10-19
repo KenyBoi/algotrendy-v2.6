@@ -6,6 +6,7 @@
 
   <ItemGroup>
     <PackageReference Include="Binance.Net" Version="10.0.0" />
+    <PackageReference Include="Bybit.Net" Version="5.10.1" />
     <PackageReference Include="Microsoft.Extensions.Caching.Memory" Version="9.0.10" />
     <PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" Version="9.0.10" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="9.0.10" />

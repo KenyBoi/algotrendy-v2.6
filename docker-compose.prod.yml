@@ -57,7 +57,7 @@ services:
       - QDB_CAIRO_MAX_UNCOMMITTED_ROWS=500000
       - JAVA_OPTS=-Xms2g -Xmx4g
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:9000/"]
+      test: ["CMD-SHELL", "exec 3<>/dev/tcp/localhost/9000 && echo -e 'GET / HTTP/1.1\\r\\nHost: localhost\\r\\n\\r\\n' >&3 && timeout 1 cat <&3 | grep -q HTTP || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 5
