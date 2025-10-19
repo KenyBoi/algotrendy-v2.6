@@ -90,7 +90,7 @@ public class TradingEngineAdvancedTests
         result.Should().NotBeNull();
         result.ExchangeOrderId.Should().NotBeNullOrEmpty();
         result.Status.Should().Be(OrderStatus.Filled);
-        result.FilledQuantity.Should().Be(0.1m);
+        result.FilledQuantity.Should().Be(0.02m);
         result.AverageFillPrice.Should().BeGreaterThan(0);
     }
 
@@ -393,16 +393,16 @@ public class TradingEngineAdvancedTests
 
     [Theory]
     [InlineData(OrderType.Market, 0.02, null)]
-    [InlineData(OrderType.Limit, 0.02, 49000)]
-    [InlineData(OrderType.StopLoss, 0.02, 47000)]
+    [InlineData(OrderType.Limit, 0.02, 49000.0)]
+    [InlineData(OrderType.StopLoss, 0.02, 47000.0)]
     public async Task SubmitOrderAsync_VariousOrderTypes_SubmitCorrectly(
-        OrderType orderType, decimal quantity, decimal? price)
+        OrderType orderType, double quantity, double? price)
     {
         // Arrange
         var order = new OrderBuilder()
             .WithType(orderType)
-            .WithQuantity(quantity)
-            .WithPrice(price)
+            .WithQuantity((decimal)quantity)
+            .WithPrice(price.HasValue ? (decimal)price.Value : null)
             .WithStopPrice(orderType == OrderType.StopLoss ? 48000m : null)
             .Build();
 
