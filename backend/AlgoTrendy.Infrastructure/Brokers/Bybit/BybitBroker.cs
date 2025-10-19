@@ -581,13 +581,14 @@ public class BybitBroker : IBroker
         CancellationToken cancellationToken = default)
     {
         await Task.CompletedTask; // Stub implementation
+
+        if (!_isConnected)
+        {
+            throw new InvalidOperationException("Bybit broker is not connected");
+        }
+
         try
         {
-            if (!_isConnected)
-            {
-                throw new InvalidOperationException("Bybit broker is not connected");
-            }
-
             _logger.LogInformation(
                 "Setting leverage for {Symbol}: {Leverage}x ({MarginType})",
                 symbol, leverage, marginType);
