@@ -4,6 +4,7 @@ using AlgoTrendy.Core.Models;
 using Binance.Net.Clients;
 using Binance.Net.Enums;
 using Binance.Net.Objects;
+using CryptoExchange.Net.Objects;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
@@ -34,23 +35,31 @@ public class BinanceBroker : IBroker
         _options = options?.Value ?? throw new ArgumentNullException(nameof(options));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
 
+        // Configure environment for Binance US if enabled
+        if (_options.UseBinanceUS)
+        {
+            // Binance.Net library uses environment variables to determine US vs Global endpoints
+            Environment.SetEnvironmentVariable("BINANCE_US_API", "true");
+            _logger.LogInformation("Binance broker configured for BINANCE US");
+        }
+
+        // Configure testnet environment
+        if (_options.UseTestnet)
+        {
+            Environment.SetEnvironmentVariable("BINANCE_API_TESTNET", "true");
+            _logger.LogInformation("Binance broker configured for TESTNET");
+        }
+        else
+        {
+            _logger.LogInformation("Binance broker configured for PRODUCTION");
+        }
+
         // Initialize Binance REST client
         _client = new BinanceRestClient(opts =>
         {
             opts.ApiCredentials = new CryptoExchange.Net.Authentication.ApiCredentials(
                 _options.ApiKey,
                 _options.ApiSecret);
-
-            // Configure testnet/production environment
-            if (_options.UseTestnet)
-            {
-                Environment.SetEnvironmentVariable("BINANCE_API_TESTNET", "true");
-                _logger.LogInformation("Binance broker configured for TESTNET");
-            }
-            else
-            {
-                _logger.LogInformation("Binance broker configured for PRODUCTION");
-            }
         });
     }
 
@@ -528,6 +537,11 @@ public class BinanceOptions
     /// Use Binance testnet instead of production
     /// </summary>
     public bool UseTestnet { get; set; } = true;
+
+    /// <summary>
+    /// Use Binance US endpoints instead of global Binance
+    /// </summary>
+    public bool UseBinanceUS { get; set; } = false;
 
     /// <summary>
     /// Binance API key
