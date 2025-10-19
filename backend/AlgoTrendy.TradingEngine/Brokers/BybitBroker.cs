@@ -366,7 +366,7 @@ public class BybitBroker : IBroker
             var order = new Order
             {
                 OrderId = bybitOrder.OrderId,
-                ClientOrderId = bybitOrder.ClientOrderId,
+                ClientOrderId = bybitOrder.ClientOrderId ?? string.Empty,
                 Symbol = bybitOrder.Symbol,
                 Exchange = BrokerName,
                 Side = bybitOrder.Side == Bybit.Net.Enums.OrderSide.Buy ? Core.Enums.OrderSide.Buy : Core.Enums.OrderSide.Sell,

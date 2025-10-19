@@ -8,8 +8,8 @@ using AlgoTrendy.Infrastructure.Repositories;
 using AlgoTrendy.Infrastructure.Services;
 using AlgoTrendy.DataChannels.Channels.REST;
 using AlgoTrendy.DataChannels.Services;
-// using AlgoTrendy.Backtesting.Engines;
-// using AlgoTrendy.Backtesting.Services;
+using AlgoTrendy.Backtesting.Engines;
+using AlgoTrendy.Backtesting.Services;
 using AspNetCoreRateLimit;
 using Serilog;
 
@@ -153,8 +153,8 @@ builder.Services.AddScoped<CoinbaseRestChannel>();
 builder.Services.AddScoped<KrakenRestChannel>();
 
 // Register backtesting services
-// builder.Services.AddScoped<IBacktestEngine, CustomBacktestEngine>();
-// builder.Services.AddScoped<IBacktestService, BacktestService>();
+builder.Services.AddScoped<IBacktestEngine, CustomBacktestEngine>();
+builder.Services.AddScoped<IBacktestService, BacktestService>();
 
 // Configure and register Finnhub service for cryptocurrency market data
 builder.Services.Configure<FinnhubSettings>(options =>
@@ -305,7 +305,7 @@ app.UseSerilogRequestLogging(options =>
     {
         diagnosticContext.Set("RequestHost", httpContext.Request.Host.Value);
         diagnosticContext.Set("RequestScheme", httpContext.Request.Scheme);
-        diagnosticContext.Set("RemoteIP", httpContext.Connection.RemoteIpAddress?.ToString());
+        diagnosticContext.Set("RemoteIP", httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown");
     };
 });
 

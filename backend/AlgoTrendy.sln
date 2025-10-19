@@ -15,6 +15,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AlgoTrendy.DataChannels", "
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AlgoTrendy.Tests", "AlgoTrendy.Tests\AlgoTrendy.Tests.csproj", "{7562D4D7-71BE-4918-81A1-8573513B0DC2}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AlgoTrendy.Backtesting", "AlgoTrendy.Backtesting\AlgoTrendy.Backtesting.csproj", "{BB101AE5-181A-4D36-88F8-8B286AB7094F}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -48,5 +50,9 @@ Global
 		{7562D4D7-71BE-4918-81A1-8573513B0DC2}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{7562D4D7-71BE-4918-81A1-8573513B0DC2}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{7562D4D7-71BE-4918-81A1-8573513B0DC2}.Release|Any CPU.Build.0 = Release|Any CPU
+		{BB101AE5-181A-4D36-88F8-8B286AB7094F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{BB101AE5-181A-4D36-88F8-8B286AB7094F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{BB101AE5-181A-4D36-88F8-8B286AB7094F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{BB101AE5-181A-4D36-88F8-8B286AB7094F}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal

@@ -44,13 +44,21 @@ AlgoTrendy v2.6 is a **production-ready cryptocurrency trading platform** with 2
 
 ## ⏳ What's NOT Complete (Phase 7+)
 
-### ⚠️ CRITICAL: Backtesting Engine (Exists in v2.5, needs porting)
-- ⏳ **Status:** Exists in v2.5 Python, NOT ported to v2.6
-- **v2.5 Location:** `/root/algotrendy_v2.5/algotrendy-api/app/backtesting/`
+### ✅ Backtesting Engine (COMPLETE - Enabled October 19, 2025)
+- ✅ **Status:** FULLY PORTED AND INTEGRATED into v2.6
+- **v2.6 Location:** `/root/AlgoTrendy_v2.6/backend/AlgoTrendy.Backtesting/`
 - **Purpose:** Test strategies on historical data before live trading
-- **Features:** 3 engines (Custom, QuantConnect, Backtester.com), 8 indicators, 6 API endpoints
-- **Estimate:** 30-40 hours (porting Python to C# .NET 8)
-- **Priority:** ⚠️ CRITICAL (required for production)
+- **Features:** Custom engine, 8 indicators (SMA, EMA, RSI, MACD, Bollinger, ATR, Stochastic), 6 API endpoints
+- **API Endpoints:**
+  - `POST /api/v1/backtesting/run` - Run backtest
+  - `GET /api/v1/backtesting/results/{id}` - Get results
+  - `GET /api/v1/backtesting/history` - Get history
+  - `GET /api/v1/backtesting/config` - Get config options
+  - `GET /api/v1/backtesting/indicators` - Get available indicators
+  - `DELETE /api/v1/backtesting/{id}` - Delete backtest
+- **Integration:** Added to solution, DI configured, controller enabled
+- **Build Status:** ✅ Compiles successfully (0 errors, 0 warnings)
+- **Priority:** ✅ COMPLETE
 
 ### ⚠️ CRITICAL: Additional Brokers (Exist in v2.5, need porting)
 - ⏳ **Bybit:** v2.5 has full implementation, v2.6 missing
