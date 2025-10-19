@@ -1,0 +1,68 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:base"
+  ],
+  "description": "AlgoTrendy v2.6 Renovate Configuration - Multi-language dependency updates",
+  "timezone": "America/Chicago",
+  "schedule": ["before 3am on Monday"],
+  "packageRules": [
+    {
+      "description": ".NET NuGet packages",
+      "matchDatasources": ["nuget"],
+      "groupName": ".NET dependencies",
+      "schedule": ["before 3am on Monday"],
+      "automerge": false,
+      "labels": ["dependencies", "dotnet"]
+    },
+    {
+      "description": "Python pip packages",
+      "matchDatasources": ["pypi"],
+      "groupName": "Python dependencies",
+      "schedule": ["before 3am on Monday"],
+      "automerge": false,
+      "labels": ["dependencies", "python"]
+    },
+    {
+      "description": "JavaScript npm packages",
+      "matchDatasources": ["npm"],
+      "groupName": "JavaScript dependencies",
+      "schedule": ["before 3am on Monday"],
+      "automerge": false,
+      "labels": ["dependencies", "javascript"]
+    },
+    {
+      "description": "Docker base images",
+      "matchDatasources": ["docker"],
+      "groupName": "Docker images",
+      "schedule": ["before 3am on Monday"],
+      "labels": ["dependencies", "docker"]
+    },
+    {
+      "description": "Auto-merge patch updates",
+      "matchUpdateTypes": ["patch"],
+      "automerge": true,
+      "automergeType": "pr",
+      "labels": ["auto-merge"]
+    },
+    {
+      "description": "Critical security updates",
+      "matchUpdateTypes": ["patch"],
+      "matchPackagePatterns": ["*"],
+      "vulnerabilityAlerts": {
+        "enabled": true
+      },
+      "labels": ["security", "critical"]
+    }
+  ],
+  "vulnerabilityAlerts": {
+    "enabled": true,
+    "labels": ["security"],
+    "assignees": []
+  },
+  "prConcurrentLimit": 5,
+  "prHourlyLimit": 2,
+  "rebaseWhen": "conflicted",
+  "semanticCommits": "enabled",
+  "commitMessagePrefix": "chore(deps):"
+}

@@ -1,0 +1,93 @@
+---
+- name: Upgrade AlgoTrendy v2.5 → v2.6
+  hosts: localhost
+  vars:
+    backup_dir: "/backups/{{ ansible_date_time.iso8601 }}"
+    app_dir: "/root/AlgoTrendy_v2.6"
+    db_password: "algotrendy_dev_pass_2025"
+
+  tasks:
+    - name: Display upgrade start
+      debug:
+        msg: |
+          ============================================
+          AlgoTrendy Upgrade Starting
+          Date: {{ ansible_date_time.iso8601 }}
+          ============================================
+
+    - name: Create backup directory
+      file:
+        path: "{{ backup_dir }}"
+        state: directory
+        mode: '0755'
+
+    - name: Backup PostgreSQL database with pgBackRest
+      become: yes
+      become_user: postgres
+      shell: |
+        pgbackrest --stanza=algotrendy backup --type=full
+      register: backup_result
+
+    - name: Display backup result
+      debug:
+        msg: "Backup completed: {{ backup_result.stdout_lines[-3:] }}"
+
+    - name: Tag current Liquibase version
+      shell: |
+        /opt/liquibase/liquibase --username=postgres --password={{ db_password }} tag v2.5-pre-upgrade-{{ ansible_date_time.iso8601 }}
+      args:
+        chdir: "{{ app_dir }}/database"
+      register: tag_result
+
+    - name: Display tag result
+      debug:
+        msg: "Tagged database version: v2.5-pre-upgrade-{{ ansible_date_time.iso8601 }}"
+
+    - name: Apply database migrations (if any)
+      shell: |
+        /opt/liquibase/liquibase --username=postgres --password={{ db_password }} update
+      args:
+        chdir: "{{ app_dir }}/database"
+      register: migration_result
+      ignore_errors: yes
+
+    - name: Check migration status
+      debug:
+        msg: "Migration {{ 'succeeded' if migration_result.rc == 0 else 'FAILED' }}"
+
+    - name: Rollback on migration failure
+      shell: |
+        /opt/liquibase/liquibase --username=postgres --password={{ db_password }} rollback v2.5
+      args:
+        chdir: "{{ app_dir }}/database"
+      when: migration_result.failed
+
+    - name: Build v2.6 application (placeholder)
+      debug:
+        msg: "In production: dotnet publish -c Release -o /opt/algotrendy/v2.6"
+      when: not migration_result.failed
+
+    - name: Create upgrade report
+      copy:
+        content: |
+          AlgoTrendy Upgrade Report
+          =========================
+          Date: {{ ansible_date_time.iso8601 }}
+          Status: {{ 'SUCCESS' if not migration_result.failed else 'FAILED' }}
+          Backup Location: {{ backup_dir }}
+
+          Migration Output:
+          {{ migration_result.stdout }}
+
+          {{ migration_result.stderr if migration_result.failed else '' }}
+        dest: "{{ backup_dir }}/UPGRADE_REPORT.txt"
+
+    - name: Display upgrade summary
+      debug:
+        msg: |
+          ============================================
+          Upgrade Complete!
+          Status: {{ 'SUCCESS ✅' if not migration_result.failed else 'FAILED ❌' }}
+          Backup: {{ backup_dir }}
+          Report: {{ backup_dir }}/UPGRADE_REPORT.txt
+          ============================================
