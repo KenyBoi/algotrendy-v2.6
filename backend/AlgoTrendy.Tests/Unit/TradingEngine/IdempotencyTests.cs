@@ -41,6 +41,24 @@ public class IdempotencyTests
             MaxOrderSize = null
         });
 
+        // Default mock setup for GetOrderStatusAsync
+        _mockBroker.Setup(b => b.GetOrderStatusAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((string exchangeOrderId, string symbol, CancellationToken ct) => new Order
+            {
+                OrderId = Guid.NewGuid().ToString(),
+                ClientOrderId = OrderFactory.GenerateClientOrderId(),
+                ExchangeOrderId = exchangeOrderId,
+                Symbol = symbol,
+                Exchange = "binance",
+                Side = OrderSide.Buy,
+                Type = OrderType.Market,
+                Status = OrderStatus.Open,
+                Quantity = 0.001m,
+                FilledQuantity = 0,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow
+            });
+
         _tradingEngine = new AlgoTrendy.TradingEngine.TradingEngine(
             _mockOrderRepository.Object,
             _mockMarketDataRepository.Object,
@@ -106,6 +124,9 @@ public class IdempotencyTests
         _mockBroker.Setup(b => b.PlaceOrderAsync(It.IsAny<OrderRequest>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(brokerOrder);
 
+        _mockBroker.Setup(b => b.GetOrderStatusAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(brokerOrder);
+
         _mockOrderRepository.Setup(r => r.UpdateAsync(It.IsAny<Order>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync((Order o, CancellationToken ct) => o);
 
@@ -151,6 +172,23 @@ public class IdempotencyTests
                 Type = req.Type,
                 Status = OrderStatus.Open,
                 Quantity = req.Quantity,
+                FilledQuantity = 0,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow
+            });
+
+        _mockBroker.Setup(b => b.GetOrderStatusAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((string exchangeOrderId, string symbol, CancellationToken ct) => new Order
+            {
+                OrderId = Guid.NewGuid().ToString(),
+                ClientOrderId = OrderFactory.GenerateClientOrderId(),
+                ExchangeOrderId = exchangeOrderId,
+                Symbol = symbol,
+                Exchange = "binance",
+                Side = OrderSide.Buy,
+                Type = OrderType.Market,
+                Status = OrderStatus.Open,
+                Quantity = 0.001m,
                 FilledQuantity = 0,
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow
