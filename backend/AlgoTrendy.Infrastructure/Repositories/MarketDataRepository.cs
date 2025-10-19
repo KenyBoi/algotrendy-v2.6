@@ -99,7 +99,9 @@ public class MarketDataRepository : IMarketDataRepository
         CancellationToken cancellationToken = default)
     {
         const string sql = @"
-            SELECT symbol, timestamp, open, high, low, close,
+            SELECT symbol,
+                   cast(timestamp as varchar) as timestamp,
+                   open, high, low, close,
                    volume, quote_volume, trades_count, source, metadata_json
             FROM market_data_1m
             WHERE symbol = @symbol
@@ -129,7 +131,9 @@ public class MarketDataRepository : IMarketDataRepository
     public async Task<MarketData?> GetLatestAsync(string symbol, CancellationToken cancellationToken = default)
     {
         const string sql = @"
-            SELECT symbol, timestamp, open, high, low, close,
+            SELECT symbol,
+                   cast(timestamp as varchar) as timestamp,
+                   open, high, low, close,
                    volume, quote_volume, trades_count, source, metadata_json
             FROM market_data_1m
             WHERE symbol = @symbol
@@ -166,7 +170,9 @@ public class MarketDataRepository : IMarketDataRepository
         }
 
         var sql = $@"
-            SELECT symbol, timestamp, open, high, low, close,
+            SELECT symbol,
+                   cast(timestamp as varchar) as timestamp,
+                   open, high, low, close,
                    volume, quote_volume, trades_count, source, metadata_json
             FROM market_data_1m
             WHERE symbol IN ({string.Join(", ", parameters)})
@@ -269,23 +275,10 @@ public class MarketDataRepository : IMarketDataRepository
 
     private static MarketData MapToMarketData(NpgsqlDataReader reader)
     {
-        // QuestDB returns timestamp as object - need to handle conversion
-        var timestampValue = reader.GetValue(1);
-        DateTime timestamp;
-
-        if (timestampValue is DateTime dt)
-        {
-            timestamp = dt;
-        }
-        else if (timestampValue is string str)
-        {
-            timestamp = DateTime.Parse(str, null, System.Globalization.DateTimeStyles.RoundtripKind);
-        }
-        else
-        {
-            // Fallback: convert to string then parse
-            timestamp = DateTime.Parse(timestampValue.ToString() ?? string.Empty, null, System.Globalization.DateTimeStyles.RoundtripKind);
-        }
+        // QuestDB timestamps need to be read as strings and parsed
+        // This avoids Npgsql's type mapping issues with QuestDB's timestamp type
+        string timestampStr = reader.GetString(1);
+        DateTime timestamp = DateTime.Parse(timestampStr, null, System.Globalization.DateTimeStyles.RoundtripKind);
 
         return new MarketData
         {

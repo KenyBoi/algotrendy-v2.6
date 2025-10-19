@@ -1,0 +1,516 @@
+using AlgoTrendy.Backtesting.Models;
+using AlgoTrendy.Core.Interfaces;
+using Dapper;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
+using Npgsql;
+using System.Data;
+using System.Text.Json;
+
+namespace AlgoTrendy.Infrastructure.Repositories;
+
+/// <summary>
+/// PostgreSQL repository for backtest results persistence
+/// </summary>
+public class BacktestRepository : IBacktestRepository
+{
+    private readonly ILogger<BacktestRepository> _logger;
+    private readonly string _connectionString;
+    private readonly JsonSerializerOptions _jsonOptions;
+
+    public BacktestRepository(
+        ILogger<BacktestRepository> logger,
+        IConfiguration configuration)
+    {
+        _logger = logger;
+        _connectionString = configuration.GetConnectionString("DefaultConnection")
+            ?? throw new ArgumentNullException(nameof(configuration), "DefaultConnection string not found");
+
+        _jsonOptions = new JsonSerializerOptions
+        {
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+            WriteIndented = false,
+            DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull
+        };
+    }
+
+    /// <inheritdoc/>
+    public async Task<string> SaveAsync(BacktestResults results, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            using var connection = new NpgsqlConnection(_connectionString);
+            await connection.OpenAsync(cancellationToken);
+
+            // Serialize complex objects to JSON
+            var configJson = JsonSerializer.Serialize(results.Config, _jsonOptions);
+            var resultsJson = JsonSerializer.Serialize(new
+            {
+                equityCurve = results.EquityCurve,
+                trades = results.Trades
+            }, _jsonOptions);
+            var metadataJson = results.Metadata != null
+                ? JsonSerializer.Serialize(results.Metadata, _jsonOptions)
+                : null;
+            var errorDetailsJson = results.ErrorDetails != null
+                ? JsonSerializer.Serialize(results.ErrorDetails, _jsonOptions)
+                : null;
+
+            var sql = @"
+                INSERT INTO backtests (
+                    backtest_id, symbol, status, created_at, updated_at,
+                    started_at, completed_at, execution_time_seconds,
+                    config_json, results_json,
+                    total_return, annual_return, sharpe_ratio, sortino_ratio,
+                    max_drawdown, win_rate, profit_factor,
+                    total_trades, winning_trades, losing_trades,
+                    error_message, error_details, metadata,
+                    indicators_used, asset_class, timeframe,
+                    initial_capital, final_value, total_pnl
+                ) VALUES (
+                    @BacktestId, @Symbol, @Status, @CreatedAt, @UpdatedAt,
+                    @StartedAt, @CompletedAt, @ExecutionTimeSeconds,
+                    @ConfigJson::jsonb, @ResultsJson::jsonb,
+                    @TotalReturn, @AnnualReturn, @SharpeRatio, @SortinoRatio,
+                    @MaxDrawdown, @WinRate, @ProfitFactor,
+                    @TotalTrades, @WinningTrades, @LosingTrades,
+                    @ErrorMessage, @ErrorDetailsJson::jsonb, @MetadataJson::jsonb,
+                    @IndicatorsUsed, @AssetClass, @Timeframe,
+                    @InitialCapital, @FinalValue, @TotalPnl
+                )
+                ON CONFLICT (backtest_id) DO UPDATE SET
+                    status = EXCLUDED.status,
+                    updated_at = EXCLUDED.updated_at,
+                    completed_at = EXCLUDED.completed_at,
+                    execution_time_seconds = EXCLUDED.execution_time_seconds,
+                    results_json = EXCLUDED.results_json,
+                    total_return = EXCLUDED.total_return,
+                    annual_return = EXCLUDED.annual_return,
+                    sharpe_ratio = EXCLUDED.sharpe_ratio,
+                    sortino_ratio = EXCLUDED.sortino_ratio,
+                    max_drawdown = EXCLUDED.max_drawdown,
+                    win_rate = EXCLUDED.win_rate,
+                    profit_factor = EXCLUDED.profit_factor,
+                    total_trades = EXCLUDED.total_trades,
+                    winning_trades = EXCLUDED.winning_trades,
+                    losing_trades = EXCLUDED.losing_trades,
+                    error_message = EXCLUDED.error_message,
+                    error_details = EXCLUDED.error_details,
+                    final_value = EXCLUDED.final_value,
+                    total_pnl = EXCLUDED.total_pnl
+                RETURNING backtest_id;";
+
+            var backtestId = await connection.ExecuteScalarAsync<string>(
+                sql,
+                new
+                {
+                    BacktestId = results.BacktestId,
+                    Symbol = results.Config.Symbol,
+                    Status = results.Status.ToString(),
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow,
+                    StartedAt = results.StartedAt,
+                    CompletedAt = results.CompletedAt,
+                    ExecutionTimeSeconds = results.ExecutionTimeSeconds,
+                    ConfigJson = configJson,
+                    ResultsJson = resultsJson,
+                    TotalReturn = results.Metrics?.TotalReturn,
+                    AnnualReturn = results.Metrics?.AnnualReturn,
+                    SharpeRatio = results.Metrics?.SharpeRatio,
+                    SortinoRatio = results.Metrics?.SortinoRatio,
+                    MaxDrawdown = results.Metrics?.MaxDrawdown,
+                    WinRate = results.Metrics?.WinRate,
+                    ProfitFactor = results.Metrics?.ProfitFactor,
+                    TotalTrades = results.Metrics?.TotalTrades,
+                    WinningTrades = results.Metrics?.WinningTrades,
+                    LosingTrades = results.Metrics?.LosingTrades,
+                    ErrorMessage = results.ErrorMessage,
+                    ErrorDetailsJson = errorDetailsJson,
+                    MetadataJson = metadataJson,
+                    IndicatorsUsed = results.IndicatorsUsed?.ToArray(),
+                    AssetClass = results.Config.AssetClass.ToString(),
+                    Timeframe = results.Config.Timeframe.ToString(),
+                    InitialCapital = results.Config.InitialCapital,
+                    FinalValue = results.Metrics?.FinalValue,
+                    TotalPnl = results.Metrics?.TotalPnL
+                },
+                commandTimeout: 30);
+
+            _logger.LogInformation(
+                "Saved backtest {BacktestId} for {Symbol} with status {Status}",
+                backtestId, results.Config.Symbol, results.Status);
+
+            return backtestId ?? results.BacktestId;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to save backtest {BacktestId}", results.BacktestId);
+            throw;
+        }
+    }
+
+    /// <inheritdoc/>
+    public async Task<BacktestResults?> GetByIdAsync(string backtestId, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            using var connection = new NpgsqlConnection(_connectionString);
+            await connection.OpenAsync(cancellationToken);
+
+            var sql = @"
+                SELECT
+                    backtest_id, symbol, status, created_at, updated_at,
+                    started_at, completed_at, execution_time_seconds,
+                    config_json, results_json,
+                    total_return, annual_return, sharpe_ratio, sortino_ratio,
+                    max_drawdown, win_rate, profit_factor,
+                    total_trades, winning_trades, losing_trades,
+                    error_message, error_details, metadata,
+                    indicators_used, asset_class, timeframe,
+                    initial_capital, final_value, total_pnl
+                FROM backtests
+                WHERE backtest_id = @BacktestId;";
+
+            var row = await connection.QuerySingleOrDefaultAsync<BacktestRow>(
+                sql,
+                new { BacktestId = backtestId });
+
+            if (row == null)
+            {
+                _logger.LogWarning("Backtest {BacktestId} not found", backtestId);
+                return null;
+            }
+
+            return MapToBacktestResults(row);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to get backtest {BacktestId}", backtestId);
+            throw;
+        }
+    }
+
+    /// <inheritdoc/>
+    public async Task<List<BacktestResults>> GetRecentAsync(
+        int limit = 50,
+        int offset = 0,
+        string? symbol = null,
+        BacktestStatus? status = null,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            using var connection = new NpgsqlConnection(_connectionString);
+            await connection.OpenAsync(cancellationToken);
+
+            var whereClauses = new List<string>();
+            var parameters = new DynamicParameters();
+
+            if (!string.IsNullOrEmpty(symbol))
+            {
+                whereClauses.Add("symbol = @Symbol");
+                parameters.Add("Symbol", symbol);
+            }
+
+            if (status.HasValue)
+            {
+                whereClauses.Add("status = @Status");
+                parameters.Add("Status", status.Value.ToString());
+            }
+
+            var whereClause = whereClauses.Any()
+                ? "WHERE " + string.Join(" AND ", whereClauses)
+                : "";
+
+            var sql = $@"
+                SELECT
+                    backtest_id, symbol, status, created_at, updated_at,
+                    started_at, completed_at, execution_time_seconds,
+                    config_json, results_json,
+                    total_return, annual_return, sharpe_ratio, sortino_ratio,
+                    max_drawdown, win_rate, profit_factor,
+                    total_trades, winning_trades, losing_trades,
+                    error_message, error_details, metadata,
+                    indicators_used, asset_class, timeframe,
+                    initial_capital, final_value, total_pnl
+                FROM backtests
+                {whereClause}
+                ORDER BY created_at DESC
+                LIMIT @Limit OFFSET @Offset;";
+
+            parameters.Add("Limit", limit);
+            parameters.Add("Offset", offset);
+
+            var rows = await connection.QueryAsync<BacktestRow>(sql, parameters);
+
+            return rows.Select(MapToBacktestResults).ToList();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to get recent backtests");
+            throw;
+        }
+    }
+
+    /// <inheritdoc/>
+    public async Task<int> GetCountAsync(
+        string? symbol = null,
+        BacktestStatus? status = null,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            using var connection = new NpgsqlConnection(_connectionString);
+            await connection.OpenAsync(cancellationToken);
+
+            var whereClauses = new List<string>();
+            var parameters = new DynamicParameters();
+
+            if (!string.IsNullOrEmpty(symbol))
+            {
+                whereClauses.Add("symbol = @Symbol");
+                parameters.Add("Symbol", symbol);
+            }
+
+            if (status.HasValue)
+            {
+                whereClauses.Add("status = @Status");
+                parameters.Add("Status", status.Value.ToString());
+            }
+
+            var whereClause = whereClauses.Any()
+                ? "WHERE " + string.Join(" AND ", whereClauses)
+                : "";
+
+            var sql = $"SELECT COUNT(*) FROM backtests {whereClause};";
+
+            return await connection.ExecuteScalarAsync<int>(sql, parameters);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to get backtest count");
+            throw;
+        }
+    }
+
+    /// <inheritdoc/>
+    public async Task<bool> DeleteAsync(string backtestId, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            using var connection = new NpgsqlConnection(_connectionString);
+            await connection.OpenAsync(cancellationToken);
+
+            var sql = "DELETE FROM backtests WHERE backtest_id = @BacktestId;";
+
+            var rowsAffected = await connection.ExecuteAsync(
+                sql,
+                new { BacktestId = backtestId });
+
+            if (rowsAffected > 0)
+            {
+                _logger.LogInformation("Deleted backtest {BacktestId}", backtestId);
+                return true;
+            }
+
+            _logger.LogWarning("Backtest {BacktestId} not found for deletion", backtestId);
+            return false;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to delete backtest {BacktestId}", backtestId);
+            throw;
+        }
+    }
+
+    /// <inheritdoc/>
+    public async Task<bool> UpdateStatusAsync(
+        string backtestId,
+        BacktestStatus status,
+        string? errorMessage = null,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            using var connection = new NpgsqlConnection(_connectionString);
+            await connection.OpenAsync(cancellationToken);
+
+            var sql = @"
+                UPDATE backtests
+                SET status = @Status,
+                    error_message = @ErrorMessage,
+                    completed_at = CASE WHEN @Status IN ('Completed', 'Failed', 'Cancelled')
+                                        THEN NOW()
+                                        ELSE completed_at END
+                WHERE backtest_id = @BacktestId;";
+
+            var rowsAffected = await connection.ExecuteAsync(
+                sql,
+                new
+                {
+                    BacktestId = backtestId,
+                    Status = status.ToString(),
+                    ErrorMessage = errorMessage
+                });
+
+            if (rowsAffected > 0)
+            {
+                _logger.LogInformation(
+                    "Updated backtest {BacktestId} status to {Status}",
+                    backtestId, status);
+                return true;
+            }
+
+            _logger.LogWarning("Backtest {BacktestId} not found for status update", backtestId);
+            return false;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to update backtest {BacktestId} status", backtestId);
+            throw;
+        }
+    }
+
+    /// <inheritdoc/>
+    public async Task<bool> ExistsAsync(string backtestId, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            using var connection = new NpgsqlConnection(_connectionString);
+            await connection.OpenAsync(cancellationToken);
+
+            var sql = "SELECT COUNT(*) FROM backtests WHERE backtest_id = @BacktestId;";
+
+            var count = await connection.ExecuteScalarAsync<int>(
+                sql,
+                new { BacktestId = backtestId });
+
+            return count > 0;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to check if backtest {BacktestId} exists", backtestId);
+            throw;
+        }
+    }
+
+    /// <summary>
+    /// Map database row to BacktestResults object
+    /// </summary>
+    private BacktestResults MapToBacktestResults(BacktestRow row)
+    {
+        // Deserialize JSON fields
+        var config = JsonSerializer.Deserialize<BacktestConfig>(row.config_json, _jsonOptions)
+            ?? throw new InvalidOperationException("Failed to deserialize config_json");
+
+        BacktestResults results;
+
+        if (!string.IsNullOrEmpty(row.results_json))
+        {
+            var resultsData = JsonSerializer.Deserialize<BacktestResultsData>(row.results_json, _jsonOptions);
+
+            results = new BacktestResults
+            {
+                BacktestId = row.backtest_id,
+                Status = Enum.Parse<BacktestStatus>(row.status),
+                Config = config,
+                StartedAt = row.started_at,
+                CompletedAt = row.completed_at,
+                ExecutionTimeSeconds = row.execution_time_seconds ?? 0,
+                ErrorMessage = row.error_message,
+                ErrorDetails = !string.IsNullOrEmpty(row.error_details)
+                    ? JsonSerializer.Deserialize<Dictionary<string, object>>(row.error_details, _jsonOptions)
+                    : null,
+                Metadata = !string.IsNullOrEmpty(row.metadata)
+                    ? JsonSerializer.Deserialize<Dictionary<string, object>>(row.metadata, _jsonOptions)
+                    : null,
+                IndicatorsUsed = row.indicators_used?.ToList() ?? new List<string>(),
+                EquityCurve = resultsData?.equityCurve ?? new List<EquityPoint>(),
+                Trades = resultsData?.trades ?? new List<TradeResult>(),
+                Metrics = new BacktestMetrics
+                {
+                    TotalReturn = row.total_return ?? 0,
+                    AnnualizedReturn = row.annual_return ?? 0,
+                    SharpeRatio = row.sharpe_ratio ?? 0,
+                    SortinoRatio = row.sortino_ratio ?? 0,
+                    MaxDrawdown = row.max_drawdown ?? 0,
+                    WinRate = row.win_rate ?? 0,
+                    ProfitFactor = row.profit_factor ?? 0,
+                    TotalTrades = row.total_trades ?? 0,
+                    WinningTrades = row.winning_trades ?? 0,
+                    LosingTrades = row.losing_trades ?? 0,
+                    FinalValue = row.final_value ?? config.InitialCapital,
+                    TotalPnL = row.total_pnl ?? 0
+                }
+            };
+        }
+        else
+        {
+            // Backtest not yet completed
+            results = new BacktestResults
+            {
+                BacktestId = row.backtest_id,
+                Status = Enum.Parse<BacktestStatus>(row.status),
+                Config = config,
+                StartedAt = row.started_at,
+                CompletedAt = row.completed_at,
+                ExecutionTimeSeconds = row.execution_time_seconds ?? 0,
+                ErrorMessage = row.error_message,
+                ErrorDetails = !string.IsNullOrEmpty(row.error_details)
+                    ? JsonSerializer.Deserialize<Dictionary<string, object>>(row.error_details, _jsonOptions)
+                    : null,
+                Metadata = !string.IsNullOrEmpty(row.metadata)
+                    ? JsonSerializer.Deserialize<Dictionary<string, object>>(row.metadata, _jsonOptions)
+                    : null,
+                IndicatorsUsed = row.indicators_used?.ToList() ?? new List<string>()
+            };
+        }
+
+        return results;
+    }
+
+    /// <summary>
+    /// Database row mapping class
+    /// </summary>
+    private class BacktestRow
+    {
+        public string backtest_id { get; set; } = string.Empty;
+        public string symbol { get; set; } = string.Empty;
+        public string status { get; set; } = string.Empty;
+        public DateTime created_at { get; set; }
+        public DateTime updated_at { get; set; }
+        public DateTime? started_at { get; set; }
+        public DateTime? completed_at { get; set; }
+        public double? execution_time_seconds { get; set; }
+        public string config_json { get; set; } = string.Empty;
+        public string? results_json { get; set; }
+        public decimal? total_return { get; set; }
+        public decimal? annual_return { get; set; }
+        public decimal? sharpe_ratio { get; set; }
+        public decimal? sortino_ratio { get; set; }
+        public decimal? max_drawdown { get; set; }
+        public decimal? win_rate { get; set; }
+        public decimal? profit_factor { get; set; }
+        public int? total_trades { get; set; }
+        public int? winning_trades { get; set; }
+        public int? losing_trades { get; set; }
+        public string? error_message { get; set; }
+        public string? error_details { get; set; }
+        public string? metadata { get; set; }
+        public string[]? indicators_used { get; set; }
+        public string? asset_class { get; set; }
+        public string? timeframe { get; set; }
+        public decimal? initial_capital { get; set; }
+        public decimal? final_value { get; set; }
+        public decimal? total_pnl { get; set; }
+    }
+
+    /// <summary>
+    /// Helper class for deserializing results_json
+    /// </summary>
+    private class BacktestResultsData
+    {
+        public List<EquityPoint>? equityCurve { get; set; }
+        public List<TradeResult>? trades { get; set; }
+    }
+}
