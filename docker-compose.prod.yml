@@ -120,6 +120,7 @@ services:
       - Binance__ApiKey=${BINANCE_API_KEY}
       - Binance__ApiSecret=${BINANCE_API_SECRET}
       - Binance__UseTestnet=${BINANCE_TESTNET:-false}
+      - Binance__UseBinanceUS=${BINANCE_US:-true}
 
       # CORS Settings (Restrict to production domain)
       - AllowedOrigins=${ALLOWED_ORIGINS:-https://yourdomain.com}
