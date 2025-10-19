@@ -5,6 +5,8 @@ using AlgoTrendy.Core.Interfaces;
 using AlgoTrendy.Infrastructure.Repositories;
 using AlgoTrendy.DataChannels.Channels.REST;
 using AlgoTrendy.DataChannels.Services;
+using AlgoTrendy.Backtesting.Engines;
+using AlgoTrendy.Backtesting.Services;
 using Serilog;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -135,6 +137,10 @@ builder.Services.AddScoped<BinanceRestChannel>();
 builder.Services.AddScoped<OKXRestChannel>();
 builder.Services.AddScoped<CoinbaseRestChannel>();
 builder.Services.AddScoped<KrakenRestChannel>();
+
+// Register backtesting services
+builder.Services.AddScoped<IBacktestEngine, CustomBacktestEngine>();
+builder.Services.AddScoped<IBacktestService, BacktestService>();
 
 // Add background services
 builder.Services.AddHostedService<MarketDataBroadcastService>();

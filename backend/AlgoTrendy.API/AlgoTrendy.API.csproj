@@ -24,6 +24,7 @@
     <ProjectReference Include="..\AlgoTrendy.Infrastructure\AlgoTrendy.Infrastructure.csproj" />
     <ProjectReference Include="..\AlgoTrendy.TradingEngine\AlgoTrendy.TradingEngine.csproj" />
     <ProjectReference Include="..\AlgoTrendy.DataChannels\AlgoTrendy.DataChannels.csproj" />
+    <ProjectReference Include="..\AlgoTrendy.Backtesting\AlgoTrendy.Backtesting.csproj" />
   </ItemGroup>
 
 </Project>
