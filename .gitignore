@@ -202,8 +202,21 @@ release/
 .git-rewrite/
 
 # ============================================================================
+# Development Tools & Analysis Reports
+# ============================================================================
+devtools/analysis/*.json
+devtools/analysis/*.xml
+devtools/analysis/*.txt
+devtools/analysis/*.html
+devtools/analysis/*.sarif
+# Keep README and summary docs
+!devtools/analysis/README.md
+!devtools/analysis/*-summary.md
+
+# ============================================================================
 # Keep Important Example Files
 # ============================================================================
 !.env.example
 !appsettings.json.example
 !docker-compose.example.yml
+trees/
