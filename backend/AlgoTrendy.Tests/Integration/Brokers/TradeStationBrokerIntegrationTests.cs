@@ -16,8 +16,9 @@ namespace AlgoTrendy.Tests.Integration.Brokers;
 [Trait("Broker", "TradeStation")]
 public class TradeStationBrokerIntegrationTests : IDisposable
 {
-    private readonly TradeStationBroker _broker;
+    private readonly TradeStationBroker? _broker;
     private readonly ITestOutputHelper _output;
+    private readonly bool _credentialsAvailable;
 
     public TradeStationBrokerIntegrationTests(ITestOutputHelper output)
     {
@@ -29,38 +30,48 @@ public class TradeStationBrokerIntegrationTests : IDisposable
         var accountId = Environment.GetEnvironmentVariable("TRADESTATION_ACCOUNT_ID");
         var usePaper = Environment.GetEnvironmentVariable("TRADESTATION_USE_PAPER")?.ToLower() != "false";
 
-        if (string.IsNullOrEmpty(apiKey) || string.IsNullOrEmpty(apiSecret) || string.IsNullOrEmpty(accountId))
+        _credentialsAvailable = !string.IsNullOrEmpty(apiKey) && !string.IsNullOrEmpty(apiSecret) && !string.IsNullOrEmpty(accountId);
+
+        if (_credentialsAvailable)
         {
-            throw new SkipException("TradeStation API credentials not configured. Set TRADESTATION_API_KEY, TRADESTATION_API_SECRET, and TRADESTATION_ACCOUNT_ID environment variables.");
+            var options = Options.Create(new TradeStationOptions
+            {
+                ApiKey = apiKey!,
+                ApiSecret = apiSecret!,
+                AccountId = accountId!,
+                UsePaperTrading = usePaper
+            });
+
+            var loggerFactory = LoggerFactory.Create(builder =>
+            {
+                builder.AddConsole();
+                builder.SetMinimumLevel(LogLevel.Debug);
+            });
+
+            var logger = loggerFactory.CreateLogger<TradeStationBroker>();
+            var httpClientFactory = new TestHttpClientFactory();
+
+            _broker = new TradeStationBroker(options, logger, httpClientFactory);
+
+            _output.WriteLine($"Testing TradeStation broker on {(usePaper ? "PAPER TRADING (sim-api)" : "PRODUCTION")}");
         }
+    }
 
-        var options = Options.Create(new TradeStationOptions
+    private void RequireCredentials()
+    {
+        if (!_credentialsAvailable)
         {
-            ApiKey = apiKey,
-            ApiSecret = apiSecret,
-            AccountId = accountId,
-            UsePaperTrading = usePaper
-        });
-
-        var loggerFactory = LoggerFactory.Create(builder =>
-        {
-            builder.AddConsole();
-            builder.SetMinimumLevel(LogLevel.Debug);
-        });
-
-        var logger = loggerFactory.CreateLogger<TradeStationBroker>();
-        var httpClientFactory = new TestHttpClientFactory();
-
-        _broker = new TradeStationBroker(options, logger, httpClientFactory);
-
-        _output.WriteLine($"Testing TradeStation broker on {(usePaper ? "PAPER TRADING (sim-api)" : "PRODUCTION")}");
+            throw new Xunit.SkipException("TradeStation API credentials not configured. Set TRADESTATION_API_KEY, TRADESTATION_API_SECRET, and TRADESTATION_ACCOUNT_ID environment variables.");
+        }
     }
 
     [SkippableFact]
     public async Task Connect_WithValidCredentials_Succeeds()
     {
+        RequireCredentials();
+
         // Act
-        var result = await _broker.ConnectAsync();
+        var result = await _broker!.ConnectAsync();
 
         // Assert
         Assert.True(result, "Failed to connect to TradeStation");
@@ -70,8 +81,10 @@ public class TradeStationBrokerIntegrationTests : IDisposable
     [SkippableFact]
     public async Task GetBalance_AfterConnection_ReturnsBalance()
     {
+        RequireCredentials();
+
         // Arrange
-        await _broker.ConnectAsync();
+        await _broker!.ConnectAsync();
 
         // Act
         var balance = await _broker.GetBalanceAsync("USD");
@@ -84,8 +97,10 @@ public class TradeStationBrokerIntegrationTests : IDisposable
     [SkippableFact]
     public async Task GetPositions_AfterConnection_ReturnsPositions()
     {
+        RequireCredentials();
+
         // Arrange
-        await _broker.ConnectAsync();
+        await _broker!.ConnectAsync();
 
         // Act
         var positions = await _broker.GetPositionsAsync();
@@ -98,8 +113,10 @@ public class TradeStationBrokerIntegrationTests : IDisposable
     [SkippableFact]
     public async Task GetCurrentPrice_ForAAPL_ReturnsValidPrice()
     {
+        RequireCredentials();
+
         // Arrange
-        await _broker.ConnectAsync();
+        await _broker!.ConnectAsync();
         var symbol = "AAPL";
 
         // Act
@@ -113,8 +130,10 @@ public class TradeStationBrokerIntegrationTests : IDisposable
     [SkippableFact]
     public async Task PlaceOrder_LimitOrder_CreatesOrder()
     {
+        RequireCredentials();
+
         // Arrange
-        await _broker.ConnectAsync();
+        await _broker!.ConnectAsync();
 
         var request = new OrderRequest
         {
@@ -151,8 +170,10 @@ public class TradeStationBrokerIntegrationTests : IDisposable
     [SkippableFact]
     public async Task GetMarginHealthRatio_AfterConnection_ReturnsRatio()
     {
+        RequireCredentials();
+
         // Arrange
-        await _broker.ConnectAsync();
+        await _broker!.ConnectAsync();
 
         // Act
         var healthRatio = await _broker.GetMarginHealthRatioAsync();

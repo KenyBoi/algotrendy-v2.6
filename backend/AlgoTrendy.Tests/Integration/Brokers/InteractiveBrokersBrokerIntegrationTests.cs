@@ -17,8 +17,9 @@ namespace AlgoTrendy.Tests.Integration.Brokers;
 [Trait("Broker", "InteractiveBrokers")]
 public class InteractiveBrokersBrokerIntegrationTests : IDisposable
 {
-    private readonly InteractiveBrokersBroker _broker;
+    private readonly InteractiveBrokersBroker? _broker;
     private readonly ITestOutputHelper _output;
+    private readonly bool _credentialsAvailable;
 
     public InteractiveBrokersBrokerIntegrationTests(ITestOutputHelper output)
     {
@@ -32,43 +33,53 @@ public class InteractiveBrokersBrokerIntegrationTests : IDisposable
         var port = int.Parse(Environment.GetEnvironmentVariable("IBKR_GATEWAY_PORT") ?? "4002"); // 4002 for paper
         var usePaper = Environment.GetEnvironmentVariable("IBKR_USE_PAPER")?.ToLower() != "false";
 
-        if (string.IsNullOrEmpty(username) || string.IsNullOrEmpty(password) || string.IsNullOrEmpty(accountId))
+        _credentialsAvailable = !string.IsNullOrEmpty(username) && !string.IsNullOrEmpty(password) && !string.IsNullOrEmpty(accountId);
+
+        if (_credentialsAvailable)
         {
-            throw new SkipException("Interactive Brokers credentials not configured. Set IBKR_USERNAME, IBKR_PASSWORD, and IBKR_ACCOUNT_ID environment variables.");
+            var options = Options.Create(new InteractiveBrokersOptions
+            {
+                Username = username!,
+                Password = password!,
+                AccountId = accountId!,
+                GatewayHost = host,
+                GatewayPort = port,
+                ClientId = 1,
+                UsePaperTrading = usePaper
+            });
+
+            var loggerFactory = LoggerFactory.Create(builder =>
+            {
+                builder.AddConsole();
+                builder.SetMinimumLevel(LogLevel.Debug);
+            });
+
+            var logger = loggerFactory.CreateLogger<InteractiveBrokersBroker>();
+
+            _broker = new InteractiveBrokersBroker(options, logger);
+
+            _output.WriteLine($"Testing Interactive Brokers broker at {host}:{port}");
+            _output.WriteLine($"Mode: {(usePaper ? "PAPER TRADING" : "LIVE TRADING")}");
+            _output.WriteLine("⚠️ IMPORTANT: TWS or IB Gateway must be running with API enabled");
+            _output.WriteLine("⚠️ NOTE: This is a foundation implementation - full IBApi integration recommended for production");
         }
+    }
 
-        var options = Options.Create(new InteractiveBrokersOptions
+    private void RequireCredentials()
+    {
+        if (!_credentialsAvailable)
         {
-            Username = username,
-            Password = password,
-            AccountId = accountId,
-            GatewayHost = host,
-            GatewayPort = port,
-            ClientId = 1,
-            UsePaperTrading = usePaper
-        });
-
-        var loggerFactory = LoggerFactory.Create(builder =>
-        {
-            builder.AddConsole();
-            builder.SetMinimumLevel(LogLevel.Debug);
-        });
-
-        var logger = loggerFactory.CreateLogger<InteractiveBrokersBroker>();
-
-        _broker = new InteractiveBrokersBroker(options, logger);
-
-        _output.WriteLine($"Testing Interactive Brokers broker at {host}:{port}");
-        _output.WriteLine($"Mode: {(usePaper ? "PAPER TRADING" : "LIVE TRADING")}");
-        _output.WriteLine("⚠️ IMPORTANT: TWS or IB Gateway must be running with API enabled");
-        _output.WriteLine("⚠️ NOTE: This is a foundation implementation - full IBApi integration recommended for production");
+            throw new Xunit.SkipException("Interactive Brokers credentials not configured. Set IBKR_USERNAME, IBKR_PASSWORD, and IBKR_ACCOUNT_ID environment variables.");
+        }
     }
 
     [SkippableFact]
     public async Task Connect_WithTWSRunning_Succeeds()
     {
+        RequireCredentials();
+
         // Act
-        var result = await _broker.ConnectAsync();
+        var result = await _broker!.ConnectAsync();
 
         // Assert
         Assert.True(result, "Failed to connect to Interactive Brokers. Ensure TWS/Gateway is running with API enabled.");
@@ -78,11 +89,13 @@ public class InteractiveBrokersBrokerIntegrationTests : IDisposable
     [SkippableFact]
     public async Task GetBalance_AfterConnection_ReturnsBalance()
     {
+        RequireCredentials();
+
         // Arrange
-        await _broker.ConnectAsync();
+        await _broker!.ConnectAsync();
 
         // Act
-        var balance = await _broker.GetBalanceAsync("USD");
+        var balance = await _broker!.GetBalanceAsync("USD");
 
         // Assert
         // NOTE: Foundation implementation returns 0, full IBApi needed
@@ -94,11 +107,13 @@ public class InteractiveBrokersBrokerIntegrationTests : IDisposable
     [SkippableFact]
     public async Task GetPositions_AfterConnection_ReturnsPositions()
     {
+        RequireCredentials();
+
         // Arrange
-        await _broker.ConnectAsync();
+        await _broker!.ConnectAsync();
 
         // Act
-        var positions = await _broker.GetPositionsAsync();
+        var positions = await _broker!.GetPositionsAsync();
 
         // Assert
         Assert.NotNull(positions);
@@ -109,12 +124,14 @@ public class InteractiveBrokersBrokerIntegrationTests : IDisposable
     [SkippableFact]
     public async Task GetCurrentPrice_ForAAPL_ReturnsPrice()
     {
+        RequireCredentials();
+
         // Arrange
-        await _broker.ConnectAsync();
+        await _broker!.ConnectAsync();
         var symbol = "AAPL";
 
         // Act
-        var price = await _broker.GetCurrentPriceAsync(symbol);
+        var price = await _broker!.GetCurrentPriceAsync(symbol);
 
         // Assert
         // NOTE: Foundation implementation returns 0, full IBApi needed
@@ -126,8 +143,10 @@ public class InteractiveBrokersBrokerIntegrationTests : IDisposable
     [SkippableFact]
     public async Task PlaceOrder_LimitOrder_ReturnsOrderStructure()
     {
+        RequireCredentials();
+
         // Arrange
-        await _broker.ConnectAsync();
+        await _broker!.ConnectAsync();
 
         var request = new OrderRequest
         {
@@ -141,7 +160,7 @@ public class InteractiveBrokersBrokerIntegrationTests : IDisposable
         };
 
         // Act
-        var order = await _broker.PlaceOrderAsync(request);
+        var order = await _broker!.PlaceOrderAsync(request);
 
         // Assert
         Assert.NotNull(order);
@@ -154,12 +173,14 @@ public class InteractiveBrokersBrokerIntegrationTests : IDisposable
     [SkippableFact]
     public async Task GetLeverageInfo_ReturnsTypicalMarginAccount()
     {
+        RequireCredentials();
+
         // Arrange
-        await _broker.ConnectAsync();
+        await _broker!.ConnectAsync();
         var symbol = "AAPL";
 
         // Act
-        var leverageInfo = await _broker.GetLeverageInfoAsync(symbol);
+        var leverageInfo = await _broker!.GetLeverageInfoAsync(symbol);
 
         // Assert
         Assert.NotNull(leverageInfo);
@@ -170,11 +191,13 @@ public class InteractiveBrokersBrokerIntegrationTests : IDisposable
     [SkippableFact]
     public async Task GetMarginHealthRatio_AfterConnection_ReturnsRatio()
     {
+        RequireCredentials();
+
         // Arrange
-        await _broker.ConnectAsync();
+        await _broker!.ConnectAsync();
 
         // Act
-        var healthRatio = await _broker.GetMarginHealthRatioAsync();
+        var healthRatio = await _broker!.GetMarginHealthRatioAsync();
 
         // Assert
         Assert.True(healthRatio >= 0 && healthRatio <= 2.0m, "Health ratio should be between 0 and 2.0");

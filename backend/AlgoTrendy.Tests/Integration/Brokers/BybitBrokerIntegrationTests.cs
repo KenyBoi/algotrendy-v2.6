@@ -16,8 +16,9 @@ namespace AlgoTrendy.Tests.Integration.Brokers;
 [Trait("Broker", "Bybit")]
 public class BybitBrokerIntegrationTests : IDisposable
 {
-    private readonly BybitBroker _broker;
+    private readonly BybitBroker? _broker;
     private readonly ITestOutputHelper _output;
+    private readonly bool _credentialsAvailable;
 
     public BybitBrokerIntegrationTests(ITestOutputHelper output)
     {
@@ -28,47 +29,62 @@ public class BybitBrokerIntegrationTests : IDisposable
         var apiSecret = Environment.GetEnvironmentVariable("BYBIT_API_SECRET");
         var useTestnet = Environment.GetEnvironmentVariable("BYBIT_TESTNET")?.ToLower() != "false";
 
-        if (string.IsNullOrEmpty(apiKey) || string.IsNullOrEmpty(apiSecret))
+        _credentialsAvailable = !string.IsNullOrEmpty(apiKey) && !string.IsNullOrEmpty(apiSecret);
+
+        if (_credentialsAvailable)
         {
-            throw new SkipException("Bybit API credentials not configured. Set BYBIT_API_KEY and BYBIT_API_SECRET environment variables.");
+            var options = Options.Create(new BybitOptions
+            {
+                ApiKey = apiKey!,
+                ApiSecret = apiSecret!,
+                UseTestnet = useTestnet
+            });
+
+            var loggerFactory = LoggerFactory.Create(builder =>
+            {
+                builder.AddConsole();
+                builder.SetMinimumLevel(LogLevel.Debug);
+            });
+
+            var logger = loggerFactory.CreateLogger<BybitBroker>();
+
+            _broker = new BybitBroker(options, logger);
+
+            _output.WriteLine($"Testing Bybit broker on {(useTestnet ? "TESTNET" : "PRODUCTION")}");
         }
-
-        var options = Options.Create(new BybitOptions
-        {
-            ApiKey = apiKey,
-            ApiSecret = apiSecret,
-            UseTestnet = useTestnet
-        });
-
-        var loggerFactory = LoggerFactory.Create(builder =>
-        {
-            builder.AddConsole();
-            builder.SetMinimumLevel(LogLevel.Debug);
-        });
-
-        var logger = loggerFactory.CreateLogger<BybitBroker>();
-
-        _broker = new BybitBroker(options, logger);
-
-        _output.WriteLine($"Testing Bybit broker on {(useTestnet ? "TESTNET" : "PRODUCTION")}");
     }
 
-    [Fact]
+    /// <summary>
+    /// Ensures credentials are available, skips test if not
+    /// </summary>
+    private void RequireCredentials()
+    {
+        if (!_credentialsAvailable)
+        {
+            throw new Xunit.SkipException("Bybit API credentials not configured. Set BYBIT_API_KEY and BYBIT_API_SECRET environment variables.");
+        }
+    }
+
+    [SkippableFact]
     public async Task Connect_WithValidCredentials_Succeeds()
     {
+        RequireCredentials();
+
         // Act
-        var result = await _broker.ConnectAsync();
+        var result = await _broker!.ConnectAsync();
 
         // Assert
         Assert.True(result, "Failed to connect to Bybit");
         _output.WriteLine("✅ Successfully connected to Bybit");
     }
 
-    [Fact]
+    [SkippableFact]
     public async Task GetBalance_AfterConnection_ReturnsBalance()
     {
+        RequireCredentials();
+
         // Arrange
-        await _broker.ConnectAsync();
+        await _broker!.ConnectAsync();
 
         // Act
         var balance = await _broker.GetBalanceAsync("USDT");
@@ -78,11 +94,13 @@ public class BybitBrokerIntegrationTests : IDisposable
         _output.WriteLine($"✅ Balance: {balance} USDT");
     }
 
-    [Fact]
+    [SkippableFact]
     public async Task GetPositions_AfterConnection_ReturnsPositions()
     {
+        RequireCredentials();
+
         // Arrange
-        await _broker.ConnectAsync();
+        await _broker!.ConnectAsync();
 
         // Act
         var positions = await _broker.GetPositionsAsync();
@@ -92,11 +110,13 @@ public class BybitBrokerIntegrationTests : IDisposable
         _output.WriteLine($"✅ Retrieved {positions.Count()} position(s)");
     }
 
-    [Fact]
+    [SkippableFact]
     public async Task GetCurrentPrice_ForBTCUSDT_ReturnsValidPrice()
     {
+        RequireCredentials();
+
         // Arrange
-        await _broker.ConnectAsync();
+        await _broker!.ConnectAsync();
         var symbol = "BTCUSDT";
 
         // Act
@@ -107,11 +127,13 @@ public class BybitBrokerIntegrationTests : IDisposable
         _output.WriteLine($"✅ Current price for {symbol}: ${price}");
     }
 
-    [Fact]
+    [SkippableFact]
     public async Task PlaceOrder_LimitOrder_CreatesOrder()
     {
+        RequireCredentials();
+
         // Arrange
-        await _broker.ConnectAsync();
+        await _broker!.ConnectAsync();
 
         var request = new OrderRequest
         {
@@ -145,11 +167,13 @@ public class BybitBrokerIntegrationTests : IDisposable
         }
     }
 
-    [Fact]
+    [SkippableFact]
     public async Task SetLeverage_ForSymbol_Succeeds()
     {
+        RequireCredentials();
+
         // Arrange
-        await _broker.ConnectAsync();
+        await _broker!.ConnectAsync();
         var symbol = "BTCUSDT";
         var leverage = 5m;
 
@@ -161,11 +185,13 @@ public class BybitBrokerIntegrationTests : IDisposable
         _output.WriteLine($"✅ Leverage set to {leverage}x for {symbol}");
     }
 
-    [Fact]
+    [SkippableFact]
     public async Task GetLeverageInfo_ForSymbol_ReturnsInfo()
     {
+        RequireCredentials();
+
         // Arrange
-        await _broker.ConnectAsync();
+        await _broker!.ConnectAsync();
         var symbol = "BTCUSDT";
 
         // Act
@@ -176,11 +202,13 @@ public class BybitBrokerIntegrationTests : IDisposable
         _output.WriteLine($"✅ Leverage info: {leverageInfo.CurrentLeverage}x (max: {leverageInfo.MaxLeverage}x)");
     }
 
-    [Fact]
+    [SkippableFact]
     public async Task GetMarginHealthRatio_AfterConnection_ReturnsRatio()
     {
+        RequireCredentials();
+
         // Arrange
-        await _broker.ConnectAsync();
+        await _broker!.ConnectAsync();
 
         // Act
         var healthRatio = await _broker.GetMarginHealthRatioAsync();
@@ -194,12 +222,4 @@ public class BybitBrokerIntegrationTests : IDisposable
     {
         // Cleanup if needed
     }
-}
-
-/// <summary>
-/// Exception to skip tests when credentials are not available
-/// </summary>
-public class SkipException : Exception
-{
-    public SkipException(string message) : base(message) { }
 }

@@ -16,8 +16,9 @@ namespace AlgoTrendy.Tests.Integration.Brokers;
 [Trait("Broker", "NinjaTrader")]
 public class NinjaTraderBrokerIntegrationTests : IDisposable
 {
-    private readonly NinjaTraderBroker _broker;
+    private readonly NinjaTraderBroker? _broker;
     private readonly ITestOutputHelper _output;
+    private readonly bool _credentialsAvailable;
 
     public NinjaTraderBrokerIntegrationTests(ITestOutputHelper output)
     {
@@ -30,41 +31,51 @@ public class NinjaTraderBrokerIntegrationTests : IDisposable
         var host = Environment.GetEnvironmentVariable("NINJATRADER_HOST") ?? "localhost";
         var port = int.Parse(Environment.GetEnvironmentVariable("NINJATRADER_PORT") ?? "36973");
 
-        if (string.IsNullOrEmpty(username) || string.IsNullOrEmpty(password) || string.IsNullOrEmpty(accountId))
+        _credentialsAvailable = !string.IsNullOrEmpty(username) && !string.IsNullOrEmpty(password) && !string.IsNullOrEmpty(accountId);
+
+        if (_credentialsAvailable)
         {
-            throw new SkipException("NinjaTrader credentials not configured. Set NINJATRADER_USERNAME, NINJATRADER_PASSWORD, and NINJATRADER_ACCOUNT_ID environment variables.");
+            var options = Options.Create(new NinjaTraderOptions
+            {
+                Username = username!,
+                Password = password!,
+                AccountId = accountId!,
+                Host = host,
+                Port = port,
+                ConnectionType = "REST"
+            });
+
+            var loggerFactory = LoggerFactory.Create(builder =>
+            {
+                builder.AddConsole();
+                builder.SetMinimumLevel(LogLevel.Debug);
+            });
+
+            var logger = loggerFactory.CreateLogger<NinjaTraderBroker>();
+            var httpClientFactory = new TestHttpClientFactory();
+
+            _broker = new NinjaTraderBroker(options, logger, httpClientFactory);
+
+            _output.WriteLine($"Testing NinjaTrader broker at {host}:{port}");
+            _output.WriteLine("⚠️ IMPORTANT: NinjaTrader 8 must be running with ATI (Automated Trading Interface) enabled");
         }
+    }
 
-        var options = Options.Create(new NinjaTraderOptions
+    private void RequireCredentials()
+    {
+        if (!_credentialsAvailable)
         {
-            Username = username,
-            Password = password,
-            AccountId = accountId,
-            Host = host,
-            Port = port,
-            ConnectionType = "REST"
-        });
-
-        var loggerFactory = LoggerFactory.Create(builder =>
-        {
-            builder.AddConsole();
-            builder.SetMinimumLevel(LogLevel.Debug);
-        });
-
-        var logger = loggerFactory.CreateLogger<NinjaTraderBroker>();
-        var httpClientFactory = new TestHttpClientFactory();
-
-        _broker = new NinjaTraderBroker(options, logger, httpClientFactory);
-
-        _output.WriteLine($"Testing NinjaTrader broker at {host}:{port}");
-        _output.WriteLine("⚠️ IMPORTANT: NinjaTrader 8 must be running with ATI (Automated Trading Interface) enabled");
+            throw new Xunit.SkipException("NinjaTrader credentials not configured. Set NINJATRADER_USERNAME, NINJATRADER_PASSWORD, and NINJATRADER_ACCOUNT_ID environment variables.");
+        }
     }
 
     [SkippableFact]
     public async Task Connect_WithNT8Running_Succeeds()
     {
+        RequireCredentials();
+
         // Act
-        var result = await _broker.ConnectAsync();
+        var result = await _broker!.ConnectAsync();
 
         // Assert
         Assert.True(result, "Failed to connect to NinjaTrader. Ensure NT8 is running with ATI enabled.");
@@ -74,11 +85,13 @@ public class NinjaTraderBrokerIntegrationTests : IDisposable
     [SkippableFact]
     public async Task GetBalance_AfterConnection_ReturnsBalance()
     {
+        RequireCredentials();
+
         // Arrange
-        await _broker.ConnectAsync();
+        await _broker!.ConnectAsync();
 
         // Act
-        var balance = await _broker.GetBalanceAsync("USD");
+        var balance = await _broker!.GetBalanceAsync("USD");
 
         // Assert
         Assert.True(balance >= 0, "Balance should be >= 0");
@@ -88,11 +101,13 @@ public class NinjaTraderBrokerIntegrationTests : IDisposable
     [SkippableFact]
     public async Task GetPositions_AfterConnection_ReturnsPositions()
     {
+        RequireCredentials();
+
         // Arrange
-        await _broker.ConnectAsync();
+        await _broker!.ConnectAsync();
 
         // Act
-        var positions = await _broker.GetPositionsAsync();
+        var positions = await _broker!.GetPositionsAsync();
 
         // Assert
         Assert.NotNull(positions);
@@ -102,12 +117,14 @@ public class NinjaTraderBrokerIntegrationTests : IDisposable
     [SkippableFact]
     public async Task GetCurrentPrice_ForESFuture_ReturnsValidPrice()
     {
+        RequireCredentials();
+
         // Arrange
-        await _broker.ConnectAsync();
+        await _broker!.ConnectAsync();
         var symbol = "ES 12-25"; // E-mini S&P 500 December 2025
 
         // Act
-        var price = await _broker.GetCurrentPriceAsync(symbol);
+        var price = await _broker!.GetCurrentPriceAsync(symbol);
 
         // Assert
         Assert.True(price > 0, $"Price for {symbol} should be > 0");
@@ -117,8 +134,10 @@ public class NinjaTraderBrokerIntegrationTests : IDisposable
     [SkippableFact]
     public async Task PlaceOrder_LimitOrder_CreatesOrder()
     {
+        RequireCredentials();
+
         // Arrange
-        await _broker.ConnectAsync();
+        await _broker!.ConnectAsync();
 
         var request = new OrderRequest
         {
@@ -132,7 +151,7 @@ public class NinjaTraderBrokerIntegrationTests : IDisposable
         };
 
         // Act
-        var order = await _broker.PlaceOrderAsync(request);
+        var order = await _broker!.PlaceOrderAsync(request);
 
         // Assert
         Assert.NotNull(order);
@@ -143,7 +162,7 @@ public class NinjaTraderBrokerIntegrationTests : IDisposable
         // Cleanup: Cancel the order
         try
         {
-            await _broker.CancelOrderAsync(order.OrderId, request.Symbol);
+            await _broker!.CancelOrderAsync(order.OrderId, request.Symbol);
             _output.WriteLine($"✅ Order cancelled: {order.OrderId}");
         }
         catch (Exception ex)
@@ -155,11 +174,13 @@ public class NinjaTraderBrokerIntegrationTests : IDisposable
     [SkippableFact]
     public async Task GetMarginHealthRatio_AfterConnection_ReturnsRatio()
     {
+        RequireCredentials();
+
         // Arrange
-        await _broker.ConnectAsync();
+        await _broker!.ConnectAsync();
 
         // Act
-        var healthRatio = await _broker.GetMarginHealthRatioAsync();
+        var healthRatio = await _broker!.GetMarginHealthRatioAsync();
 
         // Assert
         Assert.True(healthRatio >= 0 && healthRatio <= 2.0m, "Health ratio should be between 0 and 2.0");
