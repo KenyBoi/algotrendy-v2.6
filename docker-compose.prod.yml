@@ -122,6 +122,14 @@ services:
       - Binance__UseTestnet=${BINANCE_TESTNET:-false}
       - Binance__UseBinanceUS=${BINANCE_US:-true}
 
+      # Finnhub API (Cryptocurrency Market Data)
+      - FINHUB_API_KEY=${FINHUB_API_KEY}
+      - Finnhub__ApiKey=${FINHUB_API_KEY}
+      - Finnhub__BaseUrl=https://finnhub.io/api/v1
+      - Finnhub__TimeoutSeconds=30
+      - Finnhub__EnableLogging=false
+      - Finnhub__RateLimitPerMinute=60
+
       # CORS Settings (Restrict to production domain)
       - AllowedOrigins=${ALLOWED_ORIGINS:-https://yourdomain.com}
 
