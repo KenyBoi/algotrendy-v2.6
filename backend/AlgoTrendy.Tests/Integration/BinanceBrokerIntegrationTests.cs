@@ -5,7 +5,6 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Xunit;
 using Xunit.Sdk;
-using Xunit.SkippableFact;
 
 namespace AlgoTrendy.Tests.Integration;
 
@@ -242,23 +241,4 @@ public class BinanceBrokerIntegrationTests : IAsyncLifetime
         Assert.NotNull(order);
         Assert.Equal(exchangeOrderId, order.ExchangeOrderId);
     }
-}
-
-/// <summary>
-/// Helper class for skipping tests conditionally
-/// </summary>
-public static class Skip
-{
-    public static void If(bool condition, string reason)
-    {
-        if (condition)
-        {
-            throw new SkipException(reason);
-        }
-    }
-}
-
-public class SkipException : Exception
-{
-    public SkipException(string message) : base(message) { }
 }

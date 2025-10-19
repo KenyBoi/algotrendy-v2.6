@@ -4,7 +4,6 @@ using AlgoTrendy.Infrastructure.Brokers.Bybit;
 using Microsoft.Extensions.Logging;
 using Xunit;
 using Xunit.Sdk;
-using Xunit.SkippableFact;
 
 namespace AlgoTrendy.Tests.Integration;
 
