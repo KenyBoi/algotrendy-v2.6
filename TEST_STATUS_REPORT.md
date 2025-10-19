@@ -15,24 +15,25 @@ Total Tests:    407
 Unit Tests:     368
 Integration:     39
 
-Unit Test Results:
+All Test Results:
   ✅ Passed:    306  (100% of executable tests)
-  ⏭️ Skipped:    62  (require credentials or external services)
+  ⏭️ Skipped:   101  (require credentials or external services)
   ❌ Failed:      0  (ZERO failures!)
 
-Integration Test Results:
-  ❌ Failed:     27  (missing API credentials - expected)
-  ⏭️ Skipped:    12  (marked as skip)
+Breakdown:
+  Unit Tests:       306 passed, 62 skipped, 0 failed
+  Integration:        0 passed, 39 skipped, 0 failed
+  E2E Tests:          5 passed (included in unit count)
 
-Success Rate:   100% (all executable unit tests pass)
-Duration:       6-7 seconds
+Success Rate:   100% (all executable tests pass)
+Duration:       5-6 seconds
 ```
 
 ---
 
 ## 🎯 Recent Fixes (October 19, 2025)
 
-### Issue Fixed: BinanceBroker Initialization Failure
+### Issue #1: BinanceBroker Initialization Failure ✅ FIXED
 
 **Problem:**
 - 4 BinanceBrokerTests were failing with `TypeLoadException`
@@ -55,6 +56,38 @@ Duration:       6-7 seconds
 - ✅ All 6 BinanceBrokerTests pass
 - ✅ All 306 unit tests pass
 - ✅ 0 test failures in unit test suite
+
+### Issue #2: Integration Tests Failing Instead of Skipping ✅ FIXED
+
+**Problem:**
+- 27 integration tests failing when credentials not provided
+- XUnit treating SkipException in constructor as test failure
+- Tests blocking CI/CD pipeline unnecessarily
+
+**Solution:**
+1. **Moved Credential Checks to Test Methods:**
+   - Added `_credentialsAvailable` field
+   - Created `RequireCredentials()` helper method
+   - Removed credential check from constructor
+   - Called `RequireCredentials()` at start of each test
+
+2. **Installed Xunit.SkippableFact Package:**
+   - Added Xunit.SkippableFact v1.5.23
+   - Changed `[Fact]` to `[SkippableFact]` for integration tests
+   - Used `Xunit.SkipException` for proper skip behavior
+
+3. **Fixed All Integration Test Files:**
+   - BybitBrokerIntegrationTests (8 tests)
+   - TradeStationBrokerIntegrationTests (6 tests)
+   - InteractiveBrokersBrokerIntegrationTests (7 tests)
+   - NinjaTraderBrokerIntegrationTests (4 tests)
+
+**Results:**
+- ✅ 0 integration test failures (was 27!)
+- ✅ 101 tests properly skip (was 74)
+- ✅ Integration tests only run when credentials provided
+- ✅ CI/CD friendly (no false failures)
+- ✅ All 407 tests: 306 pass, 101 skip, 0 fail
 
 ---
 
@@ -275,12 +308,11 @@ public BybitBrokerIntegrationTests(ITestOutputHelper output)
 
 ## 📊 Historical Test Metrics
 
-| Date | Total | Passed | Failed | Skipped | Pass Rate |
-|------|-------|--------|--------|---------|-----------|
-| Oct 18, 2025 | 264 | 226 | 26 | 12 | 85.6% |
-| Oct 19, 2025 | 407 | 306 | 0* | 74 | **100%** |
-
-\* Excluding integration tests without credentials
+| Date | Total | Passed | Failed | Skipped | Pass Rate | Notes |
+|------|-------|--------|--------|---------|-----------|-------|
+| Oct 18, 2025 | 264 | 226 | 26 | 12 | 85.6% | Before fixes |
+| Oct 19 AM, 2025 | 407 | 306 | 27 | 74 | 74.2% | After adding tests |
+| Oct 19 PM, 2025 | 407 | 306 | 0 | 101 | **100%** | ✅ All fixed! |
 
 ---
 
