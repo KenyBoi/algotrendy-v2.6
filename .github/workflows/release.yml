@@ -1,0 +1,101 @@
+name: Create Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Release version (e.g., v2.6.0)'
+        required: true
+        type: string
+
+jobs:
+  create-release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: write
+      packages: write
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '8.0.x'
+
+    - name: Restore dependencies
+      run: dotnet restore
+      working-directory: ./backend
+
+    - name: Build Release
+      run: dotnet build --configuration Release --no-restore
+      working-directory: ./backend
+
+    - name: Run Tests
+      run: dotnet test --configuration Release --no-build --verbosity normal --filter "Category!=Integration&Category!=ExternalAPI"
+      working-directory: ./backend
+
+    - name: Publish API
+      run: dotnet publish backend/AlgoTrendy.API/AlgoTrendy.API.csproj --configuration Release --output ./publish/api --no-build
+
+    - name: Create Release Archive
+      run: |
+        cd ./publish
+        tar -czf algotrendy-api-${{ github.ref_name }}.tar.gz api/
+        zip -r algotrendy-api-${{ github.ref_name }}.zip api/
+
+    - name: Generate Release Notes
+      id: release_notes
+      run: |
+        echo "## AlgoTrendy ${{ github.ref_name }}" > release_notes.md
+        echo "" >> release_notes.md
+        echo "### What's Changed" >> release_notes.md
+        echo "" >> release_notes.md
+        git log --pretty=format:"- %s (%h)" $(git describe --tags --abbrev=0 HEAD^)..HEAD >> release_notes.md || echo "- Initial release" >> release_notes.md
+        echo "" >> release_notes.md
+        echo "" >> release_notes.md
+        echo "### Installation" >> release_notes.md
+        echo "" >> release_notes.md
+        echo "#### Docker (Recommended)" >> release_notes.md
+        echo '```bash' >> release_notes.md
+        echo "docker pull ghcr.io/kenyboi/algotrendy:${{ github.ref_name }}" >> release_notes.md
+        echo '```' >> release_notes.md
+        echo "" >> release_notes.md
+        echo "#### Manual Deployment" >> release_notes.md
+        echo "1. Download the archive (tar.gz or zip)" >> release_notes.md
+        echo "2. Extract to your deployment directory" >> release_notes.md
+        echo "3. Configure environment variables" >> release_notes.md
+        echo "4. Run: \`dotnet AlgoTrendy.API.dll\`" >> release_notes.md
+        echo "" >> release_notes.md
+        echo "### Requirements" >> release_notes.md
+        echo "- .NET 8.0 Runtime" >> release_notes.md
+        echo "- QuestDB 7.0+" >> release_notes.md
+        echo "- Linux/Windows/macOS" >> release_notes.md
+
+    - name: Create GitHub Release
+      uses: softprops/action-gh-release@v1
+      with:
+        tag_name: ${{ github.ref_name }}
+        name: AlgoTrendy ${{ github.ref_name }}
+        body_path: release_notes.md
+        draft: false
+        prerelease: ${{ contains(github.ref_name, 'alpha') || contains(github.ref_name, 'beta') || contains(github.ref_name, 'rc') }}
+        files: |
+          ./publish/algotrendy-api-${{ github.ref_name }}.tar.gz
+          ./publish/algotrendy-api-${{ github.ref_name }}.zip
+        token: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Update Release Summary
+      run: |
+        echo "## Release Created Successfully! 🚀" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "**Version:** ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
+        echo "**Artifacts:** tar.gz, zip" >> $GITHUB_STEP_SUMMARY
+        echo "**Docker Image:** ghcr.io/kenyboi/algotrendy:${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
