@@ -23,6 +23,7 @@ COPY AlgoTrendy.Core/AlgoTrendy.Core.csproj ./AlgoTrendy.Core/
 COPY AlgoTrendy.Infrastructure/AlgoTrendy.Infrastructure.csproj ./AlgoTrendy.Infrastructure/
 COPY AlgoTrendy.TradingEngine/AlgoTrendy.TradingEngine.csproj ./AlgoTrendy.TradingEngine/
 COPY AlgoTrendy.DataChannels/AlgoTrendy.DataChannels.csproj ./AlgoTrendy.DataChannels/
+COPY AlgoTrendy.Backtesting/AlgoTrendy.Backtesting.csproj ./AlgoTrendy.Backtesting/
 
 # Restore dependencies (cached layer)
 RUN dotnet restore AlgoTrendy.API/AlgoTrendy.API.csproj

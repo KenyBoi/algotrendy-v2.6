@@ -142,6 +142,20 @@ builder.Services.AddScoped<KrakenRestChannel>();
 builder.Services.AddScoped<IBacktestEngine, CustomBacktestEngine>();
 builder.Services.AddScoped<IBacktestService, BacktestService>();
 
+// Register broker services
+builder.Services.AddScoped<IBroker>(sp =>
+{
+    var logger = sp.GetRequiredService<ILogger<AlgoTrendy.Infrastructure.Brokers.Bybit.BybitBroker>>();
+    var config = sp.GetRequiredService<IConfiguration>();
+
+    // Get broker configuration from settings or environment
+    var bybitApiKey = config["Brokers:Bybit:ApiKey"] ?? Environment.GetEnvironmentVariable("BYBIT_API_KEY") ?? "";
+    var bybitApiSecret = config["Brokers:Bybit:ApiSecret"] ?? Environment.GetEnvironmentVariable("BYBIT_API_SECRET") ?? "";
+    var useTestnet = config.GetValue<bool>("Brokers:Bybit:UseTestnet", true);
+
+    return new AlgoTrendy.Infrastructure.Brokers.Bybit.BybitBroker(bybitApiKey, bybitApiSecret, useTestnet, logger);
+});
+
 // Add background services
 builder.Services.AddHostedService<MarketDataBroadcastService>();
 builder.Services.AddHostedService<MarketDataChannelService>();
