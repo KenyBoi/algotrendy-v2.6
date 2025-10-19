@@ -25,6 +25,7 @@ public class TradingEngine : ITradingEngine
     // Order idempotency cache (prevents duplicate orders on network retries)
     private readonly ConcurrentDictionary<string, Order> _orderCache = new();
     private readonly ConcurrentDictionary<string, DateTime> _orderCacheExpiration = new();
+    private readonly ConcurrentDictionary<string, SemaphoreSlim> _orderSubmissionLocks = new();
     private readonly TimeSpan _cacheExpiration = TimeSpan.FromHours(24);
 
     // Events
@@ -59,9 +60,16 @@ public class TradingEngine : ITradingEngine
             "Submitting order {OrderId} (ClientOrderId: {ClientOrderId}) for {Symbol} - {Side} {Quantity} @ {Type}",
             order.OrderId, order.ClientOrderId, order.Symbol, order.Side, order.Quantity, order.Type);
 
+        // Get or create a semaphore for this ClientOrderId to ensure only one submission at a time
+        var semaphore = _orderSubmissionLocks.GetOrAdd(order.ClientOrderId, _ => new SemaphoreSlim(1, 1));
+
+        // Wait for our turn to process this ClientOrderId
+        await semaphore.WaitAsync(cancellationToken);
+
         try
         {
             // Check idempotency cache to prevent duplicate orders on network retries
+            // (Check again after acquiring semaphore - another thread might have populated it)
             if (_orderCache.TryGetValue(order.ClientOrderId, out var cachedOrder))
             {
                 _logger.LogInformation(
@@ -138,6 +146,11 @@ public class TradingEngine : ITradingEngine
             order.UpdatedAt = DateTime.UtcNow;
             await _orderRepository.UpdateAsync(order, cancellationToken);
             throw;
+        }
+        finally
+        {
+            // Always release the semaphore
+            semaphore.Release();
         }
     }
 

@@ -220,17 +220,121 @@ public class IdempotencyTests
 
         var brokerCallCount = 0;
         var brokerLock = new object();
+        var brokerCallTimes = new List<long>();
+        var stopwatch = System.Diagnostics.Stopwatch.StartNew();
 
         _mockBroker.Setup(b => b.PlaceOrderAsync(It.IsAny<OrderRequest>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync((OrderRequest req, CancellationToken ct) =>
+            .Returns(async (OrderRequest req, CancellationToken ct) =>
             {
                 lock (brokerLock)
                 {
                     brokerCallCount++;
+                    brokerCallTimes.Add(stopwatch.ElapsedMilliseconds);
                 }
 
+                // Simulate network delay to make concurrency issues more apparent
+                await Task.Delay(100, ct);
+
+                return new Order
+                {
+                    OrderId = Guid.NewGuid().ToString(),
+                    ClientOrderId = req.ClientOrderId!,
+                    ExchangeOrderId = $"EXCHANGE_{Guid.NewGuid():N}",
+                    Symbol = req.Symbol,
+                    Exchange = req.Exchange,
+                    Side = req.Side,
+                    Type = req.Type,
+                    Status = OrderStatus.Open,
+                    Quantity = req.Quantity,
+                    FilledQuantity = 0,
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow
+                };
+            });
+
+        _mockBroker.Setup(b => b.GetOrderStatusAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((string exchangeOrderId, string symbol, CancellationToken ct) => new Order
+            {
+                OrderId = Guid.NewGuid().ToString(),
+                ClientOrderId = OrderFactory.GenerateClientOrderId(),
+                ExchangeOrderId = exchangeOrderId,
+                Symbol = symbol,
+                Exchange = "binance",
+                Side = OrderSide.Buy,
+                Type = OrderType.Market,
+                Status = OrderStatus.Open,
+                Quantity = 0.001m,
+                FilledQuantity = 0,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow
+            });
+
+        _mockOrderRepository.Setup(r => r.UpdateAsync(It.IsAny<Order>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((Order o, CancellationToken ct) => o);
+
+        // Act - Submit same order concurrently with semaphore-based protection
+        var tasks = Enumerable.Range(0, concurrentCount)
+            .Select(_ => Task.Run(async () =>
+            {
+                var order = OrderFactory.CreateOrder(
+                    "BTCUSDT", "binance", OrderSide.Buy, OrderType.Market, 0.001m,
+                    clientOrderId: clientOrderId);
+
+                return await _tradingEngine.SubmitOrderAsync(order);
+            }))
+            .ToArray();
+
+        var results = await Task.WhenAll(tasks);
+        stopwatch.Stop();
+
+        // Assert
+        Assert.Equal(concurrentCount, results.Length);
+
+        // All results should have the same OrderId and ExchangeOrderId (from cache)
+        var firstOrderId = results[0].OrderId;
+        var firstExchangeOrderId = results[0].ExchangeOrderId;
+
+        Assert.All(results, r =>
+        {
+            Assert.Equal(firstOrderId, r.OrderId);
+            Assert.Equal(firstExchangeOrderId, r.ExchangeOrderId);
+            Assert.Equal(clientOrderId, r.ClientOrderId);
+        });
+
+        // Broker should only be called once despite concurrent requests
+        // This verifies semaphore-based serialization
+        Assert.Equal(1, brokerCallCount);
+
+        // Verify that all concurrent requests completed within reasonable time
+        // (If they were truly serialized, it would take ~1000ms; if not serialized,
+        // most would complete in parallel within ~200ms)
+        Assert.True(stopwatch.ElapsedMilliseconds < 2000,
+            $"Concurrent requests took too long: {stopwatch.ElapsedMilliseconds}ms");
+    }
+
+    [Fact]
+    public async Task SubmitOrderAsync_ConcurrentDifferentOrders_ShouldRunInParallel()
+    {
+        // Arrange - Different ClientOrderIds for each order
+        var concurrentCount = 5;
+        var brokerCallTimes = new List<(long startTime, long endTime)>();
+        var brokerTimeLock = new object();
+        var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+
+        _mockBroker.Setup(b => b.PlaceOrderAsync(It.IsAny<OrderRequest>(), It.IsAny<CancellationToken>()))
+            .Returns(async (OrderRequest req, CancellationToken ct) =>
+            {
+                var startTime = stopwatch.ElapsedMilliseconds;
+
                 // Simulate network delay
-                Thread.Sleep(50);
+                await Task.Delay(150, ct);
+
+                var endTime = stopwatch.ElapsedMilliseconds;
+
+                lock (brokerTimeLock)
+                {
+                    brokerCallTimes.Add((startTime, endTime));
+                }
 
                 return new Order
                 {
@@ -252,33 +356,39 @@ public class IdempotencyTests
         _mockOrderRepository.Setup(r => r.UpdateAsync(It.IsAny<Order>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync((Order o, CancellationToken ct) => o);
 
-        // Act - Submit same order concurrently
+        // Act - Submit different orders concurrently (different ClientOrderIds)
         var tasks = Enumerable.Range(0, concurrentCount)
-            .Select(_ => Task.Run(async () =>
+            .Select(i => Task.Run(async () =>
             {
                 var order = OrderFactory.CreateOrder(
                     "BTCUSDT", "binance", OrderSide.Buy, OrderType.Market, 0.001m,
-                    clientOrderId: clientOrderId);
+                    clientOrderId: OrderFactory.GenerateClientOrderId()); // Different ID each time
 
                 return await _tradingEngine.SubmitOrderAsync(order);
             }))
             .ToArray();
 
         var results = await Task.WhenAll(tasks);
+        stopwatch.Stop();
 
         // Assert
         Assert.Equal(concurrentCount, results.Length);
 
-        // All results should have the same OrderId and ExchangeOrderId (from cache)
-        var firstOrderId = results[0].OrderId;
-        var firstExchangeOrderId = results[0].ExchangeOrderId;
+        // All orders should have different IDs
+        var uniqueOrderIds = results.Select(r => r.OrderId).Distinct().Count();
+        Assert.Equal(concurrentCount, uniqueOrderIds);
 
-        Assert.All(results, r => Assert.Equal(firstOrderId, r.OrderId));
-        Assert.All(results, r => Assert.Equal(firstExchangeOrderId, r.ExchangeOrderId));
-        Assert.All(results, r => Assert.Equal(clientOrderId, r.ClientOrderId));
+        var uniqueExchangeOrderIds = results.Select(r => r.ExchangeOrderId).Distinct().Count();
+        Assert.Equal(concurrentCount, uniqueExchangeOrderIds);
 
-        // Broker should only be called once despite concurrent requests
-        Assert.Equal(1, brokerCallCount);
+        // Broker should be called once per order (not serialized)
+        _mockBroker.Verify(b => b.PlaceOrderAsync(It.IsAny<OrderRequest>(), It.IsAny<CancellationToken>()),
+            Times.Exactly(concurrentCount));
+
+        // Verify parallelism: if requests were serialized, would take ~750ms (5 * 150ms)
+        // With parallelism, should complete in ~250-350ms
+        Assert.True(stopwatch.ElapsedMilliseconds < 500,
+            $"Parallel requests took too long: {stopwatch.ElapsedMilliseconds}ms (expected ~300ms for parallel execution)");
     }
 
     [Fact]
