@@ -23,6 +23,8 @@ volumes:
     driver: local
   nginx_ssl:
     driver: local
+  seq_data:
+    driver: local
 
 services:
   # ==========================================================================
@@ -72,6 +74,7 @@ services:
     restart: unless-stopped
     depends_on:
       - questdb
+      - seq
     networks:
       algotrendy-network:
         ipv4_address: 172.20.0.20
@@ -89,6 +92,8 @@ services:
 
       # Logging
       - Serilog__MinimumLevel__Default=${API_LOG_LEVEL:-Information}
+      - SEQ_URL=http://seq:5341
+      - SEQ_API_KEY=${SEQ_API_KEY:-}
 
       # Binance API (from .env file)
       - Binance__ApiKey=${BINANCE_API_KEY:-}
@@ -106,6 +111,35 @@ services:
       timeout: 10s
       retries: 3
       start_period: 60s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # ==========================================================================
+  # Seq - Structured Log Viewer
+  # ==========================================================================
+  seq:
+    image: datalust/seq:latest
+    container_name: algotrendy-seq
+    restart: unless-stopped
+    networks:
+      algotrendy-network:
+        ipv4_address: 172.20.0.40
+    ports:
+      - "5341:80"
+    volumes:
+      - seq_data:/data
+    environment:
+      - ACCEPT_EULA=Y
+      - SEQ_CACHE_SYSTEMRAMTARGET=0.5
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
     logging:
       driver: "json-file"
       options:

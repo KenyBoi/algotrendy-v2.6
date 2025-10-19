@@ -42,8 +42,8 @@ public class TradingController : ControllerBase
         try
         {
             _logger.LogInformation(
-                "Received order request: {Symbol} {Side} {Quantity} {Type}",
-                request.Symbol, request.Side, request.Quantity, request.Type);
+                "Order placement requested - Symbol: {Symbol}, Side: {Side}, Quantity: {Quantity}, Type: {Type}, Price: {Price}",
+                request.Symbol, request.Side, request.Quantity, request.Type, request.Price);
 
             // Create Order from request (ClientOrderId auto-generated if not provided)
             var order = OrderFactory.FromRequest(request);
@@ -52,19 +52,24 @@ public class TradingController : ControllerBase
             var submittedOrder = await _tradingEngine.SubmitOrderAsync(order, cancellationToken);
 
             _logger.LogInformation(
-                "Order submitted successfully: {OrderId}, ClientOrderId: {ClientOrderId}, ExchangeOrderId: {ExchangeOrderId}",
-                submittedOrder.OrderId, submittedOrder.ClientOrderId, submittedOrder.ExchangeOrderId);
+                "Order submitted successfully - OrderId: {OrderId}, ClientOrderId: {ClientOrderId}, ExchangeOrderId: {ExchangeOrderId}, Symbol: {Symbol}, Side: {Side}, Quantity: {Quantity}, Status: {Status}",
+                submittedOrder.OrderId, submittedOrder.ClientOrderId, submittedOrder.ExchangeOrderId,
+                submittedOrder.Symbol, submittedOrder.Side, submittedOrder.Quantity, submittedOrder.Status);
 
             return Ok(submittedOrder);
         }
         catch (InvalidOperationException ex)
         {
-            _logger.LogWarning(ex, "Invalid order request");
+            _logger.LogWarning(ex,
+                "Invalid order request - Symbol: {Symbol}, Side: {Side}, Reason: {Reason}",
+                request.Symbol, request.Side, ex.Message);
             return BadRequest(new { error = ex.Message });
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to place order");
+            _logger.LogError(ex,
+                "Failed to place order - Symbol: {Symbol}, Side: {Side}, Quantity: {Quantity}",
+                request.Symbol, request.Side, request.Quantity);
             return StatusCode(500, new { error = "Internal server error" });
         }
     }
@@ -88,22 +93,30 @@ public class TradingController : ControllerBase
     {
         try
         {
-            _logger.LogInformation("Cancelling order {OrderId}", orderId);
+            _logger.LogInformation(
+                "Order cancellation requested - OrderId: {OrderId}, OperationType: {OperationType}",
+                orderId, "CancelOrder");
 
             var cancelledOrder = await _tradingEngine.CancelOrderAsync(orderId, cancellationToken);
 
-            _logger.LogInformation("Order {OrderId} cancelled successfully", orderId);
+            _logger.LogInformation(
+                "Order cancelled successfully - OrderId: {OrderId}, Symbol: {Symbol}, Status: {Status}",
+                orderId, cancelledOrder.Symbol, cancelledOrder.Status);
 
             return Ok(cancelledOrder);
         }
         catch (InvalidOperationException ex) when (ex.Message.Contains("not found"))
         {
-            _logger.LogWarning(ex, "Order {OrderId} not found", orderId);
+            _logger.LogWarning(ex,
+                "Order cancellation failed - OrderId: {OrderId}, Reason: {Reason}",
+                orderId, "OrderNotFound");
             return NotFound(new { error = ex.Message });
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to cancel order {OrderId}", orderId);
+            _logger.LogError(ex,
+                "Failed to cancel order - OrderId: {OrderId}",
+                orderId);
             return StatusCode(500, new { error = "Internal server error" });
         }
     }
@@ -199,7 +212,15 @@ public class TradingController : ControllerBase
     {
         try
         {
+            _logger.LogInformation(
+                "Balance query requested - Exchange: {Exchange}, Currency: {Currency}, OperationType: {OperationType}",
+                exchange, currency, "GetBalance");
+
             var balance = await _tradingEngine.GetBalanceAsync(exchange, currency, cancellationToken);
+
+            _logger.LogInformation(
+                "Balance retrieved - Exchange: {Exchange}, Currency: {Currency}, Balance: {Balance}",
+                exchange, currency, balance);
 
             return Ok(new BalanceResponse
             {
@@ -211,7 +232,9 @@ public class TradingController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to get balance for {Exchange} {Currency}", exchange, currency);
+            _logger.LogError(ex,
+                "Failed to get balance - Exchange: {Exchange}, Currency: {Currency}",
+                exchange, currency);
             return StatusCode(500, new { error = "Internal server error" });
         }
     }

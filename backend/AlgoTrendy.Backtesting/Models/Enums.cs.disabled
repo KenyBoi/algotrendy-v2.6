@@ -1,0 +1,57 @@
+namespace AlgoTrendy.Backtesting.Models;
+
+/// <summary>
+/// Backtest execution status
+/// </summary>
+public enum BacktestStatus
+{
+    Pending,
+    Running,
+    Completed,
+    Failed
+}
+
+/// <summary>
+/// Supported asset classes for backtesting
+/// </summary>
+public enum AssetClass
+{
+    Crypto,
+    Futures,
+    Equities
+}
+
+/// <summary>
+/// Supported timeframe types
+/// </summary>
+public enum TimeframeType
+{
+    Tick,
+    Minute,
+    Hour,
+    Day,
+    Week,
+    Month,
+    Renko,
+    LineBreak,
+    Range
+}
+
+/// <summary>
+/// Backtesting engine type
+/// </summary>
+public enum BacktesterEngine
+{
+    Custom,
+    QuantConnect,
+    BacktesterCom
+}
+
+/// <summary>
+/// Trade side (long or short)
+/// </summary>
+public enum TradeSide
+{
+    Long,
+    Short
+}

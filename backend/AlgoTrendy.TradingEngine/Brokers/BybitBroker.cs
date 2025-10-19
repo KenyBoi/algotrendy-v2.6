@@ -69,7 +69,9 @@ public class BybitBroker : IBroker
     {
         try
         {
-            _logger.LogInformation("Connecting to Bybit...");
+            _logger.LogInformation(
+                "Broker connection initiated - Broker: {Broker}, Environment: {Environment}, OperationType: {OperationType}",
+                BrokerName, _options.UseTestnet ? "Testnet" : "Production", "Connect");
 
             // Test connection by getting wallet balance (Unified Trading Account)
             var walletResult = await _client.V5Api.Account.GetBalancesAsync(
@@ -78,19 +80,24 @@ public class BybitBroker : IBroker
 
             if (!walletResult.Success)
             {
-                _logger.LogError("Failed to connect to Bybit: {Error}", walletResult.Error?.Message);
+                _logger.LogError(
+                    "Broker connection failed - Broker: {Broker}, Error: {Error}, ErrorCode: {ErrorCode}",
+                    BrokerName, walletResult.Error?.Message, walletResult.Error?.Code);
                 return false;
             }
 
             _isConnected = true;
             _logger.LogInformation(
-                "Connected to Bybit successfully. Account Type: Unified Trading");
+                "Broker connected successfully - Broker: {Broker}, AccountType: {AccountType}",
+                BrokerName, "UnifiedTrading");
 
             return true;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Exception during Bybit connection");
+            _logger.LogError(ex,
+                "Broker connection exception - Broker: {Broker}",
+                BrokerName);
             _isConnected = false;
             return false;
         }
@@ -105,33 +112,45 @@ public class BybitBroker : IBroker
 
         try
         {
+            _logger.LogDebug(
+                "Balance query initiated - Broker: {Broker}, Currency: {Currency}, OperationType: {OperationType}",
+                BrokerName, currency, "GetBalance");
+
             var walletResult = await _client.V5Api.Account.GetBalancesAsync(
                 Bybit.Net.Enums.AccountType.Unified,
                 ct: cancellationToken);
 
             if (!walletResult.Success)
             {
-                _logger.LogError("Failed to get balance: {Error}", walletResult.Error?.Message);
+                _logger.LogError(
+                    "Balance query failed - Broker: {Broker}, Currency: {Currency}, Error: {Error}",
+                    BrokerName, currency, walletResult.Error?.Message);
                 throw new InvalidOperationException($"Failed to get balance: {walletResult.Error?.Message}");
             }
 
             var balance = walletResult.Data.List.FirstOrDefault();
             if (balance == null)
             {
-                _logger.LogWarning("No balance found for {Currency}", currency);
+                _logger.LogWarning(
+                    "Balance not found - Broker: {Broker}, Currency: {Currency}",
+                    BrokerName, currency);
                 return 0;
             }
 
             var coin = balance.Assets.FirstOrDefault(a => a.Asset == currency);
             var availableBalance = coin?.WalletBalance ?? 0;
 
-            _logger.LogDebug("Balance for {Currency}: {Balance}", currency, availableBalance);
+            _logger.LogInformation(
+                "Balance retrieved - Broker: {Broker}, Currency: {Currency}, Balance: {Balance}, WalletBalance: {WalletBalance}",
+                BrokerName, currency, availableBalance, coin?.WalletBalance ?? 0);
 
             return availableBalance;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error getting balance for {Currency}", currency);
+            _logger.LogError(ex,
+                "Balance query exception - Broker: {Broker}, Currency: {Currency}",
+                BrokerName, currency);
             throw;
         }
     }
@@ -204,8 +223,8 @@ public class BybitBroker : IBroker
         try
         {
             _logger.LogInformation(
-                "Placing {Side} {OrderType} order: {Symbol} x {Quantity} @ {Price}",
-                request.Side, request.Type, request.Symbol, request.Quantity, request.Price);
+                "Order placement initiated - Broker: {Broker}, Symbol: {Symbol}, Side: {Side}, Type: {Type}, Quantity: {Quantity}, Price: {Price}, ClientOrderId: {ClientOrderId}, OperationType: {OperationType}",
+                BrokerName, request.Symbol, request.Side, request.Type, request.Quantity, request.Price, request.ClientOrderId, "PlaceOrder");
 
             // Map order type
             var orderType = request.Type switch
@@ -234,7 +253,9 @@ public class BybitBroker : IBroker
 
             if (!orderResult.Success)
             {
-                _logger.LogError("Failed to place order: {Error}", orderResult.Error?.Message);
+                _logger.LogError(
+                    "Order placement failed - Broker: {Broker}, Symbol: {Symbol}, Side: {Side}, Error: {Error}, ErrorCode: {ErrorCode}",
+                    BrokerName, request.Symbol, request.Side, orderResult.Error?.Message, orderResult.Error?.Code);
                 throw new InvalidOperationException($"Failed to place order: {orderResult.Error?.Message}");
             }
 
@@ -252,13 +273,17 @@ public class BybitBroker : IBroker
                 CreatedAt = DateTime.UtcNow
             };
 
-            _logger.LogInformation("Order placed successfully. OrderId: {OrderId}", order.OrderId);
+            _logger.LogInformation(
+                "Order placed successfully - Broker: {Broker}, OrderId: {OrderId}, ClientOrderId: {ClientOrderId}, Symbol: {Symbol}, Side: {Side}, Quantity: {Quantity}, Status: {Status}",
+                BrokerName, order.OrderId, order.ClientOrderId, order.Symbol, order.Side, order.Quantity, order.Status);
 
             return order;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error placing order for {Symbol}", request.Symbol);
+            _logger.LogError(ex,
+                "Order placement exception - Broker: {Broker}, Symbol: {Symbol}, Side: {Side}, Quantity: {Quantity}",
+                BrokerName, request.Symbol, request.Side, request.Quantity);
             throw;
         }
     }
@@ -272,7 +297,9 @@ public class BybitBroker : IBroker
 
         try
         {
-            _logger.LogInformation("Cancelling order {OrderId} for {Symbol}", orderId, symbol);
+            _logger.LogInformation(
+                "Order cancellation initiated - Broker: {Broker}, OrderId: {OrderId}, Symbol: {Symbol}, OperationType: {OperationType}",
+                BrokerName, orderId, symbol, "CancelOrder");
 
             var cancelResult = await _client.V5Api.Trading.CancelOrderAsync(
                 Bybit.Net.Enums.Category.Linear,
@@ -282,7 +309,9 @@ public class BybitBroker : IBroker
 
             if (!cancelResult.Success)
             {
-                _logger.LogError("Failed to cancel order: {Error}", cancelResult.Error?.Message);
+                _logger.LogError(
+                    "Order cancellation failed - Broker: {Broker}, OrderId: {OrderId}, Symbol: {Symbol}, Error: {Error}",
+                    BrokerName, orderId, symbol, cancelResult.Error?.Message);
                 throw new InvalidOperationException($"Failed to cancel order: {cancelResult.Error?.Message}");
             }
 

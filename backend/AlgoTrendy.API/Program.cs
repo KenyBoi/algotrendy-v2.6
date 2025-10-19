@@ -1,5 +1,6 @@
 using AlgoTrendy.API.Extensions;
 using AlgoTrendy.API.Hubs;
+using AlgoTrendy.API.Middleware;
 using AlgoTrendy.API.Services;
 using AlgoTrendy.Core.Configuration;
 using AlgoTrendy.Core.Interfaces;
@@ -7,8 +8,9 @@ using AlgoTrendy.Infrastructure.Repositories;
 using AlgoTrendy.Infrastructure.Services;
 using AlgoTrendy.DataChannels.Channels.REST;
 using AlgoTrendy.DataChannels.Services;
-using AlgoTrendy.Backtesting.Engines;
-using AlgoTrendy.Backtesting.Services;
+// using AlgoTrendy.Backtesting.Engines;
+// using AlgoTrendy.Backtesting.Services;
+using AspNetCoreRateLimit;
 using Serilog;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -17,14 +19,24 @@ var builder = WebApplication.CreateBuilder(args);
 builder.AddAzureKeyVault();
 
 // Configure Serilog
+var seqUrl = builder.Configuration["SEQ_URL"] ?? Environment.GetEnvironmentVariable("SEQ_URL") ?? "http://localhost:5341";
+var seqApiKey = builder.Configuration["SEQ_API_KEY"] ?? Environment.GetEnvironmentVariable("SEQ_API_KEY");
+
 Log.Logger = new LoggerConfiguration()
     .ReadFrom.Configuration(builder.Configuration)
     .Enrich.FromLogContext()
+    .Enrich.WithProperty("Application", "AlgoTrendy.API")
+    .Enrich.WithProperty("Environment", builder.Environment.EnvironmentName)
+    // .Enrich.WithMachineName() // Requires Serilog.Enrichers.Environment package
     .WriteTo.Console()
     .WriteTo.File(
         "logs/algotrendy-.log",
         rollingInterval: RollingInterval.Day,
         retainedFileCountLimit: 30)
+    .WriteTo.Seq(
+        serverUrl: seqUrl,
+        apiKey: seqApiKey,
+        restrictedToMinimumLevel: Serilog.Events.LogEventLevel.Information)
     .CreateLogger();
 
 builder.Host.UseSerilog();
@@ -141,8 +153,8 @@ builder.Services.AddScoped<CoinbaseRestChannel>();
 builder.Services.AddScoped<KrakenRestChannel>();
 
 // Register backtesting services
-builder.Services.AddScoped<IBacktestEngine, CustomBacktestEngine>();
-builder.Services.AddScoped<IBacktestService, BacktestService>();
+// builder.Services.AddScoped<IBacktestEngine, CustomBacktestEngine>();
+// builder.Services.AddScoped<IBacktestService, BacktestService>();
 
 // Configure and register Finnhub service for cryptocurrency market data
 builder.Services.Configure<FinnhubSettings>(options =>
@@ -256,6 +268,12 @@ builder.Services.AddCors(options =>
 // Add health checks
 builder.Services.AddHealthChecks();
 
+// Configure Rate Limiting
+builder.Services.AddMemoryCache();
+builder.Services.AddCustomRateLimiting(builder.Configuration);
+builder.Services.AddInMemoryRateLimiting();
+builder.Services.AddSingleton<IRateLimitConfiguration, AspNetCoreRateLimit.RateLimitConfiguration>();
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline
@@ -276,6 +294,25 @@ if (builder.Configuration.GetValue<bool>("EnableHttpsRedirection", false))
 }
 
 app.UseCors("AllowFrontend");
+
+// Add correlation ID middleware for request tracing
+app.UseCorrelationId();
+
+// Add request logging with Serilog
+app.UseSerilogRequestLogging(options =>
+{
+    options.EnrichDiagnosticContext = (diagnosticContext, httpContext) =>
+    {
+        diagnosticContext.Set("RequestHost", httpContext.Request.Host.Value);
+        diagnosticContext.Set("RequestScheme", httpContext.Request.Scheme);
+        diagnosticContext.Set("RemoteIP", httpContext.Connection.RemoteIpAddress?.ToString());
+    };
+});
+
+// Add rate limiting middleware (must be before authorization)
+app.UseIpRateLimiting();
+app.UseClientRateLimiting();
+app.UseRateLimitHeaders();
 
 app.UseAuthorization();
 

@@ -1,0 +1,126 @@
+using System.ComponentModel.DataAnnotations;
+
+namespace AlgoTrendy.Backtesting.Models;
+
+/// <summary>
+/// Configuration for running a backtest
+/// </summary>
+public class BacktestConfig : IValidatableObject
+{
+    /// <summary>
+    /// Backtesting engine to use
+    /// </summary>
+    public BacktesterEngine Engine { get; set; } = BacktesterEngine.Custom;
+
+    /// <summary>
+    /// Asset class to trade
+    /// </summary>
+    [Required]
+    public AssetClass AssetClass { get; set; }
+
+    /// <summary>
+    /// Trading symbol (e.g., BTCUSDT, ES, AAPL)
+    /// </summary>
+    [Required]
+    public string Symbol { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Timeframe type
+    /// </summary>
+    [Required]
+    public TimeframeType Timeframe { get; set; }
+
+    /// <summary>
+    /// Timeframe value (for minute/hour intervals)
+    /// </summary>
+    public int TimeframeValue { get; set; } = 1;
+
+    /// <summary>
+    /// Backtest start date (YYYY-MM-DD)
+    /// </summary>
+    [Required]
+    public string StartDate { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Backtest end date (YYYY-MM-DD)
+    /// </summary>
+    [Required]
+    public string EndDate { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Initial capital in USD
+    /// </summary>
+    [Range(0.01, double.MaxValue)]
+    public decimal InitialCapital { get; set; } = 10000m;
+
+    /// <summary>
+    /// Enabled indicators
+    /// </summary>
+    public Dictionary<string, bool> Indicators { get; set; } = new()
+    {
+        ["sma"] = false,
+        ["ema"] = false,
+        ["rsi"] = false,
+        ["macd"] = false,
+        ["bollinger"] = false,
+        ["atr"] = false,
+        ["stochastic"] = false,
+        ["volume"] = false
+    };
+
+    /// <summary>
+    /// Indicator parameters
+    /// </summary>
+    public Dictionary<string, object> IndicatorParams { get; set; } = new()
+    {
+        ["sma_period"] = 20,
+        ["ema_period"] = 12,
+        ["rsi_period"] = 14,
+        ["macd_fast"] = 12,
+        ["macd_slow"] = 26,
+        ["macd_signal"] = 9,
+        ["bollinger_period"] = 20,
+        ["bollinger_std"] = 2.0,
+        ["atr_period"] = 14,
+        ["stochastic_k"] = 14,
+        ["stochastic_d"] = 3
+    };
+
+    /// <summary>
+    /// Commission per trade (0.1% = 0.001)
+    /// </summary>
+    [Range(0, 1)]
+    public decimal Commission { get; set; } = 0.001m;
+
+    /// <summary>
+    /// Slippage per trade (0.05% = 0.0005)
+    /// </summary>
+    [Range(0, 1)]
+    public decimal Slippage { get; set; } = 0.0005m;
+
+    public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
+    {
+        var results = new List<ValidationResult>();
+
+        // Validate date format and range
+        if (!DateTime.TryParse(StartDate, out var start))
+        {
+            results.Add(new ValidationResult("StartDate must be a valid date (YYYY-MM-DD)", new[] { nameof(StartDate) }));
+        }
+
+        if (!DateTime.TryParse(EndDate, out var end))
+        {
+            results.Add(new ValidationResult("EndDate must be a valid date (YYYY-MM-DD)", new[] { nameof(EndDate) }));
+        }
+
+        if (DateTime.TryParse(StartDate, out start) && DateTime.TryParse(EndDate, out end))
+        {
+            if (end <= start)
+            {
+                results.Add(new ValidationResult("EndDate must be after StartDate", new[] { nameof(EndDate) }));
+            }
+        }
+
+        return results;
+    }
+}

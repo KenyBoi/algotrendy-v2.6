@@ -35,8 +35,8 @@ public class MarketDataRepository : IMarketDataRepository
         await connection.OpenAsync(cancellationToken);
 
         await using var command = new NpgsqlCommand(sql, connection);
-        command.Parameters.AddWithValue("symbol", marketData.Symbol);
-        command.Parameters.AddWithValue("timestamp", marketData.Timestamp);
+        command.Parameters.Add(new NpgsqlParameter("symbol", NpgsqlTypes.NpgsqlDbType.Varchar) { Value = marketData.Symbol });
+        command.Parameters.Add(new NpgsqlParameter("timestamp", NpgsqlTypes.NpgsqlDbType.Varchar) { Value = marketData.Timestamp.ToString("yyyy-MM-ddTHH:mm:ss.ffffffZ") });
         command.Parameters.AddWithValue("open", (double)marketData.Open);
         command.Parameters.AddWithValue("high", (double)marketData.High);
         command.Parameters.AddWithValue("low", (double)marketData.Low);
@@ -44,8 +44,8 @@ public class MarketDataRepository : IMarketDataRepository
         command.Parameters.AddWithValue("volume", (double)marketData.Volume);
         command.Parameters.AddWithValue("quoteVolume", marketData.QuoteVolume.HasValue ? (double)marketData.QuoteVolume.Value : DBNull.Value);
         command.Parameters.AddWithValue("tradesCount", marketData.TradesCount.HasValue ? marketData.TradesCount.Value : DBNull.Value);
-        command.Parameters.AddWithValue("source", marketData.Source);
-        command.Parameters.AddWithValue("metadata", (object?)marketData.Metadata ?? DBNull.Value);
+        command.Parameters.Add(new NpgsqlParameter("source", NpgsqlTypes.NpgsqlDbType.Varchar) { Value = marketData.Source });
+        command.Parameters.Add(new NpgsqlParameter("metadata", NpgsqlTypes.NpgsqlDbType.Varchar) { Value = (object?)marketData.Metadata ?? DBNull.Value });
 
         var rowsAffected = await command.ExecuteNonQueryAsync(cancellationToken);
         return rowsAffected > 0;
@@ -74,8 +74,8 @@ public class MarketDataRepository : IMarketDataRepository
         foreach (var marketData in dataList)
         {
             await using var command = new NpgsqlCommand(sql, connection);
-            command.Parameters.AddWithValue("symbol", marketData.Symbol);
-            command.Parameters.AddWithValue("timestamp", marketData.Timestamp);
+            command.Parameters.Add(new NpgsqlParameter("symbol", NpgsqlTypes.NpgsqlDbType.Varchar) { Value = marketData.Symbol });
+            command.Parameters.Add(new NpgsqlParameter("timestamp", NpgsqlTypes.NpgsqlDbType.Varchar) { Value = marketData.Timestamp.ToString("yyyy-MM-ddTHH:mm:ss.ffffffZ") });
             command.Parameters.AddWithValue("open", (double)marketData.Open);
             command.Parameters.AddWithValue("high", (double)marketData.High);
             command.Parameters.AddWithValue("low", (double)marketData.Low);
@@ -83,8 +83,8 @@ public class MarketDataRepository : IMarketDataRepository
             command.Parameters.AddWithValue("volume", (double)marketData.Volume);
             command.Parameters.AddWithValue("quoteVolume", marketData.QuoteVolume.HasValue ? (double)marketData.QuoteVolume.Value : DBNull.Value);
             command.Parameters.AddWithValue("tradesCount", marketData.TradesCount.HasValue ? marketData.TradesCount.Value : DBNull.Value);
-            command.Parameters.AddWithValue("source", marketData.Source);
-            command.Parameters.AddWithValue("metadata", (object?)marketData.Metadata ?? DBNull.Value);
+            command.Parameters.Add(new NpgsqlParameter("source", NpgsqlTypes.NpgsqlDbType.Varchar) { Value = marketData.Source });
+            command.Parameters.Add(new NpgsqlParameter("metadata", NpgsqlTypes.NpgsqlDbType.Varchar) { Value = (object?)marketData.Metadata ?? DBNull.Value });
 
             totalInserted += await command.ExecuteNonQueryAsync(cancellationToken);
         }
@@ -111,9 +111,9 @@ public class MarketDataRepository : IMarketDataRepository
         await connection.OpenAsync(cancellationToken);
 
         await using var command = new NpgsqlCommand(sql, connection);
-        command.Parameters.AddWithValue("symbol", symbol);
-        command.Parameters.AddWithValue("startTime", startTime);
-        command.Parameters.AddWithValue("endTime", endTime);
+        command.Parameters.Add(new NpgsqlParameter("symbol", NpgsqlTypes.NpgsqlDbType.Varchar) { Value = symbol });
+        command.Parameters.Add(new NpgsqlParameter("startTime", NpgsqlTypes.NpgsqlDbType.Varchar) { Value = startTime.ToString("yyyy-MM-ddTHH:mm:ss.ffffffZ") });
+        command.Parameters.Add(new NpgsqlParameter("endTime", NpgsqlTypes.NpgsqlDbType.Varchar) { Value = endTime.ToString("yyyy-MM-ddTHH:mm:ss.ffffffZ") });
 
         var marketDataList = new List<MarketData>();
 
@@ -139,7 +139,7 @@ public class MarketDataRepository : IMarketDataRepository
         await connection.OpenAsync(cancellationToken);
 
         await using var command = new NpgsqlCommand(sql, connection);
-        command.Parameters.AddWithValue("symbol", symbol);
+        command.Parameters.Add(new NpgsqlParameter("symbol", NpgsqlTypes.NpgsqlDbType.Varchar) { Value = symbol });
 
         await using var reader = await command.ExecuteReaderAsync(cancellationToken);
         if (await reader.ReadAsync(cancellationToken))
@@ -158,18 +158,28 @@ public class MarketDataRepository : IMarketDataRepository
         if (!symbolList.Any())
             return new Dictionary<string, MarketData>();
 
-        const string sql = @"
+        // Build IN clause with parameters for each symbol (QuestDB doesn't fully support array types)
+        var parameters = new List<string>();
+        for (int i = 0; i < symbolList.Count; i++)
+        {
+            parameters.Add($"@symbol{i}");
+        }
+
+        var sql = $@"
             SELECT symbol, timestamp, open, high, low, close,
                    volume, quote_volume, trades_count, source, metadata_json
             FROM market_data_1m
-            WHERE symbol = ANY(@symbols)
+            WHERE symbol IN ({string.Join(", ", parameters)})
             LATEST ON timestamp PARTITION BY symbol";
 
         await using var connection = new NpgsqlConnection(_connectionString);
         await connection.OpenAsync(cancellationToken);
 
         await using var command = new NpgsqlCommand(sql, connection);
-        command.Parameters.Add(new NpgsqlParameter("symbols", NpgsqlTypes.NpgsqlDbType.Array | NpgsqlTypes.NpgsqlDbType.Text) { Value = symbolList.ToArray() });
+        for (int i = 0; i < symbolList.Count; i++)
+        {
+            command.Parameters.Add(new NpgsqlParameter($"@symbol{i}", NpgsqlTypes.NpgsqlDbType.Varchar) { Value = symbolList[i] });
+        }
 
         var result = new Dictionary<string, MarketData>();
 
@@ -223,9 +233,9 @@ public class MarketDataRepository : IMarketDataRepository
         await connection.OpenAsync(cancellationToken);
 
         await using var command = new NpgsqlCommand(sql, connection);
-        command.Parameters.AddWithValue("symbol", symbol);
-        command.Parameters.AddWithValue("startTime", startTime);
-        command.Parameters.AddWithValue("endTime", endTime);
+        command.Parameters.Add(new NpgsqlParameter("symbol", NpgsqlTypes.NpgsqlDbType.Varchar) { Value = symbol });
+        command.Parameters.Add(new NpgsqlParameter("startTime", NpgsqlTypes.NpgsqlDbType.Varchar) { Value = startTime.ToString("yyyy-MM-ddTHH:mm:ss.ffffffZ") });
+        command.Parameters.Add(new NpgsqlParameter("endTime", NpgsqlTypes.NpgsqlDbType.Varchar) { Value = endTime.ToString("yyyy-MM-ddTHH:mm:ss.ffffffZ") });
 
         var marketDataList = new List<MarketData>();
 
@@ -250,8 +260,8 @@ public class MarketDataRepository : IMarketDataRepository
         await connection.OpenAsync(cancellationToken);
 
         await using var command = new NpgsqlCommand(sql, connection);
-        command.Parameters.AddWithValue("symbol", symbol);
-        command.Parameters.AddWithValue("timestamp", timestamp);
+        command.Parameters.Add(new NpgsqlParameter("symbol", NpgsqlTypes.NpgsqlDbType.Varchar) { Value = symbol });
+        command.Parameters.Add(new NpgsqlParameter("timestamp", NpgsqlTypes.NpgsqlDbType.Varchar) { Value = timestamp.ToString("yyyy-MM-ddTHH:mm:ss.ffffffZ") });
 
         var count = (long)(await command.ExecuteScalarAsync(cancellationToken) ?? 0L);
         return count > 0;
@@ -259,10 +269,28 @@ public class MarketDataRepository : IMarketDataRepository
 
     private static MarketData MapToMarketData(NpgsqlDataReader reader)
     {
+        // QuestDB returns timestamp as object - need to handle conversion
+        var timestampValue = reader.GetValue(1);
+        DateTime timestamp;
+
+        if (timestampValue is DateTime dt)
+        {
+            timestamp = dt;
+        }
+        else if (timestampValue is string str)
+        {
+            timestamp = DateTime.Parse(str, null, System.Globalization.DateTimeStyles.RoundtripKind);
+        }
+        else
+        {
+            // Fallback: convert to string then parse
+            timestamp = DateTime.Parse(timestampValue.ToString() ?? string.Empty, null, System.Globalization.DateTimeStyles.RoundtripKind);
+        }
+
         return new MarketData
         {
             Symbol = reader.GetString(0),
-            Timestamp = reader.GetDateTime(1),
+            Timestamp = timestamp,
             Open = (decimal)reader.GetDouble(2),
             High = (decimal)reader.GetDouble(3),
             Low = (decimal)reader.GetDouble(4),

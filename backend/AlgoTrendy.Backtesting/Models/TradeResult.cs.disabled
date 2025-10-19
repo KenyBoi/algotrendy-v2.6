@@ -1,0 +1,18 @@
+namespace AlgoTrendy.Backtesting.Models;
+
+/// <summary>
+/// Result of a single trade
+/// </summary>
+public class TradeResult
+{
+    public DateTime EntryTime { get; set; }
+    public DateTime? ExitTime { get; set; }
+    public decimal EntryPrice { get; set; }
+    public decimal? ExitPrice { get; set; }
+    public decimal Quantity { get; set; }
+    public TradeSide Side { get; set; }
+    public decimal? PnL { get; set; }
+    public decimal? PnLPercent { get; set; }
+    public int? DurationMinutes { get; set; }
+    public string? ExitReason { get; set; }
+}

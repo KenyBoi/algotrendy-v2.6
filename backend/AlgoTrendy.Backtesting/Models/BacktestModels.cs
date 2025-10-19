@@ -190,6 +190,16 @@ public class EquityPoint
     /// Value of open positions
     /// </summary>
     public required decimal PositionsValue { get; set; }
+
+    /// <summary>
+    /// Peak equity value up to this point
+    /// </summary>
+    public decimal Peak { get; set; }
+
+    /// <summary>
+    /// Drawdown percentage from peak (negative value)
+    /// </summary>
+    public decimal Drawdown { get; set; }
 }
 
 /// <summary>
@@ -208,9 +218,23 @@ public class BacktestMetrics
     public decimal AnnualizedReturn { get; set; }
 
     /// <summary>
+    /// Annual return (alias for AnnualizedReturn)
+    /// </summary>
+    public decimal AnnualReturn
+    {
+        get => AnnualizedReturn;
+        set => AnnualizedReturn = value;
+    }
+
+    /// <summary>
     /// Sharpe ratio (risk-adjusted return)
     /// </summary>
     public decimal SharpeRatio { get; set; }
+
+    /// <summary>
+    /// Sortino ratio (downside risk-adjusted return)
+    /// </summary>
+    public decimal SortinoRatio { get; set; }
 
     /// <summary>
     /// Maximum drawdown as percentage
@@ -253,14 +277,51 @@ public class BacktestMetrics
     public decimal AverageWin { get; set; }
 
     /// <summary>
+    /// Alias for AverageWin
+    /// </summary>
+    public decimal AvgWin
+    {
+        get => AverageWin;
+        set => AverageWin = value;
+    }
+
+    /// <summary>
     /// Average losing trade in USD
     /// </summary>
     public decimal AverageLoss { get; set; }
 
     /// <summary>
+    /// Alias for AverageLoss
+    /// </summary>
+    public decimal AvgLoss
+    {
+        get => AverageLoss;
+        set => AverageLoss = value;
+    }
+
+    /// <summary>
+    /// Largest winning trade in USD
+    /// </summary>
+    public decimal LargestWin { get; set; }
+
+    /// <summary>
+    /// Largest losing trade in USD
+    /// </summary>
+    public decimal LargestLoss { get; set; }
+
+    /// <summary>
     /// Average trade duration in hours
     /// </summary>
     public decimal AverageTradeDuration { get; set; }
+
+    /// <summary>
+    /// Alias for AverageTradeDuration
+    /// </summary>
+    public decimal AvgTradeDurationHours
+    {
+        get => AverageTradeDuration;
+        set => AverageTradeDuration = value;
+    }
 
     /// <summary>
     /// Final portfolio value

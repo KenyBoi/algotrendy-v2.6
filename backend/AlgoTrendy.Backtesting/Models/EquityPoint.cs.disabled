@@ -1,0 +1,13 @@
+namespace AlgoTrendy.Backtesting.Models;
+
+/// <summary>
+/// Single point in equity curve
+/// </summary>
+public class EquityPoint
+{
+    public DateTime Timestamp { get; set; }
+    public decimal Equity { get; set; }
+    public decimal Cash { get; set; }
+    public decimal PositionsValue { get; set; }
+    public decimal Drawdown { get; set; }
+}

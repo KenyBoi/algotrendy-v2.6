@@ -1,4 +1,5 @@
 using AlgoTrendy.Backtesting.Indicators;
+using AlgoTrendy.Backtesting.Metrics;
 using AlgoTrendy.Backtesting.Models;
 using Microsoft.Extensions.Logging;
 
@@ -206,6 +207,7 @@ public class CustomBacktestEngine : IBacktestEngine
         decimal entryPrice = 0;
         DateTime? entryTime = null;
         decimal equity = initialCapital;
+        decimal peak = initialCapital; // Track peak equity for drawdown calculation
 
         for (int i = 51; i < candles.Length; i++) // Start from index 51 (50-period SMA available)
         {
@@ -216,13 +218,21 @@ public class CustomBacktestEngine : IBacktestEngine
             var positionValue = position * currentPrice;
             equity = cash + positionValue;
 
-            // Add equity point
+            // Update peak and calculate drawdown
+            if (equity > peak)
+                peak = equity;
+
+            var drawdown = peak > 0 ? ((equity - peak) / peak) * 100 : 0;
+
+            // Add equity point with Peak and Drawdown tracking
             equityCurve.Add(new EquityPoint
             {
                 Timestamp = candles[i].Timestamp,
                 Equity = equity,
                 Cash = cash,
-                PositionsValue = positionValue
+                PositionsValue = positionValue,
+                Peak = peak,
+                Drawdown = drawdown
             });
 
             // Check for crossover
@@ -300,76 +310,29 @@ public class CustomBacktestEngine : IBacktestEngine
     }
 
     /// <summary>
-    /// Calculate backtest metrics from trades and equity curve
+    /// Calculate backtest metrics from trades and equity curve using PerformanceCalculator
     /// </summary>
     private BacktestMetrics CalculateMetrics(List<TradeResult> trades, List<EquityPoint> equityCurve, decimal initialCapital)
     {
-        var metrics = new BacktestMetrics();
+        // Use the centralized PerformanceCalculator for consistent metrics
+        var metrics = PerformanceCalculator.Calculate(trades, equityCurve, initialCapital);
 
-        if (trades.Count == 0)
-        {
-            metrics.TotalReturn = 0;
-            metrics.TotalTrades = 0;
-            metrics.SharpeRatio = 0;
-            metrics.MaxDrawdown = 0;
-            metrics.WinRate = 0;
-            metrics.ProfitFactor = 0;
-            metrics.FinalValue = initialCapital;
-            return metrics;
-        }
-
-        // Basic metrics
-        metrics.TotalTrades = trades.Count;
-        metrics.WinningTrades = trades.Count(t => t.PnL > 0);
-        metrics.LosingTrades = trades.Count(t => t.PnL < 0);
-        metrics.WinRate = (decimal)metrics.WinningTrades / metrics.TotalTrades * 100;
-
-        // Profit metrics
-        decimal totalWins = trades.Where(t => t.PnL > 0).Sum(t => t.PnL ?? 0);
-        decimal totalLosses = Math.Abs(trades.Where(t => t.PnL < 0).Sum(t => t.PnL ?? 0));
-        metrics.ProfitFactor = totalLosses > 0 ? totalWins / totalLosses : (totalWins > 0 ? 1 : 0);
-
-        // Average trade metrics
-        metrics.AverageTrade = trades.Count > 0 ? (decimal)(trades.Average(t => (double?)t.PnL) ?? 0) : 0;
-        metrics.AverageWin = metrics.WinningTrades > 0 ? (decimal)(trades.Where(t => t.PnL > 0).Average(t => (double?)t.PnL) ?? 0) : 0;
-        metrics.AverageLoss = metrics.LosingTrades > 0 ? Math.Abs((decimal)(trades.Where(t => t.PnL < 0).Average(t => (double?)t.PnL) ?? 0)) : 0;
-        metrics.AverageTradeDuration = trades.Count > 0 ? (decimal)(trades.Average(t => t.DurationMinutes ?? 0)) : 0;
-
-        // Final equity metrics
+        // Add additional fields for compatibility
         if (equityCurve.Count > 0)
         {
             metrics.FinalValue = equityCurve[^1].Equity;
-            metrics.TotalReturn = ((metrics.FinalValue - initialCapital) / initialCapital) * 100;
             metrics.TotalPnL = metrics.FinalValue - initialCapital;
+        }
+        else
+        {
+            metrics.FinalValue = initialCapital;
+            metrics.TotalPnL = 0;
+        }
 
-            // Calculate maximum drawdown
-            decimal peakEquity = initialCapital;
-            decimal maxDD = 0;
-            foreach (var point in equityCurve)
-            {
-                if (point.Equity > peakEquity)
-                    peakEquity = point.Equity;
-
-                decimal dd = (peakEquity - point.Equity) / peakEquity;
-                if (dd > maxDD)
-                    maxDD = dd;
-            }
-            metrics.MaxDrawdown = maxDD * 100;
-
-            // Simple Sharpe ratio calculation
-            if (equityCurve.Count > 1)
-            {
-                var returns = new decimal[equityCurve.Count - 1];
-                for (int i = 1; i < equityCurve.Count; i++)
-                {
-                    returns[i - 1] = (equityCurve[i].Equity - equityCurve[i - 1].Equity) / equityCurve[i - 1].Equity;
-                }
-
-                decimal avgReturn = returns.Average();
-                decimal stdDev = (decimal)Math.Sqrt((double)returns.Sum(r => (r - avgReturn) * (r - avgReturn)) / returns.Length);
-                metrics.SharpeRatio = stdDev > 0 ? (avgReturn / stdDev) * (decimal)Math.Sqrt(252) : 0; // Annualized
-                metrics.AnnualizedReturn = metrics.TotalReturn * 252 / equityCurve.Count; // Simple annualization
-            }
+        // Calculate average trade (not in PerformanceCalculator yet)
+        if (trades.Any())
+        {
+            metrics.AverageTrade = trades.Average(t => t.PnL ?? 0);
         }
 
         return metrics;

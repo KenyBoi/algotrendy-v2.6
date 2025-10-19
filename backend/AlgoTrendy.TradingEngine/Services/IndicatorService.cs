@@ -43,17 +43,29 @@ public class IndicatorService
         var latestTimestamp = historicalData.LastOrDefault()?.Timestamp ?? DateTime.UtcNow;
         var cacheKey = $"rsi:{symbol}:{period}:{latestTimestamp:yyyy-MM-dd-HH-mm}";
 
+        // Check cache first
+        if (_cache.TryGetValue(cacheKey, out decimal cachedValue))
+        {
+            _logger.LogInformation(
+                "Indicator cache hit - Indicator: {Indicator}, Symbol: {Symbol}, Period: {Period}, CacheKey: {CacheKey}",
+                "RSI", symbol, period, cacheKey);
+            return cachedValue;
+        }
+
         return await _cache.GetOrCreateAsync(cacheKey, async entry =>
         {
             await Task.CompletedTask; // Satisfy async requirement
             entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(1);
 
-            _logger.LogDebug("Calculating RSI for {Symbol} with period {Period}", symbol, period);
+            _logger.LogInformation(
+                "Indicator cache miss - Indicator: {Indicator}, Symbol: {Symbol}, Period: {Period}, DataPoints: {DataPoints}",
+                "RSI", symbol, period, prices.Count);
 
             if (prices.Count < period + 1)
             {
-                _logger.LogWarning("Insufficient data for RSI calculation. Need {Required}, got {Actual}",
-                    period + 1, prices.Count);
+                _logger.LogWarning(
+                    "Insufficient data for indicator calculation - Indicator: {Indicator}, Symbol: {Symbol}, Required: {Required}, Actual: {Actual}",
+                    "RSI", symbol, period + 1, prices.Count);
                 return 50m; // Neutral if not enough data
             }
 
@@ -88,7 +100,9 @@ public class IndicatorService
             var rs = avgGain / avgLoss;
             var rsi = 100m - (100m / (1m + rs));
 
-            _logger.LogDebug("RSI calculated: {RSI} for {Symbol}", rsi, symbol);
+            _logger.LogInformation(
+                "Indicator calculated - Indicator: {Indicator}, Symbol: {Symbol}, Period: {Period}, Value: {Value}, AvgGain: {AvgGain}, AvgLoss: {AvgLoss}",
+                "RSI", symbol, period, rsi, avgGain, avgLoss);
 
             return rsi;
         });
@@ -116,17 +130,29 @@ public class IndicatorService
         var latestTimestamp = historicalData.LastOrDefault()?.Timestamp ?? DateTime.UtcNow;
         var cacheKey = $"macd:{symbol}:{fastPeriod}:{slowPeriod}:{signalPeriod}:{latestTimestamp:yyyy-MM-dd-HH-mm}";
 
+        // Check cache first
+        if (_cache.TryGetValue(cacheKey, out MACDResult? cachedMacd) && cachedMacd != null)
+        {
+            _logger.LogInformation(
+                "Indicator cache hit - Indicator: {Indicator}, Symbol: {Symbol}, FastPeriod: {FastPeriod}, SlowPeriod: {SlowPeriod}",
+                "MACD", symbol, fastPeriod, slowPeriod);
+            return cachedMacd;
+        }
+
         return await _cache.GetOrCreateAsync(cacheKey, async entry =>
         {
             await Task.CompletedTask; // Satisfy async requirement
             entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(1);
 
-            _logger.LogDebug("Calculating MACD for {Symbol}", symbol);
+            _logger.LogInformation(
+                "Indicator cache miss - Indicator: {Indicator}, Symbol: {Symbol}, FastPeriod: {FastPeriod}, SlowPeriod: {SlowPeriod}, DataPoints: {DataPoints}",
+                "MACD", symbol, fastPeriod, slowPeriod, prices.Count);
 
             if (prices.Count < slowPeriod)
             {
-                _logger.LogWarning("Insufficient data for MACD calculation. Need {Required}, got {Actual}",
-                    slowPeriod, prices.Count);
+                _logger.LogWarning(
+                    "Insufficient data for indicator calculation - Indicator: {Indicator}, Symbol: {Symbol}, Required: {Required}, Actual: {Actual}",
+                    "MACD", symbol, slowPeriod, prices.Count);
                 return new MACDResult { MACD = 0, Signal = 0, Histogram = 0 };
             }
 
@@ -145,15 +171,18 @@ public class IndicatorService
             // Histogram
             var histogram = macd - signal;
 
-            _logger.LogDebug("MACD calculated: MACD={MACD}, Signal={Signal}, Histogram={Histogram}",
-                macd, signal, histogram);
-
-            return new MACDResult
+            var result = new MACDResult
             {
                 MACD = macd,
                 Signal = signal,
                 Histogram = histogram
             };
+
+            _logger.LogInformation(
+                "Indicator calculated - Indicator: {Indicator}, Symbol: {Symbol}, MACD: {MACD}, Signal: {Signal}, Histogram: {Histogram}, FastEMA: {FastEMA}, SlowEMA: {SlowEMA}",
+                "MACD", symbol, macd, signal, histogram, fastEMA, slowEMA);
+
+            return result;
         }) ?? new MACDResult { MACD = 0, Signal = 0, Histogram = 0 };
     }
 

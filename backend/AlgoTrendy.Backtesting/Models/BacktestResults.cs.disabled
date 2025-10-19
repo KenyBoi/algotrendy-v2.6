@@ -1,0 +1,21 @@
+namespace AlgoTrendy.Backtesting.Models;
+
+/// <summary>
+/// Complete backtest results
+/// </summary>
+public class BacktestResults
+{
+    public string BacktestId { get; set; } = string.Empty;
+    public BacktestStatus Status { get; set; }
+    public BacktestConfig Config { get; set; } = new();
+    public DateTime? StartedAt { get; set; }
+    public DateTime? CompletedAt { get; set; }
+    public double? ExecutionTimeSeconds { get; set; }
+    public BacktestMetrics? Metrics { get; set; }
+    public List<EquityPoint> EquityCurve { get; set; } = new();
+    public List<TradeResult> Trades { get; set; } = new();
+    public List<string> IndicatorsUsed { get; set; } = new();
+    public string? ErrorMessage { get; set; }
+    public Dictionary<string, object>? ErrorDetails { get; set; }
+    public Dictionary<string, object> Metadata { get; set; } = new();
+}
