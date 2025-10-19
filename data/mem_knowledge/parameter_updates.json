@@ -1,0 +1,32 @@
+{
+  "description": "MEM parameter updates from external knowledge",
+  "last_updated": "2024-10-13",
+  "updates": {
+    "confidence_threshold": {
+      "current": 0.7,
+      "suggested": null,
+      "reason": ""
+    },
+    "max_leverage": {
+      "current": 5,
+      "suggested": null,
+      "reason": ""
+    },
+    "stop_loss_percentage": {
+      "current": 2.0,
+      "suggested": null,
+      "reason": ""
+    },
+    "position_size_multiplier": {
+      "current": 1.0,
+      "suggested": null,
+      "reason": ""
+    },
+    "indicator_weights": {
+      "rsi": 0.2,
+      "macd": 0.3,
+      "volume": 0.5
+    }
+  },
+  "notes": "Update this file when you find articles suggesting parameter changes for MEM"
+}

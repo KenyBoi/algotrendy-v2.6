@@ -1,0 +1,75 @@
+{
+  "timestamp": "20251016_234123",
+  "features": [
+    "volatility_3",
+    "volume_ratio",
+    "momentum_5",
+    "wick_up",
+    "close_position",
+    "momentum_3",
+    "volatility_5",
+    "roc_5",
+    "consecutive_down",
+    "price_change",
+    "bullish_divergence",
+    "range",
+    "consecutive_up",
+    "volatility_10",
+    "price_vs_sma5",
+    "rsi",
+    "trend_strength",
+    "bearish_divergence",
+    "body_size",
+    "price_vs_sma20",
+    "wick_down"
+  ],
+  "model_type": "GradientBoostingClassifier",
+  "metrics": {
+    "accuracy": 0.65625,
+    "precision": 0.42424242424242425,
+    "recall": 0.7,
+    "f1": 0.5283018867924528
+  },
+  "feature_importance": [
+    {
+      "feature": "volume_ratio",
+      "importance": 0.1496119466159263
+    },
+    {
+      "feature": "close_position",
+      "importance": 0.09001782017088031
+    },
+    {
+      "feature": "wick_up",
+      "importance": 0.07534920109451053
+    },
+    {
+      "feature": "wick_down",
+      "importance": 0.06547582843901449
+    },
+    {
+      "feature": "body_size",
+      "importance": 0.06485605460721612
+    },
+    {
+      "feature": "range",
+      "importance": 0.0590082282243974
+    },
+    {
+      "feature": "rsi",
+      "importance": 0.053531012814550354
+    },
+    {
+      "feature": "momentum_3",
+      "importance": 0.0511043959070377
+    },
+    {
+      "feature": "price_change",
+      "importance": 0.05048022303418128
+    },
+    {
+      "feature": "trend_strength",
+      "importance": 0.04919576924388505
+    }
+  ]
+}

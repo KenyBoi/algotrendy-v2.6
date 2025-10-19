@@ -1,0 +1,12 @@
+# MEM CORE MEMORY UPDATES
+
+# Use this file to track direct memory injections to MEM
+# Format: memgpt.core_memory_append("category", "knowledge")
+
+# Example entries:
+# memgpt.core_memory_append("risk_management", "Never risk more than 2% per trade")
+# memgpt.core_memory_append("strategies", "VWAP works best in sideways markets")
+# memgpt.core_memory_append("market_timing", "Avoid trading during major news events")
+# memgpt.core_memory_append("indicators", "RSI divergence signals trend reversal")
+
+# Your knowledge updates go below:
