@@ -8,12 +8,13 @@ using Xunit;
 namespace AlgoTrendy.Tests.Integration;
 
 /// <summary>
-/// Integration tests for BinanceBroker
+/// Integration tests for BinanceBroker (supports Binance and Binance US)
 /// These tests require actual Binance Testnet API credentials
 /// Set environment variables or user secrets:
 /// - Binance__ApiKey
 /// - Binance__ApiSecret
-/// - Binance__UseTestnet=true
+/// - Binance__UseTestnet=true (default)
+/// - Binance__UseBinanceUS=true (for Binance US)
 /// </summary>
 [Collection("BinanceIntegration")]
 public class BinanceBrokerIntegrationTests : IAsyncLifetime
@@ -28,6 +29,7 @@ public class BinanceBrokerIntegrationTests : IAsyncLifetime
         var apiKey = Environment.GetEnvironmentVariable("Binance__ApiKey");
         var apiSecret = Environment.GetEnvironmentVariable("Binance__ApiSecret");
         var useTestnet = Environment.GetEnvironmentVariable("Binance__UseTestnet") != "false";
+        var useBinanceUS = Environment.GetEnvironmentVariable("Binance__UseBinanceUS") == "true";
 
         // Skip if credentials not available
         if (string.IsNullOrEmpty(apiKey) || string.IsNullOrEmpty(apiSecret))
@@ -38,6 +40,7 @@ public class BinanceBrokerIntegrationTests : IAsyncLifetime
         var options = Options.Create(new BinanceOptions
         {
             UseTestnet = useTestnet,
+            UseBinanceUS = useBinanceUS,
             ApiKey = apiKey!,
             ApiSecret = apiSecret!
         });
