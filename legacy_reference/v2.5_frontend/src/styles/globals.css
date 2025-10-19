@@ -1,0 +1,277 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background-color: #000000;
+  color: #E2E8F0;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  font-feature-settings: 'cv11', 'ss01';
+  letter-spacing: -0.011em;
+  line-height: 1.6;
+}
+
+/* Professional Typography - Dark Theme */
+h1, h2, h3, h4, h5, h6 {
+  font-weight: 700;
+  letter-spacing: -0.025em;
+  line-height: 1.2;
+  color: #F8FAFC;
+}
+
+h1 {
+  @apply text-4xl md:text-5xl;
+}
+
+h2 {
+  @apply text-3xl md:text-4xl;
+}
+
+h3 {
+  @apply text-2xl md:text-3xl;
+}
+
+h4 {
+  @apply text-xl md:text-2xl;
+}
+
+p {
+  line-height: 1.75;
+  color: #CBD5E1;
+}
+
+/* Scrollbar styling - Dark Theme */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #000000;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #334155;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #475569;
+}
+
+/* Form inputs - Dark Theme */
+input, textarea, select {
+  @apply border border-slate-600/50 rounded-lg px-4 py-2.5 text-sm;
+  @apply focus:outline-none focus:ring-2 focus:ring-accent-light focus:border-transparent;
+  @apply transition-all duration-300 ease-in-out;
+  @apply bg-slate-900/50 backdrop-blur-sm text-slate-100;
+  @apply shadow-inner-soft;
+  font-family: inherit;
+}
+
+input:hover, textarea:hover, select:hover {
+  @apply border-slate-500/70 bg-slate-900/70;
+}
+
+input::placeholder, textarea::placeholder {
+  @apply text-slate-500;
+}
+
+/* Professional Buttons */
+button {
+  @apply font-medium transition-all duration-300 ease-in-out;
+  @apply focus:outline-none focus:ring-2 focus:ring-offset-2;
+  letter-spacing: -0.011em;
+}
+
+button:hover {
+  transform: translateY(-1px);
+}
+
+button:active {
+  transform: translateY(0);
+}
+
+/* Primary Button Style */
+.btn-primary {
+  @apply bg-gradient-accent text-white px-6 py-2.5 rounded-lg shadow-soft;
+  @apply hover:shadow-soft-lg focus:ring-accent;
+}
+
+/* Secondary Button Style */
+.btn-secondary {
+  @apply bg-white text-primary border border-slate-300 px-6 py-2.5 rounded-lg shadow-soft;
+  @apply hover:bg-slate-50 hover:shadow-soft-lg focus:ring-slate-300;
+}
+
+/* Danger Button Style */
+.btn-danger {
+  @apply bg-error text-white px-6 py-2.5 rounded-lg shadow-soft;
+  @apply hover:bg-error-dark hover:shadow-soft-lg focus:ring-error;
+}
+
+/* Tables */
+table {
+  @apply w-full border-collapse;
+}
+
+th {
+  @apply bg-gray-50 border-b border-gray-200;
+}
+
+/* Professional Cards - Dark Theme */
+.card {
+  @apply bg-slate-900/40 backdrop-blur-lg rounded-xl shadow-soft-xl p-6;
+  @apply border border-slate-700/50;
+  @apply transition-all duration-300 ease-in-out;
+}
+
+.card:hover {
+  @apply shadow-soft-xl border-slate-600/70 bg-slate-900/60;
+  transform: translateY(-2px);
+}
+
+.card-glass {
+  @apply bg-slate-900/30 backdrop-blur-xl rounded-xl shadow-soft-xl p-6;
+  @apply border border-slate-700/30;
+}
+
+/* Status Badges */
+.badge {
+  @apply inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold;
+  @apply transition-all duration-200;
+}
+
+.badge-success {
+  @apply bg-success-light/10 text-success-dark border border-success-light/20;
+}
+
+.badge-error {
+  @apply bg-error-light/10 text-error-dark border border-error-light/20;
+}
+
+.badge-warning {
+  @apply bg-warning-light/10 text-warning-dark border border-warning-light/20;
+}
+
+.badge-info {
+  @apply bg-accent-light/10 text-accent-dark border border-accent-light/20;
+}
+
+/* Enhanced Animations */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes slideDown {
+  from {
+    transform: translateY(-20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes scaleIn {
+  from {
+    transform: scale(0.95);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -1000px 0;
+  }
+  100% {
+    background-position: 1000px 0;
+  }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+.animate-slide-up {
+  animation: slideUp 0.3s ease-in-out;
+}
+
+.animate-slide-down {
+  animation: slideDown 0.3s ease-in-out;
+}
+
+.animate-scale-in {
+  animation: scaleIn 0.2s ease-in-out;
+}
+
+/* Loading Shimmer Effect - Dark Theme */
+.shimmer {
+  background: linear-gradient(90deg, #000000 0%, #1E293B 50%, #000000 100%);
+  background-size: 1000px 100%;
+  animation: shimmer 2s infinite;
+}
+
+/* Glow Effects for Dark Theme */
+.glow-accent {
+  box-shadow: 0 0 20px rgba(37, 99, 235, 0.3);
+}
+
+.glow-success {
+  box-shadow: 0 0 20px rgba(16, 185, 129, 0.3);
+}
+
+.glow-error {
+  box-shadow: 0 0 20px rgba(239, 68, 68, 0.3);
+}
+
+/* Utilities */
+.truncate-2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.truncate-3 {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
