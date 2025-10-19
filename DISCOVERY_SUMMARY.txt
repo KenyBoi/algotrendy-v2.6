@@ -1,0 +1,189 @@
+================================================================================
+ALGOTRENDY V2.6 - MISSING MODULES DISCOVERY
+================================================================================
+Date: October 19, 2025
+Status: CRITICAL FINDINGS - Action Required Before Production
+
+================================================================================
+KEY FINDING:
+================================================================================
+
+v2.5 contains PRODUCTION-READY modules that are NOT in v2.6:
+
+1. BACKTESTING ENGINE - Complete implementation
+   Location: /root/algotrendy_v2.5/algotrendy-api/app/backtesting/
+   Status: ✅ Python implementation exists
+   v2.6 Status: ❌ NOT PORTED
+   Impact: ⚠️ CRITICAL - Cannot test strategies before trading
+
+2. BYBIT BROKER - Complete implementation
+   Location: /root/algotrendy_v2.5/Brokers/bybit/
+   Status: ✅ Python implementation exists
+   v2.6 Status: ❌ NOT PORTED
+   Impact: HIGH - Cannot trade on Bybit exchange
+
+3. ALPACA BROKER - Complete implementation
+   Location: /root/algotrendy_v2.5/Brokers/alpaca/
+   Status: ✅ Python implementation exists
+   v2.6 Status: ❌ NOT PORTED
+   Impact: HIGH - Cannot trade US stocks
+
+4. OKX BROKER - Complete implementation
+   Location: /root/algotrendy_v2.5/Brokers/okx/
+   Status: ✅ Python implementation exists (full trading)
+   v2.6 Status: ⚠️ DATA ONLY (no trading)
+   Impact: MEDIUM - Limited to data fetch only
+
+5. KRAKEN BROKER - Complete implementation
+   Location: /root/algotrendy_v2.5/Brokers/kraken/
+   Status: ✅ Python implementation exists (full trading)
+   v2.6 Status: ⚠️ DATA ONLY (no trading)
+   Impact: MEDIUM - Limited to data fetch only
+
+================================================================================
+DETAILED INVENTORY:
+================================================================================
+
+BACKTESTING ENGINE:
+- 3 Backtesting Engines (Custom, QuantConnect, Backtester.com)
+- 8 Technical Indicators (SMA, EMA, RSI, MACD, Bollinger Bands, Stochastic, ATR, ADX)
+- 3 Asset Classes (Crypto, Futures, Equities)
+- 8 Timeframes (Tick, Minute, Hour, Day, Week, Month, Renko, Line Break, Range)
+- 6 API Endpoints (/api/backtest/config, /run, /results, /history, /indicators, delete)
+- Front-end: backtesting.tsx + backtest.ts service
+- Documentation: BACKTESTING_MODULE_COMPLETE.md (8.8 KB)
+
+BROKERS INVENTORY:
+┌─────────┬────────────────────┬──────────────┬──────────────┐
+│ Broker  │ Asset Class        │ v2.5 Status  │ v2.6 Status  │
+├─────────┼────────────────────┼──────────────┼──────────────┤
+│ Bybit   │ Crypto Futures     │ ✅ Complete │ ❌ Missing   │
+│ Alpaca  │ US Stocks/ETFs     │ ✅ Complete │ ❌ Missing   │
+│ Binance │ Crypto Spot/Fut    │ ✅ Complete │ ⚠️ Spot Only │
+│ OKX     │ Crypto Multi       │ ✅ Complete │ ⚠️ Data Only │
+│ Kraken  │ Crypto Spot/Fut    │ ✅ Complete │ ⚠️ Data Only │
+└─────────┴────────────────────┴──────────────┴──────────────┘
+
+================================================================================
+PORTING REQUIREMENTS:
+================================================================================
+
+BACKTESTING (Python → C# .NET 8):
+- Models: Pydantic → C# DTOs
+- Indicators: Python math → C# LINQ
+- Engines: Async Python → Async C#
+- API: FastAPI → ASP.NET Core
+- Frontend: Reusable (React works with both)
+Estimated Effort: 30-40 hours
+
+BYBIT BROKER (Python → C# .NET 8):
+- API: REST/WebSocket
+- Features: Futures, spot, margin
+- Position Modes: One-way, hedge
+Estimated Effort: 8-10 hours
+
+ALPACA BROKER (Python → C# .NET 8):
+- API: REST only
+- Features: Paper & live, extended hours
+- Assets: US stocks, ETFs
+Estimated Effort: 8-10 hours
+
+OKX BROKER ENHANCEMENT (Python → C# .NET 8):
+- Extend existing data-only to full trading
+- API: REST/WebSocket
+- Features: Multi-asset, advanced orders
+Estimated Effort: 8-10 hours
+
+KRAKEN BROKER ENHANCEMENT (Python → C# .NET 8):
+- Extend existing data-only to full trading
+- API: REST only
+- Features: Spot, futures, advanced
+Estimated Effort: 8-10 hours
+
+TOTAL PORTING EFFORT: 70-90 hours (9-12 developer days)
+
+================================================================================
+RECOMMENDED ACTION PLAN:
+================================================================================
+
+PHASE 1 - BACKTESTING (CRITICAL for production)
+Time: 30-40 hours
+Priority: ⚠️ CRITICAL
+Impact: Enables safe strategy validation before live trading
+Do Before: Production deployment
+Status: BLOCKED until ported
+
+PHASE 2 - BYBIT BROKER (HIGH priority)
+Time: 8-10 hours
+Priority: HIGH
+Impact: Additional crypto trading venue
+Do Before: Production deployment (optional)
+Status: BLOCKED until ported
+
+PHASE 3 - ALPACA BROKER (HIGH priority)
+Time: 8-10 hours
+Priority: HIGH
+Impact: US stock trading capability
+Do Before: Production deployment (optional)
+Status: BLOCKED until ported
+
+PHASE 4 - OKX/KRAKEN ENHANCEMENTS (MEDIUM priority)
+Time: 16-20 hours
+Priority: MEDIUM
+Impact: Full trading on OKX/Kraken (currently data-only)
+Do After: Other phases complete
+Status: Not blocking production
+
+================================================================================
+DEPLOYMENT IMPLICATIONS:
+================================================================================
+
+Current v2.6 Status:
+✅ Core engine ready
+✅ API ready
+✅ Docker ready
+⚠️ Backtesting MISSING (risk!)
+⚠️ Multi-broker trading MISSING (limited)
+
+Recommended Deployment Strategy:
+1. Deploy v2.6 core (current state - ready now)
+2. Port & test backtesting (do before ANY live trading)
+3. Optional: Port additional brokers
+
+CANNOT SKIP: Backtesting engine must be ported before production trading
+
+================================================================================
+REFERENCE LOCATIONS:
+================================================================================
+
+v2.5 Source Code:
+- Backtesting: /root/algotrendy_v2.5/algotrendy-api/app/backtesting/
+- Bybit: /root/algotrendy_v2.5/Brokers/bybit/adapter.py
+- Alpaca: /root/algotrendy_v2.5/Brokers/alpaca/adapter.py
+- OKX: /root/algotrendy_v2.5/Brokers/okx/adapter.py
+- Kraken: /root/algotrendy_v2.5/Brokers/kraken/adapter.py
+- Broker Interface: /root/algotrendy_v2.5/algotrendy/broker_abstraction.py
+
+v2.5 Documentation:
+- Backtesting: /root/algotrendy_v2.5/BACKTESTING_MODULE_COMPLETE.md
+- Brokers: /root/algotrendy_v2.5/Brokers/README.md
+
+v2.6 Discovery Documents:
+- /root/AlgoTrendy_v2.6/MISSING_MODULES_DISCOVERY.md (comprehensive)
+- /root/AlgoTrendy_v2.6/ai_context/CURRENT_STATE.md (updated)
+- /root/AlgoTrendy_v2.6/ai_context/README.md (updated)
+
+================================================================================
+DO NOT FORGET:
+================================================================================
+
+❌ DO NOT delete v2.5 - it's the reference implementation
+✅ DO copy modules to v2.6 (don't move)
+✅ DO adapt Python to C# properly (async/await differs)
+✅ DO test brokers with testnet before production
+✅ DO update all AI context documents with status
+✅ DO commit changes with semantic messages
+
+================================================================================
+STATUS: DISCOVERY COMPLETE - READY FOR PORTING PHASE
+================================================================================
