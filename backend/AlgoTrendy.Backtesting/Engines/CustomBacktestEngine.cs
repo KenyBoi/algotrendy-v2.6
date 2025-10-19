@@ -46,7 +46,7 @@ public class CustomBacktestEngine : IBacktestEngine
     public async Task<BacktestResults> RunAsync(BacktestConfig config, CancellationToken cancellationToken = default)
     {
         var startedAt = DateTime.UtcNow;
-        var backtest Results = new BacktestResults
+        var backtestResults = new BacktestResults
         {
             BacktestId = Guid.NewGuid().ToString(),
             Status = BacktestStatus.Running,
@@ -331,9 +331,9 @@ public class CustomBacktestEngine : IBacktestEngine
 
         // Average trade metrics
         metrics.AverageTrade = trades.Count > 0 ? (decimal)(trades.Average(t => (double?)t.PnL) ?? 0) : 0;
-        metrics.AverageWin = metrics.WinningTrades > 0 ? trades.Where(t => t.PnL > 0).Average(t => (double?)t.PnL) ?? 0 : 0;
+        metrics.AverageWin = metrics.WinningTrades > 0 ? (decimal)(trades.Where(t => t.PnL > 0).Average(t => (double?)t.PnL) ?? 0) : 0;
         metrics.AverageLoss = metrics.LosingTrades > 0 ? Math.Abs((decimal)(trades.Where(t => t.PnL < 0).Average(t => (double?)t.PnL) ?? 0)) : 0;
-        metrics.AverageTradeDuration = trades.Count > 0 ? (decimal?)trades.Average(t => t.DurationMinutes ?? 0) ?? 0 : 0;
+        metrics.AverageTradeDuration = trades.Count > 0 ? (decimal)(trades.Average(t => t.DurationMinutes ?? 0)) : 0;
 
         // Final equity metrics
         if (equityCurve.Count > 0)
