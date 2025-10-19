@@ -108,7 +108,7 @@ public class ApiEndpointsTests : IClassFixture<WebApplicationFactory<Program>>
         var response = await _client.GetAsync("/health");
 
         // Assert
-        response.Content.Headers.ContentType?.MediaType.Should().Contain("application/json", "text/plain");
+        response.Content.Headers.ContentType?.MediaType.Should().BeOneOf("application/json", "text/plain");
     }
 
     [Fact]
