@@ -580,6 +580,7 @@ public class BybitBroker : IBroker
         MarginType marginType = MarginType.Cross,
         CancellationToken cancellationToken = default)
     {
+        await Task.CompletedTask; // Stub implementation
         try
         {
             if (!_isConnected)
@@ -604,6 +605,7 @@ public class BybitBroker : IBroker
         string symbol,
         CancellationToken cancellationToken = default)
     {
+        await Task.CompletedTask; // Stub implementation
         try
         {
             if (!_isConnected)
@@ -631,6 +633,7 @@ public class BybitBroker : IBroker
 
     public async Task<decimal> GetMarginHealthRatioAsync(CancellationToken cancellationToken = default)
     {
+        await Task.CompletedTask; // Stub implementation
         try
         {
             if (!_isConnected)

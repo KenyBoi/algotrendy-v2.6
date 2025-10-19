@@ -1,8 +1,10 @@
 using AlgoTrendy.API.Extensions;
 using AlgoTrendy.API.Hubs;
 using AlgoTrendy.API.Services;
+using AlgoTrendy.Core.Configuration;
 using AlgoTrendy.Core.Interfaces;
 using AlgoTrendy.Infrastructure.Repositories;
+using AlgoTrendy.Infrastructure.Services;
 using AlgoTrendy.DataChannels.Channels.REST;
 using AlgoTrendy.DataChannels.Services;
 using AlgoTrendy.Backtesting.Engines;
@@ -141,6 +143,21 @@ builder.Services.AddScoped<KrakenRestChannel>();
 // Register backtesting services
 builder.Services.AddScoped<IBacktestEngine, CustomBacktestEngine>();
 builder.Services.AddScoped<IBacktestService, BacktestService>();
+
+// Configure and register Finnhub service for cryptocurrency market data
+builder.Services.Configure<FinnhubSettings>(options =>
+{
+    options.ApiKey = builder.Configuration["FINHUB_API_KEY"]
+        ?? builder.Configuration["Finnhub:ApiKey"]
+        ?? Environment.GetEnvironmentVariable("FINHUB_API_KEY")
+        ?? "";
+    options.BaseUrl = builder.Configuration["Finnhub:BaseUrl"] ?? "https://finnhub.io/api/v1";
+    options.TimeoutSeconds = builder.Configuration.GetValue<int>("Finnhub:TimeoutSeconds", 30);
+    options.EnableLogging = builder.Configuration.GetValue<bool>("Finnhub:EnableLogging", false);
+    options.RateLimitPerMinute = builder.Configuration.GetValue<int>("Finnhub:RateLimitPerMinute", 60);
+});
+
+builder.Services.AddHttpClient<IFinnhubService, FinnhubService>();
 
 // Register broker services
 builder.Services.AddScoped<IBroker>(sp =>

@@ -58,8 +58,7 @@ public static class AzureKeyVaultExtensions
             {
                 credential = new DefaultAzureCredential(new DefaultAzureCredentialOptions
                 {
-                    ExcludeInteractiveBrowserCredential = true,
-                    ExcludeSharedTokenCacheCredential = true
+                    ExcludeInteractiveBrowserCredential = true
                 });
             }
             else

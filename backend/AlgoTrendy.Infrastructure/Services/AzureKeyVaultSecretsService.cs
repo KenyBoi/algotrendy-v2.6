@@ -180,8 +180,7 @@ public class AzureKeyVaultSecretsService : ISecretsService
             // Try Managed Identity first, fall back to Azure CLI, then Visual Studio, then Environment
             return new DefaultAzureCredential(new DefaultAzureCredentialOptions
             {
-                ExcludeInteractiveBrowserCredential = true,
-                ExcludeSharedTokenCacheCredential = true
+                ExcludeInteractiveBrowserCredential = true
             });
         }
         else

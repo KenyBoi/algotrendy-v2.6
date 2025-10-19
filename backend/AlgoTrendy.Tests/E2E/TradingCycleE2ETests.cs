@@ -89,11 +89,12 @@ public class TradingCycleE2ETests
             .Build();
 
         // Step 2: Generate buy signal (simulated by creating order)
+        // Quantity: 0.02 BTC * 50,000 = 1,000 USDT (within 10% position limit)
         var buyOrder = new OrderBuilder()
             .WithSymbol("BTCUSDT")
             .WithSide(OrderSide.Buy)
             .WithType(OrderType.Market)
-            .WithQuantity(0.1m)
+            .WithQuantity(0.02m)
             .WithStrategyId("test-strategy")
             .Build();
 
@@ -111,7 +112,7 @@ public class TradingCycleE2ETests
         position.Should().NotBeNull();
         position!.Symbol.Should().Be("BTCUSDT");
         position.Side.Should().Be(OrderSide.Buy);
-        position.Quantity.Should().Be(0.1m);
+        position.Quantity.Should().Be(0.02m);
 
         // Step 5: Price moves (simulated)
         _brokerFixture.WithPrice("BTCUSDT", 52000m);
@@ -121,7 +122,7 @@ public class TradingCycleE2ETests
             .WithSymbol("BTCUSDT")
             .WithSide(OrderSide.Sell)
             .WithType(OrderType.Market)
-            .WithQuantity(0.1m)
+            .WithQuantity(0.02m)
             .WithStrategyId("test-strategy")
             .Build();
 
@@ -143,7 +144,7 @@ public class TradingCycleE2ETests
             .WithSymbol("BTCUSDT")
             .WithSide(OrderSide.Buy)
             .WithType(OrderType.Market)
-            .WithQuantity(0.1m)
+            .WithQuantity(0.02m)
             .Build();
 
         await _tradingEngine.SubmitOrderAsync(buyOrder);
@@ -166,7 +167,7 @@ public class TradingCycleE2ETests
             .WithSymbol("BTCUSDT")
             .WithSide(OrderSide.Sell)
             .WithType(OrderType.Market)
-            .WithQuantity(0.1m)
+            .WithQuantity(0.02m)
             .Build();
 
         var closedOrder = await _tradingEngine.SubmitOrderAsync(sellOrder);
@@ -181,7 +182,7 @@ public class TradingCycleE2ETests
             .WithSymbol("BTCUSDT")
             .WithSide(OrderSide.Buy)
             .WithType(OrderType.Market)
-            .WithQuantity(0.1m)
+            .WithQuantity(0.02m)
             .Build();
 
         await _tradingEngine.SubmitOrderAsync(buyOrder);
@@ -204,7 +205,7 @@ public class TradingCycleE2ETests
             .WithSymbol("BTCUSDT")
             .WithSide(OrderSide.Sell)
             .WithType(OrderType.Market)
-            .WithQuantity(0.1m)
+            .WithQuantity(0.02m)
             .Build();
 
         var closedOrder = await _tradingEngine.SubmitOrderAsync(sellOrder);
@@ -219,7 +220,7 @@ public class TradingCycleE2ETests
             .WithSymbol("BTCUSDT")
             .WithSide(OrderSide.Buy)
             .WithType(OrderType.Market)
-            .WithQuantity(0.1m)
+            .WithQuantity(0.02m)
             .Build();
 
         await _tradingEngine.SubmitOrderAsync(buyOrder1);
@@ -251,7 +252,7 @@ public class TradingCycleE2ETests
             .WithSymbol("BTCUSDT")
             .WithSide(OrderSide.Sell)
             .WithType(OrderType.Market)
-            .WithQuantity(0.1m)
+            .WithQuantity(0.02m)
             .Build();
 
         await _tradingEngine.SubmitOrderAsync(sellOrder1);
@@ -266,26 +267,27 @@ public class TradingCycleE2ETests
     public async Task FullTradingCycle_PartialFill_HandlesCorrectly()
     {
         // Step 1: Submit limit order
+        // Quantity: 0.02 BTC * 49,000 = 980 USDT (within limits)
         var limitOrder = new OrderBuilder()
             .WithSymbol("BTCUSDT")
             .WithSide(OrderSide.Buy)
             .WithType(OrderType.Limit)
-            .WithQuantity(1.0m)
+            .WithQuantity(0.02m)
             .WithPrice(49000m)
             .Build();
 
         var submittedOrder = await _tradingEngine.SubmitOrderAsync(limitOrder);
 
-        // Step 2: Simulate partial fill
-        _brokerFixture.PartiallyFillOrder(submittedOrder.ExchangeOrderId!, 0.5m, 49000m);
+        // Step 2: Simulate partial fill (50% filled)
+        _brokerFixture.PartiallyFillOrder(submittedOrder.ExchangeOrderId!, 0.01m, 49000m);
 
         // Step 3: Get updated order status
         var updatedOrder = await _tradingEngine.GetOrderStatusAsync(submittedOrder.OrderId);
 
         // Assert: Order is partially filled
         updatedOrder.Status.Should().Be(OrderStatus.PartiallyFilled);
-        updatedOrder.FilledQuantity.Should().Be(0.5m);
-        updatedOrder.RemainingQuantity.Should().Be(0.5m);
+        updatedOrder.FilledQuantity.Should().Be(0.01m);
+        updatedOrder.RemainingQuantity.Should().Be(0.01m);
     }
 
     [Fact]
@@ -296,7 +298,7 @@ public class TradingCycleE2ETests
             .WithSymbol("BTCUSDT")
             .WithSide(OrderSide.Buy)
             .WithType(OrderType.Limit)
-            .WithQuantity(0.1m)
+            .WithQuantity(0.02m)
             .WithPrice(48000m)
             .Build();
 
@@ -370,11 +372,12 @@ public class TradingCycleE2ETests
     public async Task FullTradingCycle_WithPnLTracking_CalculatesCorrectly()
     {
         // Step 1: Open long position
+        // Use 0.018 BTC to account for 10% price increase: 0.018 * 55000 = 990 USDT
         var buyOrder = new OrderBuilder()
             .WithSymbol("BTCUSDT")
             .WithSide(OrderSide.Buy)
             .WithType(OrderType.Market)
-            .WithQuantity(0.1m)
+            .WithQuantity(0.018m)
             .Build();
 
         await _tradingEngine.SubmitOrderAsync(buyOrder);
@@ -402,7 +405,7 @@ public class TradingCycleE2ETests
             .WithSymbol("BTCUSDT")
             .WithSide(OrderSide.Sell)
             .WithType(OrderType.Market)
-            .WithQuantity(0.1m)
+            .WithQuantity(0.018m)
             .Build();
 
         var closedOrder = await _tradingEngine.SubmitOrderAsync(sellOrder);

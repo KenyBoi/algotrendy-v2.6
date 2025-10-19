@@ -45,6 +45,7 @@ public class IndicatorService
 
         return await _cache.GetOrCreateAsync(cacheKey, async entry =>
         {
+            await Task.CompletedTask; // Satisfy async requirement
             entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(1);
 
             _logger.LogDebug("Calculating RSI for {Symbol} with period {Period}", symbol, period);
@@ -117,6 +118,7 @@ public class IndicatorService
 
         return await _cache.GetOrCreateAsync(cacheKey, async entry =>
         {
+            await Task.CompletedTask; // Satisfy async requirement
             entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(1);
 
             _logger.LogDebug("Calculating MACD for {Symbol}", symbol);
@@ -176,6 +178,7 @@ public class IndicatorService
 
         return await _cache.GetOrCreateAsync(cacheKey, async entry =>
         {
+            await Task.CompletedTask; // Satisfy async requirement
             entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(1);
 
             _logger.LogDebug("Calculating EMA for {Symbol} with period {Period}", symbol, period);
@@ -234,6 +237,7 @@ public class IndicatorService
 
         return await _cache.GetOrCreateAsync(cacheKey, async entry =>
         {
+            await Task.CompletedTask; // Satisfy async requirement
             entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(1);
 
             _logger.LogDebug("Calculating SMA for {Symbol} with period {Period}", symbol, period);
@@ -272,6 +276,7 @@ public class IndicatorService
 
         return await _cache.GetOrCreateAsync(cacheKey, async entry =>
         {
+            await Task.CompletedTask; // Satisfy async requirement
             entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(1);
 
             _logger.LogDebug("Calculating volatility for {Symbol} with period {Period}", symbol, period);

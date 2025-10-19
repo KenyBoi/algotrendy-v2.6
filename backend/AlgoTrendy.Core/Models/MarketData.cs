@@ -72,12 +72,12 @@ public class MarketData
     public decimal Range => High - Low;
 
     /// <summary>
-    /// Checks if the candle is bullish (close > open)
+    /// Checks if the candle is bullish (close &gt; open)
     /// </summary>
     public bool IsBullish => Close > Open;
 
     /// <summary>
-    /// Checks if the candle is bearish (close < open)
+    /// Checks if the candle is bearish (close &lt; open)
     /// </summary>
     public bool IsBearish => Close < Open;
 }

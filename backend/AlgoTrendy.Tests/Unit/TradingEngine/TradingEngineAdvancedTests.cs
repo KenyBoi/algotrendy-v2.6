@@ -79,7 +79,7 @@ public class TradingEngineAdvancedTests
         // Arrange
         var order = new OrderBuilder()
             .WithType(OrderType.Market)
-            .WithQuantity(0.1m)
+            .WithQuantity(0.02m)
             .WithPrice(null)
             .Build();
 
@@ -100,7 +100,7 @@ public class TradingEngineAdvancedTests
         // Arrange
         var order = new OrderBuilder()
             .WithType(OrderType.Limit)
-            .WithQuantity(0.1m)
+            .WithQuantity(0.02m)
             .WithPrice(49000m)
             .Build();
 
@@ -119,7 +119,7 @@ public class TradingEngineAdvancedTests
         // Arrange
         var order = new OrderBuilder()
             .WithType(OrderType.Limit)
-            .WithQuantity(0.1m)
+            .WithQuantity(0.02m)
             .WithPrice(49000m)
             .Build();
 
@@ -275,7 +275,7 @@ public class TradingEngineAdvancedTests
         var order = new OrderBuilder()
             .WithType(OrderType.Market)
             .WithSide(OrderSide.Buy)
-            .WithQuantity(0.1m)
+            .WithQuantity(0.02m)
             .Build();
 
         Order? raisedOrder = null;
@@ -297,8 +297,9 @@ public class TradingEngineAdvancedTests
             .Setup(b => b.PlaceOrderAsync(It.IsAny<OrderRequest>(), It.IsAny<CancellationToken>()))
             .ThrowsAsync(new InvalidOperationException("Insufficient funds"));
 
+        // Use small quantity to pass risk validation but test broker rejection
         var order = new OrderBuilder()
-            .WithQuantity(100m)
+            .WithQuantity(0.01m)
             .Build();
 
         // Act
@@ -376,7 +377,7 @@ public class TradingEngineAdvancedTests
         // Arrange
         var order = new OrderBuilder()
             .WithType(OrderType.StopLoss)
-            .WithQuantity(0.1m)
+            .WithQuantity(0.02m)
             .WithStopPrice(48000m)
             .WithPrice(47500m)
             .Build();
@@ -418,8 +419,8 @@ public class TradingEngineAdvancedTests
     public async Task SubmitOrderAsync_MultipleOrders_TracksCorrectly()
     {
         // Arrange
-        var order1 = new OrderBuilder().WithSymbol("BTCUSDT").WithQuantity(0.1m).Build();
-        var order2 = new OrderBuilder().WithSymbol("ETHUSDT").WithQuantity(1.0m).Build();
+        var order1 = new OrderBuilder().WithSymbol("BTCUSDT").WithQuantity(0.02m).Build();
+        var order2 = new OrderBuilder().WithSymbol("ETHUSDT").WithQuantity(0.3m).Build(); // 0.3 * 3000 = 900 USDT
 
         _brokerFixture.WithPrice("ETHUSDT", 3000m);
 

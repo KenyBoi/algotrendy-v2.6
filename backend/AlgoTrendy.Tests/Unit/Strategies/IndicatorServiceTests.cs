@@ -298,14 +298,14 @@ public class IndicatorServiceTests
     #region Cache Management Tests
 
     [Fact]
-    public void ClearCache_RemovesAllCachedValues()
+    public async Task ClearCache_RemovesAllCachedValues()
     {
         // Arrange
         var prices = Enumerable.Range(1, 30).Select(i => 100m + i).ToArray();
         var historicalData = CreatePriceData(prices);
 
         // Calculate to populate cache
-        var rsi1 = _indicatorService.CalculateRSIAsync("BTCUSDT", historicalData, 14).Result;
+        var rsi1 = await _indicatorService.CalculateRSIAsync("BTCUSDT", historicalData, 14);
 
         // Act
         _indicatorService.ClearCache();

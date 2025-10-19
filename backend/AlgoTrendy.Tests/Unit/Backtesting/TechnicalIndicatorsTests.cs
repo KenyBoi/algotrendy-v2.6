@@ -144,13 +144,13 @@ public class TechnicalIndicatorsTests
         for (int i = 0; i < upper.Length; i++)
         {
             if (upper[i].HasValue && middle[i].HasValue)
-                upper[i].Value.Should().BeGreaterThanOrEqualTo(middle[i].Value);
+                upper[i]!.Value.Should().BeGreaterThanOrEqualTo(middle[i]!.Value);
         }
 
         for (int i = 0; i < lower.Length; i++)
         {
             if (lower[i].HasValue && middle[i].HasValue)
-                lower[i].Value.Should().BeLessThanOrEqualTo(middle[i].Value);
+                lower[i]!.Value.Should().BeLessThanOrEqualTo(middle[i]!.Value);
         }
     }
 

@@ -35,7 +35,7 @@ public class MarketDataRepositoryTests
     }
 
     [Fact]
-    public async Task InsertAsync_WithValidMarketData_ReturnsTrue()
+    public void InsertAsync_WithValidMarketData_ReturnsTrue()
     {
         // Note: This is an integration-style test that would need a real QuestDB connection
         // For true unit testing, we'd need to refactor the repository to accept an IDbConnection

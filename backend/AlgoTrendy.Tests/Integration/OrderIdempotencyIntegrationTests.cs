@@ -136,11 +136,13 @@ public class OrderIdempotencyIntegrationTests : IAsyncLifetime
         // Act - Query by ClientOrderId should use index
         var stopwatch = System.Diagnostics.Stopwatch.StartNew();
 
-        foreach (var order in orders.Take(100)) // Test 100 lookups
+#pragma warning disable CS8602 // Dereference of a possibly null reference - false positive after null filtering
+        foreach (var order in orders.Take(100).Where(o => o != null)) // Test 100 lookups
         {
             var result = await _orderRepository.GetByClientOrderIdAsync(order.ClientOrderId);
             Assert.NotNull(result);
         }
+#pragma warning restore CS8602
 
         stopwatch.Stop();
 
