@@ -191,6 +191,7 @@ public class BinanceBroker : IBroker
             var order = new Order
             {
                 OrderId = Guid.NewGuid().ToString(),
+                ClientOrderId = OrderFactory.GenerateClientOrderId(),
                 ExchangeOrderId = binanceOrder.Id.ToString(),
                 Symbol = request.Symbol,
                 Exchange = BrokerName,
@@ -251,6 +252,7 @@ public class BinanceBroker : IBroker
             var order = new Order
             {
                 OrderId = Guid.NewGuid().ToString(),
+                ClientOrderId = OrderFactory.GenerateClientOrderId(),
                 ExchangeOrderId = binanceOrder.Id.ToString(),
                 Symbol = symbol,
                 Exchange = BrokerName,
@@ -303,6 +305,7 @@ public class BinanceBroker : IBroker
             var order = new Order
             {
                 OrderId = Guid.NewGuid().ToString(),
+                ClientOrderId = OrderFactory.GenerateClientOrderId(),
                 ExchangeOrderId = binanceOrder.Id.ToString(),
                 Symbol = symbol,
                 Exchange = BrokerName,
