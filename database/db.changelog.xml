@@ -1,0 +1,616 @@
+<?xml version="1.1" encoding="UTF-8" standalone="no"?>
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog" xmlns:ext="http://www.liquibase.org/xml/ns/dbchangelog-ext" xmlns:pro="http://www.liquibase.org/xml/ns/pro" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog-ext http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-ext.xsd http://www.liquibase.org/xml/ns/pro http://www.liquibase.org/xml/ns/pro/liquibase-pro-latest.xsd http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+    <changeSet author="root (generated)" id="1760843846715-1">
+        <createTable tableName="data_sources">
+            <column autoIncrement="true" name="source_id" startWith="28" type="INTEGER">
+                <constraints nullable="false" primaryKey="true" primaryKeyName="data_sources_pkey"/>
+            </column>
+            <column name="source_name" type="VARCHAR(100)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="source_type" type="VARCHAR(50)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="source_category" type="VARCHAR(50)"/>
+            <column defaultValueBoolean="true" name="is_active" type="BOOLEAN"/>
+            <column name="config_json" type="JSONB"/>
+            <column name="last_successful_fetch" type="TIMESTAMP WITH TIME ZONE"/>
+            <column defaultValueComputed="now()" name="created_at" type="TIMESTAMP WITH TIME ZONE"/>
+            <column defaultValueComputed="now()" name="updated_at" type="TIMESTAMP WITH TIME ZONE"/>
+        </createTable>
+    </changeSet>
+    <changeSet author="root (generated)" id="1760843846715-2">
+        <createTable tableName="market_data">
+            <column name="timestamp" type="TIMESTAMP WITH TIME ZONE">
+                <constraints nullable="false" primaryKey="true" primaryKeyName="market_data_pkey"/>
+            </column>
+            <column name="symbol" type="VARCHAR(20)">
+                <constraints nullable="false" primaryKey="true" primaryKeyName="market_data_pkey"/>
+            </column>
+            <column name="source_id" type="INTEGER">
+                <constraints nullable="false" primaryKey="true" primaryKeyName="market_data_pkey"/>
+            </column>
+            <column name="open" type="numeric(20, 8)"/>
+            <column name="high" type="numeric(20, 8)"/>
+            <column name="low" type="numeric(20, 8)"/>
+            <column name="close" type="numeric(20, 8)"/>
+            <column name="volume" type="numeric(20, 8)"/>
+            <column name="quote_volume" type="numeric(20, 8)"/>
+            <column name="trades_count" type="INTEGER"/>
+            <column name="vwap" type="numeric(20, 8)"/>
+            <column name="metadata_json" type="JSONB"/>
+        </createTable>
+    </changeSet>
+    <changeSet author="root (generated)" id="1760843846715-3">
+        <createTable tableName="social_sentiment">
+            <column name="timestamp" type="TIMESTAMP WITH TIME ZONE">
+                <constraints nullable="false" primaryKey="true" primaryKeyName="social_sentiment_pkey"/>
+            </column>
+            <column name="source_id" type="INTEGER"/>
+            <column name="platform" type="VARCHAR(50)"/>
+            <column name="symbol" type="VARCHAR(20)"/>
+            <column name="post_id" type="VARCHAR(200)">
+                <constraints nullable="false" primaryKey="true" primaryKeyName="social_sentiment_pkey"/>
+            </column>
+            <column name="post_url" type="VARCHAR(500)"/>
+            <column name="author" type="VARCHAR(200)"/>
+            <column name="content" type="TEXT"/>
+            <column name="sentiment_score" type="numeric(3, 2)"/>
+            <column name="sentiment_label" type="VARCHAR(20)"/>
+            <column name="engagement_score" type="INTEGER"/>
+            <column name="metadata_json" type="JSONB"/>
+        </createTable>
+    </changeSet>
+    <changeSet author="root (generated)" id="1760843846715-4">
+        <createTable tableName="onchain_data">
+            <column name="timestamp" type="TIMESTAMP WITH TIME ZONE">
+                <constraints nullable="false" primaryKey="true" primaryKeyName="onchain_data_pkey"/>
+            </column>
+            <column name="source_id" type="INTEGER"/>
+            <column name="blockchain" type="VARCHAR(50)">
+                <constraints nullable="false" primaryKey="true" primaryKeyName="onchain_data_pkey"/>
+            </column>
+            <column name="metric_name" type="VARCHAR(100)">
+                <constraints nullable="false" primaryKey="true" primaryKeyName="onchain_data_pkey"/>
+            </column>
+            <column name="metric_value" type="numeric(30, 8)"/>
+            <column name="symbol" type="VARCHAR(20)"/>
+            <column name="metadata_json" type="JSONB"/>
+        </createTable>
+    </changeSet>
+    <changeSet author="root (generated)" id="1760843846715-5">
+        <createTable tableName="alt_data">
+            <column name="timestamp" type="TIMESTAMP WITH TIME ZONE">
+                <constraints nullable="false" primaryKey="true" primaryKeyName="alt_data_pkey"/>
+            </column>
+            <column name="source_id" type="INTEGER"/>
+            <column name="data_type" type="VARCHAR(50)">
+                <constraints nullable="false" primaryKey="true" primaryKeyName="alt_data_pkey"/>
+            </column>
+            <column name="symbol" type="VARCHAR(20)"/>
+            <column name="metric_name" type="VARCHAR(100)">
+                <constraints nullable="false" primaryKey="true" primaryKeyName="alt_data_pkey"/>
+            </column>
+            <column name="metric_value" type="numeric(20, 8)"/>
+            <column name="metadata_json" type="JSONB"/>
+        </createTable>
+    </changeSet>
+    <changeSet author="root (generated)" id="1760843846715-6">
+        <createTable tableName="signals">
+            <column autoIncrement="true" name="signal_id" type="BIGINT">
+                <constraints nullable="false" primaryKey="true" primaryKeyName="signals_pkey"/>
+            </column>
+            <column defaultValueComputed="now()" name="timestamp" type="TIMESTAMP WITH TIME ZONE">
+                <constraints nullable="false"/>
+            </column>
+            <column name="symbol" type="VARCHAR(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="signal_type" type="VARCHAR(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="strategy_name" type="VARCHAR(100)"/>
+            <column name="confidence" type="numeric(3, 2)"/>
+            <column name="price_target" type="numeric(20, 8)"/>
+            <column name="stop_loss" type="numeric(20, 8)"/>
+            <column name="timeframe" type="VARCHAR(20)"/>
+            <column name="indicators_json" type="JSONB"/>
+            <column name="reasoning" type="TEXT"/>
+            <column defaultValue="ACTIVE" name="status" type="VARCHAR(20)"/>
+            <column defaultValueComputed="now()" name="created_at" type="TIMESTAMP WITH TIME ZONE"/>
+        </createTable>
+    </changeSet>
+    <changeSet author="root (generated)" id="1760843846715-7">
+        <createTable tableName="positions">
+            <column autoIncrement="true" name="position_id" type="BIGINT">
+                <constraints nullable="false" primaryKey="true" primaryKeyName="positions_pkey"/>
+            </column>
+            <column name="symbol" type="VARCHAR(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="side" type="VARCHAR(10)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="size" type="numeric(20, 8)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="entry_price" type="numeric(20, 8)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="current_price" type="numeric(20, 8)"/>
+            <column name="unrealized_pnl" type="numeric(20, 8)"/>
+            <column name="unrealized_pnl_percent" type="numeric(10, 4)"/>
+            <column name="stop_loss" type="numeric(20, 8)"/>
+            <column name="take_profit" type="numeric(20, 8)"/>
+            <column defaultValueNumeric="1.0" name="leverage" type="numeric(5, 2)"/>
+            <column name="margin" type="numeric(20, 8)"/>
+            <column defaultValue="OPEN" name="status" type="VARCHAR(20)"/>
+            <column name="broker" type="VARCHAR(50)"/>
+            <column defaultValueComputed="now()" name="opened_at" type="TIMESTAMP WITH TIME ZONE">
+                <constraints nullable="false"/>
+            </column>
+            <column name="closed_at" type="TIMESTAMP WITH TIME ZONE"/>
+            <column name="metadata_json" type="JSONB"/>
+        </createTable>
+    </changeSet>
+    <changeSet author="root (generated)" id="1760843846715-8">
+        <createTable tableName="trades">
+            <column autoIncrement="true" name="trade_id" type="BIGINT">
+                <constraints nullable="false" primaryKey="true" primaryKeyName="trades_pkey"/>
+            </column>
+            <column name="position_id" type="BIGINT"/>
+            <column name="signal_id" type="BIGINT"/>
+            <column defaultValueComputed="now()" name="timestamp" type="TIMESTAMP WITH TIME ZONE">
+                <constraints nullable="false"/>
+            </column>
+            <column name="symbol" type="VARCHAR(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="side" type="VARCHAR(10)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="order_type" type="VARCHAR(20)"/>
+            <column name="quantity" type="numeric(20, 8)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="price" type="numeric(20, 8)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="commission" type="numeric(20, 8)"/>
+            <column name="commission_asset" type="VARCHAR(10)"/>
+            <column name="realized_pnl" type="numeric(20, 8)"/>
+            <column name="broker" type="VARCHAR(50)"/>
+            <column name="broker_order_id" type="VARCHAR(100)"/>
+            <column defaultValue="FILLED" name="status" type="VARCHAR(20)"/>
+            <column name="metadata_json" type="JSONB"/>
+        </createTable>
+    </changeSet>
+    <changeSet author="root (generated)" id="1760843846715-9">
+        <createTable tableName="ai_recommendations">
+            <column autoIncrement="true" name="recommendation_id" type="BIGINT">
+                <constraints nullable="false" primaryKey="true" primaryKeyName="ai_recommendations_pkey"/>
+            </column>
+            <column defaultValueComputed="now()" name="timestamp" type="TIMESTAMP WITH TIME ZONE">
+                <constraints nullable="false"/>
+            </column>
+            <column name="symbol" type="VARCHAR(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="recommendation" type="VARCHAR(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="confidence" type="numeric(3, 2)"/>
+            <column name="target_price" type="numeric(20, 8)"/>
+            <column name="stop_loss" type="numeric(20, 8)"/>
+            <column name="timeframe" type="VARCHAR(20)"/>
+            <column name="reasoning" type="TEXT"/>
+            <column name="technical_score" type="numeric(3, 2)"/>
+            <column name="fundamental_score" type="numeric(3, 2)"/>
+            <column name="sentiment_score" type="numeric(3, 2)"/>
+            <column name="risk_level" type="VARCHAR(20)"/>
+            <column name="model_version" type="VARCHAR(50)"/>
+            <column name="metadata_json" type="JSONB"/>
+        </createTable>
+    </changeSet>
+    <changeSet author="root (generated)" id="1760843846715-10">
+        <createTable tableName="ingestion_logs">
+            <column autoIncrement="true" name="log_id" type="BIGINT">
+                <constraints nullable="false" primaryKey="true" primaryKeyName="ingestion_logs_pkey"/>
+            </column>
+            <column defaultValueComputed="now()" name="timestamp" type="TIMESTAMP WITH TIME ZONE">
+                <constraints nullable="false"/>
+            </column>
+            <column name="source_id" type="INTEGER"/>
+            <column name="job_id" type="VARCHAR(100)"/>
+            <column name="status" type="VARCHAR(20)"/>
+            <column name="records_fetched" type="INTEGER"/>
+            <column name="records_inserted" type="INTEGER"/>
+            <column name="records_updated" type="INTEGER"/>
+            <column name="records_failed" type="INTEGER"/>
+            <column name="duration_ms" type="INTEGER"/>
+            <column name="error_message" type="TEXT"/>
+            <column name="metadata_json" type="JSONB"/>
+        </createTable>
+    </changeSet>
+    <changeSet author="root (generated)" id="1760843846715-11">
+        <createTable tableName="portfolio_snapshots">
+            <column autoIncrement="true" name="snapshot_id" type="BIGINT">
+                <constraints nullable="false" primaryKey="true" primaryKeyName="portfolio_snapshots_pkey"/>
+            </column>
+            <column defaultValueComputed="now()" name="timestamp" type="TIMESTAMP WITH TIME ZONE">
+                <constraints nullable="false"/>
+            </column>
+            <column name="total_balance" type="numeric(20, 8)"/>
+            <column name="total_equity" type="numeric(20, 8)"/>
+            <column name="available_margin" type="numeric(20, 8)"/>
+            <column name="unrealized_pnl" type="numeric(20, 8)"/>
+            <column name="realized_pnl" type="numeric(20, 8)"/>
+            <column name="total_pnl" type="numeric(20, 8)"/>
+            <column name="win_rate" type="numeric(5, 2)"/>
+            <column name="profit_factor" type="numeric(10, 4)"/>
+            <column name="sharpe_ratio" type="numeric(10, 4)"/>
+            <column name="max_drawdown" type="numeric(10, 4)"/>
+            <column name="positions_count" type="INTEGER"/>
+            <column name="metadata_json" type="JSONB"/>
+        </createTable>
+    </changeSet>
+    <changeSet author="root (generated)" id="1760843846715-12">
+        <createTable tableName="watchlist">
+            <column autoIncrement="true" name="watchlist_id" startWith="6" type="INTEGER">
+                <constraints nullable="false" primaryKey="true" primaryKeyName="watchlist_pkey"/>
+            </column>
+            <column name="symbol" type="VARCHAR(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="display_order" type="INTEGER"/>
+            <column name="notes" type="TEXT"/>
+            <column defaultValueBoolean="false" name="alerts_enabled" type="BOOLEAN"/>
+            <column name="alert_price_above" type="numeric(20, 8)"/>
+            <column name="alert_price_below" type="numeric(20, 8)"/>
+            <column defaultValueComputed="now()" name="added_at" type="TIMESTAMP WITH TIME ZONE"/>
+        </createTable>
+    </changeSet>
+    <changeSet author="root (generated)" id="1760843846715-13">
+        <createTable tableName="system_config">
+            <column name="config_key" type="VARCHAR(100)">
+                <constraints nullable="false" primaryKey="true" primaryKeyName="system_config_pkey"/>
+            </column>
+            <column name="config_value" type="TEXT"/>
+            <column name="data_type" type="VARCHAR(20)"/>
+            <column name="description" type="TEXT"/>
+            <column defaultValueComputed="now()" name="updated_at" type="TIMESTAMP WITH TIME ZONE"/>
+        </createTable>
+    </changeSet>
+    <changeSet author="root (generated)" id="1760843846715-14">
+        <createTable tableName="news_articles">
+            <column autoIncrement="true" name="article_id" type="BIGINT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="timestamp" type="TIMESTAMP WITH TIME ZONE">
+                <constraints nullable="false"/>
+            </column>
+            <column name="source_id" type="INTEGER"/>
+            <column name="article_url" type="TEXT"/>
+            <column name="title" type="TEXT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="summary" type="TEXT"/>
+            <column name="content" type="TEXT"/>
+            <column name="author" type="TEXT"/>
+            <column name="symbols" type="TEXT[]"/>
+            <column name="categories" type="TEXT[]"/>
+            <column name="sentiment_score" type="numeric(3, 2)"/>
+            <column name="sentiment_label" type="TEXT"/>
+            <column name="image_url" type="TEXT"/>
+            <column name="metadata_json" type="JSONB"/>
+        </createTable>
+    </changeSet>
+    <changeSet author="root (generated)" id="1760843846715-15">
+        <createTable remarks="Configuration for data ingestion intervals and active symbols" tableName="ingestion_config">
+            <column autoIncrement="true" name="id" startWith="18" type="INTEGER">
+                <constraints nullable="false" primaryKey="true" primaryKeyName="ingestion_config_pkey"/>
+            </column>
+            <column name="config_key" remarks="Unique configuration key" type="VARCHAR(100)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="config_value" remarks="Configuration value (string, number, or JSON)" type="TEXT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="config_type" remarks="Type of configuration: interval, symbols, enabled" type="VARCHAR(50)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="description" remarks="Human-readable description of the configuration" type="TEXT"/>
+            <column defaultValueComputed="CURRENT_TIMESTAMP" name="updated_at" type="TIMESTAMP WITH TIME ZONE"/>
+            <column defaultValue="system" name="updated_by" type="VARCHAR(100)"/>
+        </createTable>
+    </changeSet>
+    <changeSet author="root (generated)" id="1760843846715-16">
+        <createIndex indexName="idx_data_sources_type" tableName="data_sources">
+            <column name="source_type"/>
+        </createIndex>
+    </changeSet>
+    <changeSet author="root (generated)" id="1760843846715-17">
+        <createIndex indexName="idx_data_sources_active" tableName="data_sources">
+            <column defaultValueBoolean="true" name="is_active"/>
+        </createIndex>
+    </changeSet>
+    <changeSet author="root (generated)" id="1760843846715-18">
+        <addUniqueConstraint columnNames="source_name" constraintName="data_sources_source_name_key" tableName="data_sources"/>
+    </changeSet>
+    <changeSet author="root (generated)" id="1760843846715-19">
+        <createIndex indexName="market_data_timestamp_idx" tableName="market_data">
+            <column descending="true" name="timestamp"/>
+        </createIndex>
+    </changeSet>
+    <changeSet author="root (generated)" id="1760843846715-20">
+        <createIndex indexName="idx_market_data_symbol" tableName="market_data">
+            <column name="symbol"/>
+            <column descending="true" name="timestamp"/>
+        </createIndex>
+    </changeSet>
+    <changeSet author="root (generated)" id="1760843846715-21">
+        <createIndex indexName="idx_market_data_source" tableName="market_data">
+            <column name="source_id"/>
+            <column descending="true" name="timestamp"/>
+        </createIndex>
+    </changeSet>
+    <changeSet author="root (generated)" id="1760843846715-22">
+        <createIndex indexName="idx_market_data_source_symbol" tableName="market_data">
+            <column name="source_id"/>
+            <column name="symbol"/>
+            <column descending="true" name="timestamp"/>
+        </createIndex>
+    </changeSet>
+    <changeSet author="root (generated)" id="1760843846715-23">
+        <createView fullDefinition="false" viewName="market_data_1m">SELECT bucket,
+    symbol,
+    source_id,
+    open,
+    high,
+    low,
+    close,
+    volume,
+    quote_volume,
+    trades_count
+   FROM _timescaledb_internal._materialized_hypertable_3;</createView>
+    </changeSet>
+    <changeSet author="root (generated)" id="1760843846715-24">
+        <createView fullDefinition="false" viewName="market_data_5m">SELECT bucket,
+    symbol,
+    source_id,
+    open,
+    high,
+    low,
+    close,
+    volume,
+    quote_volume,
+    trades_count
+   FROM _timescaledb_internal._materialized_hypertable_4;</createView>
+    </changeSet>
+    <changeSet author="root (generated)" id="1760843846715-25">
+        <createView fullDefinition="false" viewName="market_data_1h">SELECT bucket,
+    symbol,
+    source_id,
+    open,
+    high,
+    low,
+    close,
+    volume,
+    quote_volume,
+    trades_count
+   FROM _timescaledb_internal._materialized_hypertable_5;</createView>
+    </changeSet>
+    <changeSet author="root (generated)" id="1760843846715-26">
+        <createIndex indexName="social_sentiment_timestamp_idx" tableName="social_sentiment">
+            <column descending="true" name="timestamp"/>
+        </createIndex>
+    </changeSet>
+    <changeSet author="root (generated)" id="1760843846715-27">
+        <createIndex indexName="idx_social_symbol" tableName="social_sentiment">
+            <column name="symbol"/>
+            <column descending="true" name="timestamp"/>
+        </createIndex>
+    </changeSet>
+    <changeSet author="root (generated)" id="1760843846715-28">
+        <createIndex indexName="idx_social_platform" tableName="social_sentiment">
+            <column name="platform"/>
+        </createIndex>
+    </changeSet>
+    <changeSet author="root (generated)" id="1760843846715-29">
+        <createIndex indexName="onchain_data_timestamp_idx" tableName="onchain_data">
+            <column descending="true" name="timestamp"/>
+        </createIndex>
+    </changeSet>
+    <changeSet author="root (generated)" id="1760843846715-30">
+        <createIndex indexName="idx_onchain_blockchain" tableName="onchain_data">
+            <column name="blockchain"/>
+            <column name="metric_name"/>
+            <column descending="true" name="timestamp"/>
+        </createIndex>
+    </changeSet>
+    <changeSet author="root (generated)" id="1760843846715-31">
+        <createIndex indexName="alt_data_timestamp_idx" tableName="alt_data">
+            <column descending="true" name="timestamp"/>
+        </createIndex>
+    </changeSet>
+    <changeSet author="root (generated)" id="1760843846715-32">
+        <createIndex indexName="idx_alt_data_type" tableName="alt_data">
+            <column name="data_type"/>
+            <column descending="true" name="timestamp"/>
+        </createIndex>
+    </changeSet>
+    <changeSet author="root (generated)" id="1760843846715-33">
+        <createIndex indexName="idx_signals_timestamp" tableName="signals">
+            <column descending="true" name="timestamp"/>
+        </createIndex>
+    </changeSet>
+    <changeSet author="root (generated)" id="1760843846715-34">
+        <createIndex indexName="idx_signals_symbol" tableName="signals">
+            <column name="symbol"/>
+            <column descending="true" name="timestamp"/>
+        </createIndex>
+    </changeSet>
+    <changeSet author="root (generated)" id="1760843846715-35">
+        <createIndex indexName="idx_signals_status" tableName="signals">
+            <column name="status"/>
+        </createIndex>
+    </changeSet>
+    <changeSet author="root (generated)" id="1760843846715-36">
+        <createIndex indexName="idx_signals_strategy_timestamp" tableName="signals">
+            <column name="strategy_name"/>
+            <column descending="true" name="timestamp"/>
+        </createIndex>
+    </changeSet>
+    <changeSet author="root (generated)" id="1760843846715-37">
+        <createIndex indexName="idx_positions_status" tableName="positions">
+            <column name="status"/>
+        </createIndex>
+    </changeSet>
+    <changeSet author="root (generated)" id="1760843846715-38">
+        <createIndex indexName="idx_positions_symbol" tableName="positions">
+            <column name="symbol"/>
+            <column name="status"/>
+        </createIndex>
+    </changeSet>
+    <changeSet author="root (generated)" id="1760843846715-39">
+        <createIndex indexName="idx_positions_broker" tableName="positions">
+            <column name="broker"/>
+        </createIndex>
+    </changeSet>
+    <changeSet author="root (generated)" id="1760843846715-40">
+        <createIndex indexName="idx_positions_symbol_status_opened" tableName="positions">
+            <column name="symbol"/>
+            <column name="status"/>
+            <column descending="true" name="opened_at"/>
+        </createIndex>
+    </changeSet>
+    <changeSet author="root (generated)" id="1760843846715-41">
+        <createIndex indexName="idx_positions_open" tableName="positions">
+            <column name="position_id"/>
+            <column name="symbol"/>
+            <column descending="true" name="opened_at"/>
+        </createIndex>
+    </changeSet>
+    <changeSet author="root (generated)" id="1760843846715-42">
+        <createIndex indexName="idx_trades_timestamp" tableName="trades">
+            <column descending="true" name="timestamp"/>
+        </createIndex>
+    </changeSet>
+    <changeSet author="root (generated)" id="1760843846715-43">
+        <createIndex indexName="idx_trades_position" tableName="trades">
+            <column name="position_id"/>
+        </createIndex>
+    </changeSet>
+    <changeSet author="root (generated)" id="1760843846715-44">
+        <createIndex indexName="idx_trades_broker" tableName="trades">
+            <column name="broker"/>
+        </createIndex>
+    </changeSet>
+    <changeSet author="root (generated)" id="1760843846715-45">
+        <createIndex indexName="idx_trades_symbol_timestamp" tableName="trades">
+            <column name="symbol"/>
+            <column descending="true" name="timestamp"/>
+        </createIndex>
+    </changeSet>
+    <changeSet author="root (generated)" id="1760843846715-46">
+        <createIndex indexName="idx_trades_status_timestamp" tableName="trades">
+            <column name="status"/>
+            <column descending="true" name="timestamp"/>
+        </createIndex>
+    </changeSet>
+    <changeSet author="root (generated)" id="1760843846715-47">
+        <createIndex indexName="idx_ai_recommendations_symbol" tableName="ai_recommendations">
+            <column name="symbol"/>
+            <column descending="true" name="timestamp"/>
+        </createIndex>
+    </changeSet>
+    <changeSet author="root (generated)" id="1760843846715-48">
+        <createIndex indexName="idx_ai_recommendations_timestamp" tableName="ai_recommendations">
+            <column descending="true" name="timestamp"/>
+        </createIndex>
+    </changeSet>
+    <changeSet author="root (generated)" id="1760843846715-49">
+        <createIndex indexName="idx_ingestion_logs_source" tableName="ingestion_logs">
+            <column name="source_id"/>
+            <column descending="true" name="timestamp"/>
+        </createIndex>
+    </changeSet>
+    <changeSet author="root (generated)" id="1760843846715-50">
+        <createIndex indexName="idx_ingestion_logs_status" tableName="ingestion_logs">
+            <column name="status"/>
+        </createIndex>
+    </changeSet>
+    <changeSet author="root (generated)" id="1760843846715-51">
+        <createIndex indexName="idx_portfolio_snapshots_timestamp" tableName="portfolio_snapshots">
+            <column descending="true" name="timestamp"/>
+        </createIndex>
+    </changeSet>
+    <changeSet author="root (generated)" id="1760843846715-52">
+        <createIndex indexName="idx_watchlist_order" tableName="watchlist">
+            <column name="display_order"/>
+        </createIndex>
+    </changeSet>
+    <changeSet author="root (generated)" id="1760843846715-53">
+        <addUniqueConstraint columnNames="symbol" constraintName="watchlist_symbol_key" tableName="watchlist"/>
+    </changeSet>
+    <changeSet author="root (generated)" id="1760843846715-54">
+        <createIndex indexName="idx_news_timestamp" tableName="news_articles">
+            <column descending="true" name="timestamp"/>
+        </createIndex>
+    </changeSet>
+    <changeSet author="root (generated)" id="1760843846715-55">
+        <createIndex indexName="idx_news_source" tableName="news_articles">
+            <column name="source_id"/>
+        </createIndex>
+    </changeSet>
+    <changeSet author="root (generated)" id="1760843846715-56">
+        <createIndex indexName="idx_news_symbols" tableName="news_articles">
+            <column name="symbols"/>
+        </createIndex>
+    </changeSet>
+    <changeSet author="root (generated)" id="1760843846715-57">
+        <createIndex indexName="idx_news_categories" tableName="news_articles">
+            <column name="categories"/>
+        </createIndex>
+    </changeSet>
+    <changeSet author="root (generated)" id="1760843846715-58">
+        <createIndex indexName="idx_news_sentiment" tableName="news_articles">
+            <column name="sentiment_score"/>
+        </createIndex>
+    </changeSet>
+    <changeSet author="root (generated)" id="1760843846715-59">
+        <createIndex indexName="idx_news_url" tableName="news_articles">
+            <column name="article_url"/>
+        </createIndex>
+    </changeSet>
+    <changeSet author="root (generated)" id="1760843846715-60">
+        <addUniqueConstraint columnNames="config_key" constraintName="ingestion_config_config_key_key" tableName="ingestion_config"/>
+    </changeSet>
+    <changeSet author="root (generated)" id="1760843846715-61">
+        <addPrimaryKey columnNames="timestamp, article_id" constraintName="news_articles_pkey" tableName="news_articles"/>
+    </changeSet>
+    <changeSet author="root (generated)" id="1760843846715-62">
+        <addForeignKeyConstraint baseColumnNames="source_id" baseTableName="alt_data" constraintName="alt_data_source_id_fkey" deferrable="false" initiallyDeferred="false" onDelete="NO ACTION" onUpdate="NO ACTION" referencedColumnNames="source_id" referencedTableName="data_sources" validate="true"/>
+    </changeSet>
+    <changeSet author="root (generated)" id="1760843846715-63">
+        <addForeignKeyConstraint baseColumnNames="source_id" baseTableName="ingestion_logs" constraintName="ingestion_logs_source_id_fkey" deferrable="false" initiallyDeferred="false" onDelete="NO ACTION" onUpdate="NO ACTION" referencedColumnNames="source_id" referencedTableName="data_sources" validate="true"/>
+    </changeSet>
+    <changeSet author="root (generated)" id="1760843846715-64">
+        <addForeignKeyConstraint baseColumnNames="source_id" baseTableName="market_data" constraintName="market_data_source_id_fkey" deferrable="false" initiallyDeferred="false" onDelete="NO ACTION" onUpdate="NO ACTION" referencedColumnNames="source_id" referencedTableName="data_sources" validate="true"/>
+    </changeSet>
+    <changeSet author="root (generated)" id="1760843846715-65">
+        <addForeignKeyConstraint baseColumnNames="source_id" baseTableName="news_articles" constraintName="news_articles_source_id_fkey" deferrable="false" initiallyDeferred="false" onDelete="NO ACTION" onUpdate="NO ACTION" referencedColumnNames="source_id" referencedTableName="data_sources" validate="true"/>
+    </changeSet>
+    <changeSet author="root (generated)" id="1760843846715-66">
+        <addForeignKeyConstraint baseColumnNames="source_id" baseTableName="onchain_data" constraintName="onchain_data_source_id_fkey" deferrable="false" initiallyDeferred="false" onDelete="NO ACTION" onUpdate="NO ACTION" referencedColumnNames="source_id" referencedTableName="data_sources" validate="true"/>
+    </changeSet>
+    <changeSet author="root (generated)" id="1760843846715-67">
+        <addForeignKeyConstraint baseColumnNames="source_id" baseTableName="social_sentiment" constraintName="social_sentiment_source_id_fkey" deferrable="false" initiallyDeferred="false" onDelete="NO ACTION" onUpdate="NO ACTION" referencedColumnNames="source_id" referencedTableName="data_sources" validate="true"/>
+    </changeSet>
+    <changeSet author="root (generated)" id="1760843846715-68">
+        <addForeignKeyConstraint baseColumnNames="position_id" baseTableName="trades" constraintName="trades_position_id_fkey" deferrable="false" initiallyDeferred="false" onDelete="NO ACTION" onUpdate="NO ACTION" referencedColumnNames="position_id" referencedTableName="positions" validate="true"/>
+    </changeSet>
+    <changeSet author="root (generated)" id="1760843846715-69">
+        <addForeignKeyConstraint baseColumnNames="signal_id" baseTableName="trades" constraintName="trades_signal_id_fkey" deferrable="false" initiallyDeferred="false" onDelete="NO ACTION" onUpdate="NO ACTION" referencedColumnNames="signal_id" referencedTableName="signals" validate="true"/>
+    </changeSet>
+</databaseChangeLog>
