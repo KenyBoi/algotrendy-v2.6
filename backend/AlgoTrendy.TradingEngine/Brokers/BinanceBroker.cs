@@ -19,6 +19,12 @@ public class BinanceBroker : IBroker
     private readonly ILogger<BinanceBroker> _logger;
     private bool _isConnected = false;
 
+    // Rate limiting (Binance: 20 orders/second, 1200/minute)
+    private readonly SemaphoreSlim _rateLimiter = new(20, 20); // 20 concurrent requests
+    private readonly Dictionary<string, DateTime> _lastRequestTime = new();
+    private readonly object _requestTimeLock = new();
+    private const int MinRequestIntervalMs = 50; // 50ms = 20 requests/second
+
     public string BrokerName => "binance";
 
     public BinanceBroker(
@@ -129,6 +135,9 @@ public class BinanceBroker : IBroker
     public async Task<Order> PlaceOrderAsync(OrderRequest request, CancellationToken cancellationToken = default)
     {
         EnsureConnected();
+
+        // Enforce rate limiting to prevent API bans
+        await EnforceRateLimitAsync(request.Symbol, cancellationToken);
 
         try
         {
@@ -357,6 +366,40 @@ public class BinanceBroker : IBroker
         }
     }
 
+    /// <summary>
+    /// Enforces rate limiting to prevent Binance API bans
+    /// Binance limits: 20 orders/second, 1200 orders/minute
+    /// </summary>
+    private async Task EnforceRateLimitAsync(string symbol, CancellationToken cancellationToken)
+    {
+        // Acquire semaphore (limits concurrent requests to 20)
+        await _rateLimiter.WaitAsync(cancellationToken);
+
+        try
+        {
+            // Check last request time for this symbol and enforce minimum interval
+            lock (_requestTimeLock)
+            {
+                var now = DateTime.UtcNow;
+                if (_lastRequestTime.TryGetValue(symbol, out var lastTime))
+                {
+                    var elapsedMs = (now - lastTime).TotalMilliseconds;
+                    if (elapsedMs < MinRequestIntervalMs)
+                    {
+                        var delayMs = (int)(MinRequestIntervalMs - elapsedMs);
+                        _logger.LogDebug("Rate limiting: delaying {DelayMs}ms for {Symbol}", delayMs, symbol);
+                        Task.Delay(delayMs, cancellationToken).Wait(cancellationToken);
+                    }
+                }
+                _lastRequestTime[symbol] = DateTime.UtcNow;
+            }
+        }
+        finally
+        {
+            _rateLimiter.Release();
+        }
+    }
+
     private static Binance.Net.Enums.OrderSide MapOrderSide(Core.Enums.OrderSide side)
     {
         return side switch
@@ -414,6 +457,60 @@ public class BinanceBroker : IBroker
             Binance.Net.Enums.OrderStatus.Expired => Core.Enums.OrderStatus.Expired,
             _ => Core.Enums.OrderStatus.Pending
         };
+    }
+
+    /// <summary>
+    /// Sets leverage for a symbol (NOT YET IMPLEMENTED - Returns safe default)
+    /// </summary>
+    public async Task<bool> SetLeverageAsync(string symbol, decimal leverage, MarginType marginType, CancellationToken cancellationToken = default)
+    {
+        _logger.LogWarning("SetLeverageAsync not yet implemented for Binance. Using default leverage 1x.");
+
+        // Safe default: only allow 1x leverage (no leverage)
+        if (leverage != 1.0m)
+        {
+            throw new NotSupportedException($"Leverage modification not yet supported for Binance. Default 1x leverage in use. Requested: {leverage}x");
+        }
+
+        await Task.CompletedTask; // Async placeholder
+        return true;
+    }
+
+    /// <summary>
+    /// Gets leverage information for a symbol (NOT YET IMPLEMENTED - Returns safe default)
+    /// </summary>
+    public async Task<LeverageInfo> GetLeverageInfoAsync(string symbol, CancellationToken cancellationToken = default)
+    {
+        _logger.LogWarning("GetLeverageInfoAsync not yet implemented for Binance. Returning safe default (1x leverage).");
+
+        await Task.CompletedTask; // Async placeholder
+
+        // Return safe default: 1x leverage (no leverage)
+        return new LeverageInfo
+        {
+            CurrentLeverage = 1.0m,
+            MaxLeverage = 1.0m,
+            MarginType = MarginType.Isolated,
+            CollateralAmount = 0m,
+            BorrowedAmount = 0m,
+            InterestRate = 0m,
+            LiquidationPrice = null,
+            MarginHealthRatio = 1.0m // Perfect health (no leverage)
+        };
+    }
+
+    /// <summary>
+    /// Gets margin health ratio (NOT YET IMPLEMENTED - Returns conservative estimate)
+    /// </summary>
+    public async Task<decimal> GetMarginHealthRatioAsync(CancellationToken cancellationToken = default)
+    {
+        _logger.LogWarning("GetMarginHealthRatioAsync not yet implemented for Binance. Returning conservative estimate.");
+
+        await Task.CompletedTask; // Async placeholder
+
+        // Return conservative estimate: 50% health
+        // TODO: Implement actual margin health calculation from Binance account
+        return 0.5m;
     }
 
     #endregion
