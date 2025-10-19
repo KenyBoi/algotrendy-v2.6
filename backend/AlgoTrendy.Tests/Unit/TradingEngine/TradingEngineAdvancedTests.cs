@@ -392,9 +392,9 @@ public class TradingEngineAdvancedTests
     }
 
     [Theory]
-    [InlineData(OrderType.Market, 0.1, null)]
-    [InlineData(OrderType.Limit, 0.1, 49000)]
-    [InlineData(OrderType.StopLoss, 0.1, 47000)]
+    [InlineData(OrderType.Market, 0.02, null)]
+    [InlineData(OrderType.Limit, 0.02, 49000)]
+    [InlineData(OrderType.StopLoss, 0.02, 47000)]
     public async Task SubmitOrderAsync_VariousOrderTypes_SubmitCorrectly(
         OrderType orderType, decimal quantity, decimal? price)
     {

@@ -321,6 +321,13 @@ public class TradingEngine : ITradingEngine
                 order.Symbol,
                 cancellationToken);
 
+            // Handle null response from broker
+            if (updatedOrder == null)
+            {
+                _logger.LogWarning("Broker returned null for order status: {OrderId}", order.ExchangeOrderId);
+                return;
+            }
+
             var statusChanged = order.Status != updatedOrder.Status;
             var fillChanged = order.FilledQuantity != updatedOrder.FilledQuantity;
 
