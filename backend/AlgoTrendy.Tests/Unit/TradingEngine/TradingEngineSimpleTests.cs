@@ -56,6 +56,7 @@ public class TradingEngineSimpleTests
         var order = new Order
         {
             OrderId = Guid.NewGuid().ToString(),
+            ClientOrderId = OrderFactory.GenerateClientOrderId(),
             Symbol = "BTCUSDT",
             Exchange = "binance",
             Side = OrderSide.Buy,
@@ -79,6 +80,7 @@ public class TradingEngineSimpleTests
         var placedOrder = new Order
         {
             OrderId = order.OrderId,
+            ClientOrderId = OrderFactory.GenerateClientOrderId(),
             ExchangeOrderId = "12345",
             Symbol = order.Symbol,
             Exchange = order.Exchange,

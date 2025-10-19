@@ -140,6 +140,7 @@ public class OrderBuilder
         return new Order
         {
             OrderId = _orderId,
+            ClientOrderId = OrderFactory.GenerateClientOrderId(),
             ExchangeOrderId = _exchangeOrderId,
             Symbol = _symbol,
             Exchange = _exchange,

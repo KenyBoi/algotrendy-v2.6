@@ -49,6 +49,7 @@ public class MockBrokerFixture
                 var order = new Order
                 {
                     OrderId = Guid.NewGuid().ToString(),
+                    ClientOrderId = request.ClientOrderId ?? OrderFactory.GenerateClientOrderId(),
                     ExchangeOrderId = exchangeOrderId,
                     Symbol = request.Symbol,
                     Exchange = request.Exchange,

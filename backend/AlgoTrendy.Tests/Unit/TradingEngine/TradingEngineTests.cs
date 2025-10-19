@@ -56,6 +56,7 @@ public class TradingEngineTests
         var order = new Order
         {
             OrderId = Guid.NewGuid().ToString(),
+            ClientOrderId = OrderFactory.GenerateClientOrderId(),
             Symbol = "BTCUSDT",
             Exchange = "binance",
             Side = OrderSide.Buy,
@@ -70,6 +71,7 @@ public class TradingEngineTests
         var placedOrder = new Order
         {
             OrderId = order.OrderId,
+            ClientOrderId = OrderFactory.GenerateClientOrderId(),
             ExchangeOrderId = expectedExchangeOrderId,
             Symbol = order.Symbol,
             Exchange = order.Exchange,
@@ -114,6 +116,7 @@ public class TradingEngineTests
         var order = new Order
         {
             OrderId = Guid.NewGuid().ToString(),
+            ClientOrderId = OrderFactory.GenerateClientOrderId(),
             Symbol = "BTCUSDT",
             Exchange = "binance",
             Side = OrderSide.Buy,
@@ -152,6 +155,7 @@ public class TradingEngineTests
         var order = new Order
         {
             OrderId = orderId,
+            ClientOrderId = OrderFactory.GenerateClientOrderId(),
             ExchangeOrderId = exchangeOrderId,
             Symbol = "BTCUSDT",
             Exchange = "binance",
@@ -167,6 +171,7 @@ public class TradingEngineTests
         var cancelledOrder = new Order
         {
             OrderId = orderId,
+            ClientOrderId = OrderFactory.GenerateClientOrderId(),
             ExchangeOrderId = exchangeOrderId,
             Symbol = order.Symbol,
             Exchange = order.Exchange,
@@ -221,6 +226,7 @@ public class TradingEngineTests
         var order = new Order
         {
             OrderId = Guid.NewGuid().ToString(),
+            ClientOrderId = OrderFactory.GenerateClientOrderId(),
             Symbol = "BTCUSDT",
             Exchange = "binance",
             Side = OrderSide.Buy,
@@ -257,6 +263,7 @@ public class TradingEngineTests
             var testOrder = new Order
             {
                 OrderId = Guid.NewGuid().ToString(),
+            ClientOrderId = OrderFactory.GenerateClientOrderId(),
                 ExchangeOrderId = Guid.NewGuid().ToString(),
                 Symbol = position.Symbol,
                 Exchange = "binance",
@@ -307,6 +314,7 @@ public class TradingEngineTests
             new Order
             {
                 OrderId = Guid.NewGuid().ToString(),
+            ClientOrderId = OrderFactory.GenerateClientOrderId(),
                 ExchangeOrderId = "1",
                 Symbol = "BTCUSDT",
                 Exchange = "binance",
@@ -321,6 +329,7 @@ public class TradingEngineTests
             new Order
             {
                 OrderId = Guid.NewGuid().ToString(),
+            ClientOrderId = OrderFactory.GenerateClientOrderId(),
                 ExchangeOrderId = "2",
                 Symbol = "ETHUSDT",
                 Exchange = "binance",
@@ -342,6 +351,7 @@ public class TradingEngineTests
             var updatedOrder = new Order
             {
                 OrderId = order.OrderId,
+            ClientOrderId = OrderFactory.GenerateClientOrderId(),
                 ExchangeOrderId = order.ExchangeOrderId,
                 Symbol = order.Symbol,
                 Exchange = order.Exchange,
@@ -390,6 +400,7 @@ public class TradingEngineTests
         var order = new Order
         {
             OrderId = Guid.NewGuid().ToString(),
+            ClientOrderId = OrderFactory.GenerateClientOrderId(),
             Symbol = "BTCUSDT",
             Exchange = "binance",
             Side = OrderSide.Buy,
