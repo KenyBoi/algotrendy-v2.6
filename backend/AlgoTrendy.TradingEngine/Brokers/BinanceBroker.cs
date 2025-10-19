@@ -15,7 +15,7 @@ namespace AlgoTrendy.TradingEngine.Brokers;
 /// </summary>
 public class BinanceBroker : IBroker
 {
-    private readonly BinanceRestClient _client;
+    private BinanceRestClient? _client;
     private readonly BinanceOptions _options;
     private readonly ILogger<BinanceBroker> _logger;
     private bool _isConnected = false;
@@ -53,14 +53,23 @@ public class BinanceBroker : IBroker
         {
             _logger.LogInformation("Binance broker configured for PRODUCTION");
         }
+    }
 
-        // Initialize Binance REST client
-        _client = new BinanceRestClient(opts =>
+    /// <summary>
+    /// Gets or initializes the Binance REST client (lazy initialization)
+    /// </summary>
+    private BinanceRestClient GetClient()
+    {
+        if (_client == null)
         {
-            opts.ApiCredentials = new CryptoExchange.Net.Authentication.ApiCredentials(
-                _options.ApiKey,
-                _options.ApiSecret);
-        });
+            _client = new BinanceRestClient(opts =>
+            {
+                opts.ApiCredentials = new CryptoExchange.Net.Authentication.ApiCredentials(
+                    _options.ApiKey,
+                    _options.ApiSecret);
+            });
+        }
+        return _client;
     }
 
     /// <summary>
@@ -73,7 +82,7 @@ public class BinanceBroker : IBroker
             _logger.LogInformation("Connecting to Binance...");
 
             // Test connection by getting account info
-            var accountInfoResult = await _client.SpotApi.Account.GetAccountInfoAsync(ct: cancellationToken);
+            var accountInfoResult = await GetClient().SpotApi.Account.GetAccountInfoAsync(ct: cancellationToken);
 
             if (!accountInfoResult.Success)
             {
@@ -106,7 +115,7 @@ public class BinanceBroker : IBroker
 
         try
         {
-            var accountInfoResult = await _client.SpotApi.Account.GetAccountInfoAsync(ct: cancellationToken);
+            var accountInfoResult = await GetClient().SpotApi.Account.GetAccountInfoAsync(ct: cancellationToken);
 
             if (!accountInfoResult.Success)
             {
@@ -161,14 +170,14 @@ public class BinanceBroker : IBroker
             // Place order based on type
             var result = request.Type switch
             {
-                OrderType.Market => await _client.SpotApi.Trading.PlaceOrderAsync(
+                OrderType.Market => await GetClient().SpotApi.Trading.PlaceOrderAsync(
                     symbol: request.Symbol,
                     side: orderSide,
                     type: SpotOrderType.Market,
                     quantity: request.Quantity,
                     ct: cancellationToken),
 
-                OrderType.Limit => await _client.SpotApi.Trading.PlaceOrderAsync(
+                OrderType.Limit => await GetClient().SpotApi.Trading.PlaceOrderAsync(
                     symbol: request.Symbol,
                     side: orderSide,
                     type: SpotOrderType.Limit,
@@ -177,7 +186,7 @@ public class BinanceBroker : IBroker
                     timeInForce: TimeInForce.GoodTillCanceled,
                     ct: cancellationToken),
 
-                OrderType.StopLoss => await _client.SpotApi.Trading.PlaceOrderAsync(
+                OrderType.StopLoss => await GetClient().SpotApi.Trading.PlaceOrderAsync(
                     symbol: request.Symbol,
                     side: orderSide,
                     type: SpotOrderType.StopLoss,
@@ -245,7 +254,7 @@ public class BinanceBroker : IBroker
         {
             _logger.LogInformation("Cancelling order {OrderId} for {Symbol}", orderId, symbol);
 
-            var result = await _client.SpotApi.Trading.CancelOrderAsync(
+            var result = await GetClient().SpotApi.Trading.CancelOrderAsync(
                 symbol: symbol,
                 orderId: long.Parse(orderId),
                 ct: cancellationToken);
@@ -298,7 +307,7 @@ public class BinanceBroker : IBroker
 
         try
         {
-            var result = await _client.SpotApi.Trading.GetOrderAsync(
+            var result = await GetClient().SpotApi.Trading.GetOrderAsync(
                 symbol: symbol,
                 orderId: long.Parse(orderId),
                 ct: cancellationToken);
@@ -349,7 +358,7 @@ public class BinanceBroker : IBroker
 
         try
         {
-            var result = await _client.SpotApi.ExchangeData.GetPriceAsync(
+            var result = await GetClient().SpotApi.ExchangeData.GetPriceAsync(
                 symbol: symbol,
                 ct: cancellationToken);
 
