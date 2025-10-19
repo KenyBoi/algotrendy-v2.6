@@ -279,7 +279,7 @@ public class BybitBrokerIntegrationTests
         Assert.IsAssignableFrom<IEnumerable<Position>>(positions);
     }
 
-    [Fact]
+    [SkippableFact]
     [Trait("Category", "Integration")]
     [Trait("Service", "Bybit")]
     public async Task GetMarginHealthRatioAsync_AfterConnection_ReturnsHealthRatio()
@@ -312,7 +312,7 @@ public class BybitBrokerIntegrationTests
         }
     }
 
-    [Fact]
+    [SkippableFact]
     [Trait("Category", "Integration")]
     [Trait("Service", "Bybit")]
     public async Task MultipleOperations_InSequence_CompleteSuccessfully()
@@ -346,7 +346,7 @@ public class BybitBrokerIntegrationTests
         }
     }
 
-    [Fact]
+    [SkippableFact]
     [Trait("Category", "Integration")]
     [Trait("Service", "Bybit")]
     public async Task CancelOrderAsync_WithInvalidOrderId_ReturnsOrder()
@@ -379,7 +379,7 @@ public class BybitBrokerIntegrationTests
         }
     }
 
-    [Fact]
+    [SkippableFact]
     [Trait("Category", "Integration")]
     [Trait("Service", "Bybit")]
     public async Task GetOrderStatusAsync_WithInvalidOrderId_ReturnsOrder()
