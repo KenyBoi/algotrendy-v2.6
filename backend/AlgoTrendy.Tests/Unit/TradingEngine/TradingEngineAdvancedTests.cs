@@ -322,11 +322,13 @@ public class TradingEngineAdvancedTests
                 .WithOrderId("order1")
                 .WithExchangeOrderId("EXCH-1")
                 .WithStatus(OrderStatus.Open)
+                .WithSymbol("BTCUSDT")
                 .Build(),
             new OrderBuilder()
                 .WithOrderId("order2")
                 .WithExchangeOrderId("EXCH-2")
                 .WithStatus(OrderStatus.Open)
+                .WithSymbol("BTCUSDT")
                 .Build()
         };
 
@@ -334,9 +336,28 @@ public class TradingEngineAdvancedTests
             .Setup(r => r.GetActiveOrdersAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(orders);
 
-        // Simulate orders being filled
-        _brokerFixture.FillOrder("EXCH-1", 50000m);
-        _brokerFixture.FillOrder("EXCH-2", 50000m);
+        // Set up broker to return filled orders when status is checked
+        _brokerFixture.BrokerMock
+            .Setup(b => b.GetOrderStatusAsync("EXCH-1", "BTCUSDT", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new OrderBuilder()
+                .WithOrderId("order1")
+                .WithExchangeOrderId("EXCH-1")
+                .WithStatus(OrderStatus.Filled)
+                .WithQuantity(0.02m)
+                .WithFilledQuantity(0.02m)
+                .WithAverageFillPrice(50000m)
+                .Build());
+
+        _brokerFixture.BrokerMock
+            .Setup(b => b.GetOrderStatusAsync("EXCH-2", "BTCUSDT", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new OrderBuilder()
+                .WithOrderId("order2")
+                .WithExchangeOrderId("EXCH-2")
+                .WithStatus(OrderStatus.Filled)
+                .WithQuantity(0.02m)
+                .WithFilledQuantity(0.02m)
+                .WithAverageFillPrice(50000m)
+                .Build());
 
         // Act
         var syncedCount = await _tradingEngine.SyncActiveOrdersAsync();
