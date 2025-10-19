@@ -328,7 +328,7 @@ public class BybitBrokerTests
 
     #region Order Cancellation Tests
 
-    [Fact]
+    [Fact(Skip = "Integration test - requires API connectivity")]
     public async Task CancelOrderAsync_ValidOrderId_ReturnsOrder()
     {
         // Arrange
