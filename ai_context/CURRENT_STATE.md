@@ -44,18 +44,22 @@ AlgoTrendy v2.6 is a **production-ready cryptocurrency trading platform** with 2
 
 ## ⏳ What's NOT Complete (Phase 7+)
 
-### Backtesting Engine
-- ⏳ **Status:** Not started
+### ⚠️ CRITICAL: Backtesting Engine (Exists in v2.5, needs porting)
+- ⏳ **Status:** Exists in v2.5 Python, NOT ported to v2.6
+- **v2.5 Location:** `/root/algotrendy_v2.5/algotrendy-api/app/backtesting/`
 - **Purpose:** Test strategies on historical data before live trading
-- **Estimate:** 20-30 hours
-- **Priority:** High (critical for risk management)
+- **Features:** 3 engines (Custom, QuantConnect, Backtester.com), 8 indicators, 6 API endpoints
+- **Estimate:** 30-40 hours (porting Python to C# .NET 8)
+- **Priority:** ⚠️ CRITICAL (required for production)
 
-### Additional Brokers
-- ⏳ **Bybit:** REST data channel exists, broker wrapper not started
-- ⏳ **OKX:** REST data channel exists, broker wrapper not started
-- ⏳ **Kraken:** REST data channel exists, broker wrapper not started
-- **Estimate:** 8-12 hours total
-- **Priority:** Medium (data is available, order placement deferred)
+### ⚠️ CRITICAL: Additional Brokers (Exist in v2.5, need porting)
+- ⏳ **Bybit:** v2.5 has full implementation, v2.6 missing
+- ⏳ **Alpaca:** v2.5 has full implementation, v2.6 missing
+- ⏳ **OKX:** v2.5 has full trading, v2.6 has data-only
+- ⏳ **Kraken:** v2.5 has full trading, v2.6 has data-only
+- **Estimate:** 40-50 hours total (8-10 hours per broker)
+- **Priority:** ⚠️ HIGH (required for complete trading platform)
+- **Reference:** `/root/algotrendy_v2.5/Brokers/` contains all implementations
 
 ### Additional Strategies
 - ⏳ **MACD Strategy:** Not started

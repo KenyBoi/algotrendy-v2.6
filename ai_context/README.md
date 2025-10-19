@@ -172,12 +172,14 @@ v2.6 (C# .NET 8, CURRENT, PRODUCTION-READY)
 
 ## ⏳ What's NOT Ready (Phase 7+)
 
-- ⏳ **Backtesting Engine** - Planned, not started
-- ⏳ **Additional Brokers** - Bybit, OKX, Kraken (data channels exist, broker API wrappers don't)
+- ⏳ **Backtesting Engine** - ⚠️ EXISTS IN v2.5, needs porting to C# .NET 8 (30-40 hours)
+- ⏳ **Additional Brokers** - ⚠️ EXIST IN v2.5 (Bybit, Alpaca, OKX full, Kraken full), need porting (40-50 hours)
 - ⏳ **Additional Strategies** - MACD, MFI, VWAP, moving averages, etc.
 - ⏳ **Performance Optimization** - Not needed yet (meets targets)
 - ⏳ **Advanced Analytics** - Portfolio metrics, reporting, dashboards
 - ⏳ **Data Migration** - v2.5 market data to v2.6 QuestDB (simple, not urgent)
+
+**NOTE:** Major modules from v2.5 (backtesting, brokers) were not included in v2.6 rewrite. Reference implementation exists in `/root/algotrendy_v2.5`. See `MISSING_MODULES_DISCOVERY.md` for details.
 
 ---
 
