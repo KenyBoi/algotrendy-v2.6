@@ -236,6 +236,12 @@ public class BybitBrokerIntegrationTests
     [Trait("Service", "Bybit")]
     public async Task GetBalanceAsync_AfterConnection_ReturnsBalance()
     {
+        // Skip if no credentials
+        if (_skipTests)
+        {
+            Skip.If(true, "Bybit API credentials not found in environment variables");
+        }
+
         // Arrange
         var broker = new BybitBroker(_apiKey, _apiSecret, _useTestnet, _logger);
         await broker.ConnectAsync();
@@ -253,6 +259,12 @@ public class BybitBrokerIntegrationTests
     [Trait("Service", "Bybit")]
     public async Task GetPositionsAsync_AfterConnection_ReturnsEmptyOrPopulated()
     {
+        // Skip if no credentials
+        if (_skipTests)
+        {
+            Skip.If(true, "Bybit API credentials not found in environment variables");
+        }
+
         // Arrange
         var broker = new BybitBroker(_apiKey, _apiSecret, _useTestnet, _logger);
         await broker.ConnectAsync();
