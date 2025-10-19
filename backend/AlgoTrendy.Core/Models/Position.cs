@@ -149,4 +149,59 @@ public class Position
                 : CurrentPrice <= TakeProfit.Value;
         }
     }
+
+    /// <summary>
+    /// Leverage multiplier (1.0 for spot, >1 for margin) - optional
+    /// </summary>
+    public decimal Leverage { get; set; } = 1.0m;
+
+    /// <summary>
+    /// Margin type (Cross or Isolated) - optional
+    /// </summary>
+    public Enums.MarginType? MarginType { get; set; }
+
+    /// <summary>
+    /// Collateral amount (for margin positions)
+    /// </summary>
+    public decimal? CollateralAmount { get; set; }
+
+    /// <summary>
+    /// Borrowed amount (for margin positions)
+    /// </summary>
+    public decimal? BorrowedAmount { get; set; }
+
+    /// <summary>
+    /// Interest rate on borrowed funds (daily percentage)
+    /// </summary>
+    public decimal? InterestRate { get; set; }
+
+    /// <summary>
+    /// Liquidation price (price at which position will be automatically closed)
+    /// </summary>
+    public decimal? LiquidationPrice { get; set; }
+
+    /// <summary>
+    /// Margin health ratio (0.0 to 1.0 scale)
+    /// </summary>
+    public decimal? MarginHealthRatio { get; set; }
+
+    /// <summary>
+    /// Whether this position is using margin/leverage
+    /// </summary>
+    public bool IsMarginPosition => Leverage > 1.0m || MarginType.HasValue;
+
+    /// <summary>
+    /// Calculates the effective position size with leverage
+    /// </summary>
+    public decimal EffectivePositionSize => CurrentValue * Leverage;
+
+    /// <summary>
+    /// Calculates used margin amount
+    /// </summary>
+    public decimal UsedMargin => CurrentValue / Leverage;
+
+    /// <summary>
+    /// Checks if position is in liquidation risk zone
+    /// </summary>
+    public bool IsInLiquidationRisk => MarginHealthRatio.HasValue && MarginHealthRatio.Value < 0.05m;
 }

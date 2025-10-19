@@ -13,6 +13,13 @@ public class Order
     public required string OrderId { get; init; }
 
     /// <summary>
+    /// Client-generated idempotency key to prevent duplicate orders
+    /// Format: "AT_{timestamp}_{guid}"
+    /// Used to detect and prevent duplicate order submissions on network retries
+    /// </summary>
+    public required string ClientOrderId { get; init; }
+
+    /// <summary>
     /// Exchange-provided order ID (after submission)
     /// </summary>
     public string? ExchangeOrderId { get; set; }

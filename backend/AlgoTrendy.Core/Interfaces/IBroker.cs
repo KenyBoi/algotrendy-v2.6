@@ -67,4 +67,33 @@ public interface IBroker
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Current market price</returns>
     Task<decimal> GetCurrentPriceAsync(string symbol, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Sets leverage for a symbol (debt management module extension)
+    /// </summary>
+    /// <param name="symbol">Trading symbol</param>
+    /// <param name="leverage">Leverage multiplier (e.g., 3.0 for 3x)</param>
+    /// <param name="marginType">Type of margin (Cross or Isolated)</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>True if leverage successfully set</returns>
+    Task<bool> SetLeverageAsync(
+        string symbol,
+        decimal leverage,
+        Enums.MarginType marginType = Enums.MarginType.Cross,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Gets current leverage information for a symbol
+    /// </summary>
+    /// <param name="symbol">Trading symbol</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Leverage information</returns>
+    Task<Models.LeverageInfo> GetLeverageInfoAsync(string symbol, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Gets margin health ratio for the account
+    /// </summary>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Margin health ratio (0.0 to 1.0)</returns>
+    Task<decimal> GetMarginHealthRatioAsync(CancellationToken cancellationToken = default);
 }

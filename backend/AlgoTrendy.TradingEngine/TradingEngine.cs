@@ -22,6 +22,11 @@ public class TradingEngine : ITradingEngine
     // In-memory position tracking
     private readonly ConcurrentDictionary<string, Position> _activePositions = new();
 
+    // Order idempotency cache (prevents duplicate orders on network retries)
+    private readonly ConcurrentDictionary<string, Order> _orderCache = new();
+    private readonly ConcurrentDictionary<string, DateTime> _orderCacheExpiration = new();
+    private readonly TimeSpan _cacheExpiration = TimeSpan.FromHours(24);
+
     // Events
     public event EventHandler<Order>? OrderStatusChanged;
     public event EventHandler<Position>? PositionOpened;
@@ -47,12 +52,28 @@ public class TradingEngine : ITradingEngine
     /// </summary>
     public async Task<Order> SubmitOrderAsync(Order order, CancellationToken cancellationToken = default)
     {
+        // Ensure order has a ClientOrderId for idempotency tracking
+        order = OrderFactory.EnsureClientOrderId(order);
+
         _logger.LogInformation(
-            "Submitting order {OrderId} for {Symbol} - {Side} {Quantity} @ {Type}",
-            order.OrderId, order.Symbol, order.Side, order.Quantity, order.Type);
+            "Submitting order {OrderId} (ClientOrderId: {ClientOrderId}) for {Symbol} - {Side} {Quantity} @ {Type}",
+            order.OrderId, order.ClientOrderId, order.Symbol, order.Side, order.Quantity, order.Type);
 
         try
         {
+            // Check idempotency cache to prevent duplicate orders on network retries
+            if (_orderCache.TryGetValue(order.ClientOrderId, out var cachedOrder))
+            {
+                _logger.LogInformation(
+                    "Order {ClientOrderId} already submitted (cached), returning existing order {OrderId}",
+                    order.ClientOrderId, cachedOrder.OrderId);
+
+                // Clean up expired cache entries while we're here
+                CleanupExpiredCacheEntries();
+
+                return cachedOrder;
+            }
+
             // Validate order before submission
             var (isValid, errorMessage) = await ValidateOrderAsync(order, cancellationToken);
             if (!isValid)
@@ -67,6 +88,7 @@ public class TradingEngine : ITradingEngine
             // Place order with broker
             var request = new OrderRequest
             {
+                ClientOrderId = order.ClientOrderId,  // Include for broker-level idempotency
                 Symbol = order.Symbol,
                 Exchange = order.Exchange,
                 Side = order.Side,
@@ -89,9 +111,13 @@ public class TradingEngine : ITradingEngine
             // Persist to repository
             await _orderRepository.UpdateAsync(order, cancellationToken);
 
+            // Cache order for idempotency (24-hour TTL)
+            _orderCache.TryAdd(order.ClientOrderId, order);
+            _orderCacheExpiration.TryAdd(order.ClientOrderId, DateTime.UtcNow.Add(_cacheExpiration));
+
             _logger.LogInformation(
-                "Order {OrderId} submitted successfully. Exchange order ID: {ExchangeOrderId}",
-                order.OrderId, order.ExchangeOrderId);
+                "Order {OrderId} submitted successfully. Exchange order ID: {ExchangeOrderId}, ClientOrderId: {ClientOrderId}",
+                order.OrderId, order.ExchangeOrderId, order.ClientOrderId);
 
             // Fire event
             OrderStatusChanged?.Invoke(this, order);
@@ -456,5 +482,28 @@ public class TradingEngine : ITradingEngine
         var positionKey = $"{exchange}:{symbol}";
         _activePositions.TryGetValue(positionKey, out var position);
         return position;
+    }
+
+    /// <summary>
+    /// Cleans up expired entries from the order idempotency cache
+    /// </summary>
+    private void CleanupExpiredCacheEntries()
+    {
+        var now = DateTime.UtcNow;
+        var expiredKeys = _orderCacheExpiration
+            .Where(kvp => kvp.Value < now)
+            .Select(kvp => kvp.Key)
+            .ToList();
+
+        foreach (var key in expiredKeys)
+        {
+            _orderCache.TryRemove(key, out _);
+            _orderCacheExpiration.TryRemove(key, out _);
+        }
+
+        if (expiredKeys.Count > 0)
+        {
+            _logger.LogDebug("Cleaned up {Count} expired order cache entries", expiredKeys.Count);
+        }
     }
 }

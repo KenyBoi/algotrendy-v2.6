@@ -8,6 +8,12 @@ namespace AlgoTrendy.Core.Models;
 public class OrderRequest
 {
     /// <summary>
+    /// Client-generated idempotency key (optional - auto-generated if not provided)
+    /// Used to prevent duplicate orders on network retries
+    /// </summary>
+    public string? ClientOrderId { get; init; }
+
+    /// <summary>
     /// Trading symbol (e.g., "BTCUSDT")
     /// </summary>
     public required string Symbol { get; init; }

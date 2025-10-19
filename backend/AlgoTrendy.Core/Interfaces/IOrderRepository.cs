@@ -29,6 +29,11 @@ public interface IOrderRepository
     Task<Order?> GetByExchangeOrderIdAsync(string exchangeOrderId, CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Gets an order by its client order ID (for idempotency checks)
+    /// </summary>
+    Task<Order?> GetByClientOrderIdAsync(string clientOrderId, CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Gets all orders for a specific symbol
     /// </summary>
     Task<IEnumerable<Order>> GetBySymbolAsync(string symbol, CancellationToken cancellationToken = default);
