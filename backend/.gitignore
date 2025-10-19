@@ -1,0 +1,127 @@
+# .NET Core
+bin/
+obj/
+out/
+*.user
+*.suo
+*.cache
+.vs/
+
+# User-specific files
+*.rsuser
+*.userosscache
+*.sln.docstates
+
+# Build results
+[Dd]ebug/
+[Dd]ebugPublic/
+[Rr]elease/
+[Rr]eleases/
+x64/
+x86/
+[Aa][Rr][Mm]/
+[Aa][Rr][Mm]64/
+bld/
+[Bb]in/
+[Oo]bj/
+[Ll]og/
+[Ll]ogs/
+
+# Visual Studio cache/options
+.vs/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+
+# NuGet Packages
+*.nupkg
+*.snupkg
+**/packages/*
+!**/packages/build/
+*.nuget.props
+*.nuget.targets
+
+# Environment files - NEVER COMMIT THESE!
+.env
+.env.local
+.env.development
+.env.production
+*.env
+
+# User secrets
+secrets.json
+appsettings.*.json
+!appsettings.json
+!appsettings.Development.json.example
+
+# Azure Key Vault local cache
+.azure/
+
+# Rider
+.idea/
+*.sln.iml
+
+# VS Code
+.vscode/
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+
+# macOS
+.DS_Store
+
+# Windows
+Thumbs.db
+ehthumbs.db
+
+# Logs
+*.log
+logs/
+*.log.*
+
+# Temporary files
+*.tmp
+*.temp
+*.swp
+*.swo
+*~
+
+# Test results
+[Tt]est[Rr]esult*/
+[Bb]uild[Ll]og.*
+*.trx
+*.coverage
+*.coveragexml
+
+# Database files (if using local SQLite)
+*.db
+*.db-shm
+*.db-wal
+
+# Credentials and secrets - CRITICAL!
+**/appsettings.Production.json
+**/appsettings.Staging.json
+credentials.json
+secrets.json
+*.pfx
+*.key
+*.pem
+
+# Node modules (if any frontend tooling)
+node_modules/
+
+# Python cache (from v2.5 migration)
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+venv/
+env/
+
+# JetBrains Rider
+.idea/
+*.sln.iml
+_ReSharper.Caches/
