@@ -202,7 +202,7 @@ public class BybitBrokerIntegrationTests
         }
     }
 
-    [Fact]
+    [SkippableFact]
     [Trait("Category", "Integration")]
     [Trait("Service", "Bybit")]
     public async Task SetLeverageAsync_OnTestnet_ReturnsSuccess()
@@ -233,7 +233,7 @@ public class BybitBrokerIntegrationTests
         Assert.IsType<bool>(result);
     }
 
-    [Fact]
+    [SkippableFact]
     [Trait("Category", "Integration")]
     [Trait("Service", "Bybit")]
     public async Task GetBalanceAsync_AfterConnection_ReturnsBalance()
@@ -256,7 +256,7 @@ public class BybitBrokerIntegrationTests
         Assert.True(balance >= 0);
     }
 
-    [Fact]
+    [SkippableFact]
     [Trait("Category", "Integration")]
     [Trait("Service", "Bybit")]
     public async Task GetPositionsAsync_AfterConnection_ReturnsEmptyOrPopulated()
