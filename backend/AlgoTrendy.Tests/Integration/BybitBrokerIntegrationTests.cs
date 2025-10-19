@@ -382,6 +382,12 @@ public class BybitBrokerIntegrationTests
     [Trait("Service", "Bybit")]
     public async Task GetOrderStatusAsync_WithInvalidOrderId_ReturnsOrder()
     {
+        // Skip if no credentials
+        if (_skipTests)
+        {
+            Skip.If(true, "Bybit API credentials not found in environment variables");
+        }
+
         // Arrange
         var broker = new BybitBroker(_apiKey, _apiSecret, _useTestnet, _logger);
         await broker.ConnectAsync();
