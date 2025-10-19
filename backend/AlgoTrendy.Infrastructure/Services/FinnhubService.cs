@@ -130,7 +130,7 @@ public class FinnhubService : IFinnhubService
 
             if (_settings.EnableLogging)
             {
-                _logger.LogDebug("Fetching crypto exchanges: {Endpoint}", endpoint);
+                _logger.LogDebug("Fetching crypto exchanges from Finnhub");
             }
 
             var response = await _httpClient.GetAsync(endpoint, cancellationToken);
