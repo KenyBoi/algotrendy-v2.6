@@ -5,6 +5,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Xunit;
 using Xunit.Sdk;
+using Xunit.SkippableFact;
 
 namespace AlgoTrendy.Tests.Integration;
 
@@ -75,7 +76,7 @@ public class BinanceBrokerIntegrationTests : IAsyncLifetime
         Assert.True(result);
     }
 
-    [Fact]
+    [SkippableFact]
     public async Task GetBalanceAsync_WhenConnected_ReturnsBalance()
     {
         // Arrange
@@ -88,7 +89,7 @@ public class BinanceBrokerIntegrationTests : IAsyncLifetime
         Assert.True(balance >= 0);
     }
 
-    [Fact]
+    [SkippableFact]
     public async Task GetCurrentPriceAsync_ForBTCUSDT_ReturnsValidPrice()
     {
         // Arrange
@@ -104,7 +105,7 @@ public class BinanceBrokerIntegrationTests : IAsyncLifetime
         Assert.True(price < 1000000); // BTC should be below $1M (sanity check)
     }
 
-    [Fact]
+    [SkippableFact]
     public async Task GetPositionsAsync_ForSpotTrading_ReturnsEmpty()
     {
         // Arrange

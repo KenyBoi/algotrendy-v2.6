@@ -3,6 +3,8 @@ using AlgoTrendy.Core.Models;
 using AlgoTrendy.Infrastructure.Brokers.Bybit;
 using Microsoft.Extensions.Logging;
 using Xunit;
+using Xunit.Sdk;
+using Xunit.SkippableFact;
 
 namespace AlgoTrendy.Tests.Integration;
 
@@ -37,7 +39,7 @@ public class BybitBrokerIntegrationTests
         _skipTests = string.IsNullOrEmpty(_apiKey) || string.IsNullOrEmpty(_apiSecret);
     }
 
-    [Fact]
+    [SkippableFact]
     [Trait("Category", "Integration")]
     [Trait("Service", "Bybit")]
     public async Task ConnectAsync_ToTestnet_Succeeds()
@@ -61,7 +63,7 @@ public class BybitBrokerIntegrationTests
         Assert.IsType<bool>(result);
     }
 
-    [Fact]
+    [SkippableFact]
     [Trait("Category", "Integration")]
     [Trait("Service", "Bybit")]
     public async Task ConnectAsync_ToTestnet_SetsBrokerAsConnected()
@@ -87,7 +89,7 @@ public class BybitBrokerIntegrationTests
         }
     }
 
-    [Fact]
+    [SkippableFact]
     [Trait("Category", "Integration")]
     [Trait("Service", "Bybit")]
     public async Task GetCurrentPriceAsync_AfterConnection_ReturnsBTCPrice()
@@ -117,7 +119,7 @@ public class BybitBrokerIntegrationTests
         }
     }
 
-    [Fact]
+    [SkippableFact]
     [Trait("Category", "Integration")]
     [Trait("Service", "Bybit")]
     public async Task PlaceOrderAsync_OnTestnet_ReturnsValidOrder()
@@ -165,7 +167,7 @@ public class BybitBrokerIntegrationTests
         }
     }
 
-    [Fact]
+    [SkippableFact]
     [Trait("Category", "Integration")]
     [Trait("Service", "Bybit")]
     public async Task GetLeverageInfoAsync_AfterConnection_ReturnsValidLeverageInfo()
