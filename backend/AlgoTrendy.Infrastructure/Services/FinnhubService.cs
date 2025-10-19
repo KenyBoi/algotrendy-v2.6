@@ -136,7 +136,8 @@ public class FinnhubService : IFinnhubService
             var response = await _httpClient.GetAsync(endpoint, cancellationToken);
             response.EnsureSuccessStatusCode();
 
-            var exchanges = await response.Content.ReadFromJsonAsync<List<string>>(_jsonOptions, cancellationToken);
+            // Use default JSON options for simple string array
+            var exchanges = await response.Content.ReadFromJsonAsync<List<string>>(cancellationToken);
 
             if (exchanges == null || exchanges.Count == 0)
             {
