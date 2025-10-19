@@ -4,6 +4,7 @@ using AlgoTrendy.TradingEngine.Brokers;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Xunit;
+using Xunit.Sdk;
 
 namespace AlgoTrendy.Tests.Integration;
 
