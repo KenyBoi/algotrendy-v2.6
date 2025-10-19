@@ -8,20 +8,33 @@ namespace AlgoTrendy.Tests.Integration;
 
 /// <summary>
 /// Integration tests for BybitBroker with actual Bybit testnet connection
-/// These tests require network connectivity to Bybit testnet
-/// Skip these tests if you don't want external API calls
+/// These tests require Bybit Testnet API credentials
+/// Set environment variables:
+/// - Bybit__ApiKey
+/// - Bybit__ApiSecret
+/// - Bybit__UseTestnet (optional, defaults to true)
 /// </summary>
 public class BybitBrokerIntegrationTests
 {
     private readonly ILogger<BybitBroker> _logger;
-    private const string TestApiKey = "TESTNET_API_KEY";
-    private const string TestApiSecret = "TESTNET_API_SECRET";
+    private readonly string _apiKey;
+    private readonly string _apiSecret;
+    private readonly bool _useTestnet;
+    private readonly bool _skipTests;
 
     public BybitBrokerIntegrationTests()
     {
         // Create a simple logger for integration tests
         var loggerFactory = LoggerFactory.Create(builder => builder.AddConsole());
         _logger = loggerFactory.CreateLogger<BybitBroker>();
+
+        // Get credentials from environment variables
+        _apiKey = Environment.GetEnvironmentVariable("Bybit__ApiKey") ?? string.Empty;
+        _apiSecret = Environment.GetEnvironmentVariable("Bybit__ApiSecret") ?? string.Empty;
+        _useTestnet = Environment.GetEnvironmentVariable("Bybit__UseTestnet") != "false";
+
+        // Skip tests if credentials not available
+        _skipTests = string.IsNullOrEmpty(_apiKey) || string.IsNullOrEmpty(_apiSecret);
     }
 
     [Fact]
@@ -29,8 +42,14 @@ public class BybitBrokerIntegrationTests
     [Trait("Service", "Bybit")]
     public async Task ConnectAsync_ToTestnet_Succeeds()
     {
+        // Skip if no credentials
+        if (_skipTests)
+        {
+            Skip.If(true, "Bybit API credentials not found in environment variables");
+        }
+
         // Arrange
-        var broker = new BybitBroker(TestApiKey, TestApiSecret, true, _logger);
+        var broker = new BybitBroker(_apiKey, _apiSecret, _useTestnet, _logger);
 
         // Act
         // Note: This connects to public endpoint which doesn't require authentication
@@ -47,8 +66,14 @@ public class BybitBrokerIntegrationTests
     [Trait("Service", "Bybit")]
     public async Task ConnectAsync_ToTestnet_SetsBrokerAsConnected()
     {
+        // Skip if no credentials
+        if (_skipTests)
+        {
+            Skip.If(true, "Bybit API credentials not found in environment variables");
+        }
+
         // Arrange
-        var broker = new BybitBroker(TestApiKey, TestApiSecret, true, _logger);
+        var broker = new BybitBroker(_apiKey, _apiSecret, _useTestnet, _logger);
 
         // Act
         var result = await broker.ConnectAsync();
@@ -67,8 +92,14 @@ public class BybitBrokerIntegrationTests
     [Trait("Service", "Bybit")]
     public async Task GetCurrentPriceAsync_AfterConnection_ReturnsBTCPrice()
     {
+        // Skip if no credentials
+        if (_skipTests)
+        {
+            Skip.If(true, "Bybit API credentials not found in environment variables");
+        }
+
         // Arrange
-        var broker = new BybitBroker(TestApiKey, TestApiSecret, true, _logger);
+        var broker = new BybitBroker(_apiKey, _apiSecret, _useTestnet, _logger);
 
         // Act
         var connected = await broker.ConnectAsync();
@@ -91,8 +122,14 @@ public class BybitBrokerIntegrationTests
     [Trait("Service", "Bybit")]
     public async Task PlaceOrderAsync_OnTestnet_ReturnsValidOrder()
     {
+        // Skip if no credentials
+        if (_skipTests)
+        {
+            Skip.If(true, "Bybit API credentials not found in environment variables");
+        }
+
         // Arrange
-        var broker = new BybitBroker(TestApiKey, TestApiSecret, true, _logger);
+        var broker = new BybitBroker(_apiKey, _apiSecret, _useTestnet, _logger);
         await broker.ConnectAsync();
 
         var orderRequest = new OrderRequest
@@ -133,8 +170,14 @@ public class BybitBrokerIntegrationTests
     [Trait("Service", "Bybit")]
     public async Task GetLeverageInfoAsync_AfterConnection_ReturnsValidLeverageInfo()
     {
+        // Skip if no credentials
+        if (_skipTests)
+        {
+            Skip.If(true, "Bybit API credentials not found in environment variables");
+        }
+
         // Arrange
-        var broker = new BybitBroker(TestApiKey, TestApiSecret, true, _logger);
+        var broker = new BybitBroker(_apiKey, _apiSecret, _useTestnet, _logger);
         await broker.ConnectAsync();
 
         // Act
@@ -162,8 +205,14 @@ public class BybitBrokerIntegrationTests
     [Trait("Service", "Bybit")]
     public async Task SetLeverageAsync_OnTestnet_ReturnsSuccess()
     {
+        // Skip if no credentials
+        if (_skipTests)
+        {
+            Skip.If(true, "Bybit API credentials not found in environment variables");
+        }
+
         // Arrange
-        var broker = new BybitBroker(TestApiKey, TestApiSecret, true, _logger);
+        var broker = new BybitBroker(_apiKey, _apiSecret, _useTestnet, _logger);
         await broker.ConnectAsync();
 
         // Act
@@ -188,7 +237,7 @@ public class BybitBrokerIntegrationTests
     public async Task GetBalanceAsync_AfterConnection_ReturnsBalance()
     {
         // Arrange
-        var broker = new BybitBroker(TestApiKey, TestApiSecret, true, _logger);
+        var broker = new BybitBroker(_apiKey, _apiSecret, _useTestnet, _logger);
         await broker.ConnectAsync();
 
         // Act
@@ -205,7 +254,7 @@ public class BybitBrokerIntegrationTests
     public async Task GetPositionsAsync_AfterConnection_ReturnsEmptyOrPopulated()
     {
         // Arrange
-        var broker = new BybitBroker(TestApiKey, TestApiSecret, true, _logger);
+        var broker = new BybitBroker(_apiKey, _apiSecret, _useTestnet, _logger);
         await broker.ConnectAsync();
 
         // Act
@@ -222,7 +271,7 @@ public class BybitBrokerIntegrationTests
     public async Task GetMarginHealthRatioAsync_AfterConnection_ReturnsHealthRatio()
     {
         // Arrange
-        var broker = new BybitBroker(TestApiKey, TestApiSecret, true, _logger);
+        var broker = new BybitBroker(_apiKey, _apiSecret, _useTestnet, _logger);
         await broker.ConnectAsync();
 
         // Act
@@ -249,7 +298,7 @@ public class BybitBrokerIntegrationTests
     public async Task MultipleOperations_InSequence_CompleteSuccessfully()
     {
         // Arrange
-        var broker = new BybitBroker(TestApiKey, TestApiSecret, true, _logger);
+        var broker = new BybitBroker(_apiKey, _apiSecret, _useTestnet, _logger);
 
         // Act
         var connected = await broker.ConnectAsync();
@@ -277,7 +326,7 @@ public class BybitBrokerIntegrationTests
     public async Task CancelOrderAsync_WithInvalidOrderId_ReturnsOrder()
     {
         // Arrange
-        var broker = new BybitBroker(TestApiKey, TestApiSecret, true, _logger);
+        var broker = new BybitBroker(_apiKey, _apiSecret, _useTestnet, _logger);
         await broker.ConnectAsync();
 
         // Act
@@ -304,7 +353,7 @@ public class BybitBrokerIntegrationTests
     public async Task GetOrderStatusAsync_WithInvalidOrderId_ReturnsOrder()
     {
         // Arrange
-        var broker = new BybitBroker(TestApiKey, TestApiSecret, true, _logger);
+        var broker = new BybitBroker(_apiKey, _apiSecret, _useTestnet, _logger);
         await broker.ConnectAsync();
 
         // Act
