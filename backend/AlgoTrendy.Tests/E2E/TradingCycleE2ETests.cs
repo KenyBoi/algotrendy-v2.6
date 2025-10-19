@@ -23,6 +23,7 @@ public class TradingCycleE2ETests
     private readonly MockBrokerFixture _brokerFixture;
     private readonly Mock<ILogger<AlgoTrendy.TradingEngine.TradingEngine>> _loggerMock;
     private readonly AlgoTrendy.TradingEngine.TradingEngine _tradingEngine;
+    private readonly Dictionary<string, Order> _orders = new();
 
     public TradingCycleE2ETests()
     {
@@ -63,18 +64,26 @@ public class TradingCycleE2ETests
 
         _orderRepositoryMock
             .Setup(r => r.UpdateAsync(It.IsAny<Order>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync((Order o, CancellationToken ct) => o);
+            .ReturnsAsync((Order o, CancellationToken ct) =>
+            {
+                _orders[o.OrderId] = o;
+                return o;
+            });
 
         _orderRepositoryMock
             .Setup(r => r.CreateAsync(It.IsAny<Order>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync((Order o, CancellationToken ct) => o);
+            .ReturnsAsync((Order o, CancellationToken ct) =>
+            {
+                _orders[o.OrderId] = o;
+                return o;
+            });
 
         _orderRepositoryMock
             .Setup(r => r.GetByIdAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync((string id, CancellationToken ct) =>
             {
-                var orders = _brokerFixture.GetPlacedOrders();
-                return orders.FirstOrDefault(o => o.OrderId == id);
+                _orders.TryGetValue(id, out var order);
+                return order;
             });
     }
 
@@ -89,12 +98,12 @@ public class TradingCycleE2ETests
             .Build();
 
         // Step 2: Generate buy signal (simulated by creating order)
-        // Quantity: 0.02 BTC * 50,000 = 1,000 USDT (within 10% position limit)
+        // Quantity: 0.019 BTC * 50,000 = 950 USDT (within 10% position limit with buffer)
         var buyOrder = new OrderBuilder()
             .WithSymbol("BTCUSDT")
             .WithSide(OrderSide.Buy)
             .WithType(OrderType.Market)
-            .WithQuantity(0.02m)
+            .WithQuantity(0.019m)
             .WithStrategyId("test-strategy")
             .Build();
 
@@ -112,17 +121,18 @@ public class TradingCycleE2ETests
         position.Should().NotBeNull();
         position!.Symbol.Should().Be("BTCUSDT");
         position.Side.Should().Be(OrderSide.Buy);
-        position.Quantity.Should().Be(0.02m);
+        position.Quantity.Should().Be(0.019m);
 
         // Step 5: Price moves (simulated)
         _brokerFixture.WithPrice("BTCUSDT", 52000m);
 
         // Step 6: Generate sell signal and close position
+        // Sell at 52,000: 0.019 * 52,000 = 988 USDT (within limit)
         var sellOrder = new OrderBuilder()
             .WithSymbol("BTCUSDT")
             .WithSide(OrderSide.Sell)
             .WithType(OrderType.Market)
-            .WithQuantity(0.02m)
+            .WithQuantity(0.019m)
             .WithStrategyId("test-strategy")
             .Build();
 
@@ -178,11 +188,12 @@ public class TradingCycleE2ETests
     public async Task FullTradingCycle_WithTakeProfit_ExecutesCorrectly()
     {
         // Step 1: Submit buy order
+        // Use 0.018 to account for 10% take profit + price movement
         var buyOrder = new OrderBuilder()
             .WithSymbol("BTCUSDT")
             .WithSide(OrderSide.Buy)
             .WithType(OrderType.Market)
-            .WithQuantity(0.02m)
+            .WithQuantity(0.018m)
             .Build();
 
         await _tradingEngine.SubmitOrderAsync(buyOrder);
@@ -201,11 +212,12 @@ public class TradingCycleE2ETests
         position.IsTakeProfitHit.Should().BeTrue();
 
         // Step 5: Close position at take profit
+        // 0.018 * ~55,100 = ~991 USDT (within limit)
         var sellOrder = new OrderBuilder()
             .WithSymbol("BTCUSDT")
             .WithSide(OrderSide.Sell)
             .WithType(OrderType.Market)
-            .WithQuantity(0.02m)
+            .WithQuantity(0.018m)
             .Build();
 
         var closedOrder = await _tradingEngine.SubmitOrderAsync(sellOrder);
@@ -228,11 +240,12 @@ public class TradingCycleE2ETests
         // Step 2: Open position for ETHUSDT
         _brokerFixture.WithPrice("ETHUSDT", 3000m);
 
+        // 0.3 ETH * 3,000 = 900 USDT (within limit)
         var buyOrder2 = new OrderBuilder()
             .WithSymbol("ETHUSDT")
             .WithSide(OrderSide.Buy)
             .WithType(OrderType.Market)
-            .WithQuantity(1.0m)
+            .WithQuantity(0.3m)
             .Build();
 
         await _tradingEngine.SubmitOrderAsync(buyOrder2);
@@ -341,8 +354,8 @@ public class TradingCycleE2ETests
         var marketData = new MarketDataBuilder()
             .WithSymbol("BTCUSDT")
             .WithTimestamp(DateTime.UtcNow)
-            .WithClose(50000m)
             .Bullish()
+            .WithClose(50000m) // Override Bullish() close price
             .Build();
 
         // Step 2: Store market data (simulated)
