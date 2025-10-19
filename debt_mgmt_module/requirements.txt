@@ -1,0 +1,60 @@
+# Debt Management Module Dependencies
+# Version: 1.0.0
+
+# Core async support
+asyncio>=3.4.3
+
+# Multi-broker API support
+pybit>=5.6.0              # Bybit API
+python-binance>=1.0.19    # Binance API
+ccxt>=4.0.0               # Multi-exchange support (OKX, Kraken, etc.)
+
+# Database
+psycopg2-binary>=2.9.9    # PostgreSQL driver
+SQLAlchemy>=2.0.23        # ORM and query builder
+alembic>=1.12.1           # Database migrations
+
+# API Framework
+fastapi>=0.104.1          # REST API framework
+uvicorn>=0.24.0           # ASGI server
+pydantic>=2.5.0           # Data validation
+python-multipart>=0.0.6   # Form data support
+
+# Authentication & Security
+python-jose[cryptography]>=3.3.0  # JWT tokens
+passlib[bcrypt]>=1.7.4            # Password hashing
+python-dotenv>=1.0.0              # Environment variables
+cryptography>=41.0.7              # Encryption
+
+# Monitoring & Logging
+prometheus-client>=0.19.0  # Metrics
+python-json-logger>=2.0.7  # JSON logging
+
+# Configuration
+pyyaml>=6.0.1             # YAML config files
+python-decouple>=3.8      # Config management
+
+# Utilities
+python-decimal>=1.0       # Precise decimal calculations
+python-dateutil>=2.8.2    # Date utilities
+pytz>=2023.3              # Timezone support
+
+# HTTP Client
+httpx>=0.25.2             # Async HTTP client
+aiohttp>=3.9.1            # Alternative async client
+
+# Caching (optional)
+redis>=5.0.1              # Redis client for rate limiting
+
+# Testing
+pytest>=7.4.3             # Test framework
+pytest-asyncio>=0.21.1    # Async test support
+pytest-cov>=4.1.0         # Code coverage
+pytest-mock>=3.12.0       # Mocking support
+httpx>=0.25.2             # Test client
+
+# Development
+black>=23.12.0            # Code formatter
+flake8>=6.1.0             # Linter
+mypy>=1.7.1               # Type checking
+isort>=5.13.2             # Import sorting

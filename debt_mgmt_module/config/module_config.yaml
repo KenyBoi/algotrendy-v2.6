@@ -1,0 +1,285 @@
+# Debt Management Module Configuration
+# Version: 1.0.0
+
+module:
+  name: "debt_mgmt_module"
+  version: "1.0.0"
+  enabled: true
+  log_level: "INFO"
+
+# Database Configuration
+database:
+  schema: "debt_mgmt"  # Dedicated schema for isolation
+  connection:
+    pool_size: 10
+    max_overflow: 20
+    pool_timeout: 30
+    pool_recycle: 3600
+  migrations:
+    auto_migrate: false  # Manual migration for safety
+    backup_before_migrate: true
+
+# Risk Management Settings
+risk_settings:
+  # Leverage Limits (SECURITY HARDENED)
+  default_leverage: 2.0      # Changed from 75x to 2x
+  max_leverage: 5.0          # Hard limit - cannot exceed
+  min_leverage: 1.0
+
+  # Position Limits
+  max_position_per_symbol: 750.0
+  max_total_exposure: 3000.0
+  min_position_size: 50.0
+  max_position_size: 750.0
+  max_concurrent_positions: 8
+
+  # Margin Thresholds
+  liquidation_threshold: 0.80    # Liquidate at 80% margin used
+  margin_call_threshold: 0.70    # Warning at 70% margin used
+  emergency_threshold: 0.90      # Emergency liquidation at 90%
+
+  # Circuit Breakers
+  daily_loss_limit: 0.05         # Max 5% daily loss
+  max_drawdown: 0.15             # Max 15% drawdown
+  cool_down_period: 300          # 5 min cooldown after breach
+
+# Fund Management
+fund_management:
+  starting_capital: 10000000.00  # 1 Crore INR
+  currency: "INR"
+
+  # Auto-reset Settings
+  auto_reset:
+    enabled: true
+    schedule: "weekly"           # daily, weekly, monthly
+    day_of_week: 0               # 0=Sunday, 6=Saturday
+    time: "00:00"
+    timezone: "Asia/Kolkata"
+
+  # Margin Calculations
+  margin_calculation:
+    method: "position_based"     # position_based, portfolio_based
+    include_unrealized_pnl: true
+    safety_buffer: 0.10          # 10% safety margin
+
+# Broker Configuration
+brokers:
+  # Multi-broker support with different leverage limits
+  bybit:
+    enabled: true
+    max_leverage: 5.0
+    testnet: true
+    rate_limit: 10  # requests per second
+
+  binance:
+    enabled: false
+    max_leverage: 5.0
+    testnet: true
+    rate_limit: 10
+
+  okx:
+    enabled: false
+    max_leverage: 5.0
+    testnet: true
+    rate_limit: 10
+
+  kraken:
+    enabled: false
+    max_leverage: 5.0  # Kraken actual max is 5x
+    rate_limit: 5
+
+  coinbase:
+    enabled: false
+    max_leverage: 1.0  # Coinbase has no leverage
+    rate_limit: 10
+
+  crypto_com:
+    enabled: false
+    max_leverage: 5.0
+    rate_limit: 10
+
+# API Configuration
+api:
+  prefix: "/api/debt_mgmt"
+  version: "v1"
+  enable_docs: true
+  enable_cors: true
+  cors_origins:
+    - "http://localhost:3000"
+    - "http://localhost:8080"
+  rate_limit:
+    enabled: true
+    requests_per_minute: 60
+    burst: 10
+
+  # Authentication
+  authentication:
+    enabled: true
+    type: "jwt"  # jwt, api_key, oauth2
+    require_2fa: false
+
+# Monitoring & Alerting
+monitoring:
+  enabled: true
+
+  # Metrics
+  metrics:
+    port: 9090
+    path: "/metrics"
+    enable_prometheus: true
+
+  # Logging
+  logging:
+    level: "INFO"
+    format: "json"
+    file: "logs/debt_mgmt.log"
+    rotation: "daily"
+    retention_days: 30
+
+  # Alerts
+  alerts:
+    enabled: true
+    channels:
+      - type: "email"
+        enabled: false
+        recipients: []
+      - type: "slack"
+        enabled: false
+        webhook_url: ""
+      - type: "webhook"
+        enabled: false
+        url: ""
+
+    # Alert Rules
+    rules:
+      - name: "high_margin_usage"
+        condition: "margin_used > 0.70"
+        severity: "warning"
+        cooldown: 300  # 5 minutes
+
+      - name: "critical_margin_usage"
+        condition: "margin_used > 0.80"
+        severity: "critical"
+        cooldown: 60
+
+      - name: "liquidation_event"
+        condition: "liquidation_occurred"
+        severity: "critical"
+        cooldown: 0
+
+      - name: "api_error_rate"
+        condition: "error_rate > 0.05"
+        severity: "warning"
+        cooldown: 300
+
+# Security Settings
+security:
+  # Credential Management
+  credentials:
+    storage: "environment"  # environment, vault, encrypted_file
+    encryption:
+      enabled: true
+      algorithm: "AES-256-GCM"
+      key_rotation_days: 90
+
+  # Audit Logging
+  audit:
+    enabled: true
+    log_all_requests: false
+    log_mutations: true  # Log all data changes
+    log_leverage_changes: true
+    log_liquidations: true
+    log_margin_calls: true
+    retention_days: 365
+
+  # IP Whitelisting
+  ip_whitelist:
+    enabled: false
+    allowed_ips: []
+
+  # Rate Limiting (separate from API rate limiting)
+  rate_limiting:
+    enabled: true
+    max_requests_per_hour: 1000
+    max_leverage_changes_per_day: 20
+    max_position_opens_per_hour: 50
+
+# Testing Configuration
+testing:
+  sandbox_mode: true  # Safe mode for development
+  mock_brokers: true  # Use mock broker responses
+  auto_reset_funds: true
+  preserve_data: false  # Clear test data on reset
+
+# Feature Flags
+features:
+  enable_auto_liquidation: true
+  enable_margin_calls: true
+  enable_stop_loss_enforcement: true
+  enable_circuit_breakers: true
+  enable_multi_broker: false  # Single broker for now
+  enable_advanced_analytics: false
+
+# Performance Settings
+performance:
+  cache:
+    enabled: true
+    ttl: 60  # seconds
+    max_size: 1000  # entries
+
+  database:
+    query_timeout: 30  # seconds
+    connection_timeout: 10
+    statement_timeout: 30
+
+  async:
+    max_concurrent_requests: 100
+    request_timeout: 30
+
+# Maintenance
+maintenance:
+  auto_cleanup:
+    enabled: true
+    schedule: "0 2 * * *"  # 2 AM daily
+    delete_old_logs_days: 30
+    delete_old_audits_days: 365
+    archive_old_positions_days: 90
+
+  health_check:
+    enabled: true
+    interval: 60  # seconds
+    timeout: 10
+    endpoints:
+      - "/health"
+      - "/ready"
+
+# Environment-specific Overrides
+# (These will be loaded based on ENVIRONMENT variable)
+environments:
+  development:
+    risk_settings:
+      default_leverage: 1.0
+    testing:
+      sandbox_mode: true
+      mock_brokers: true
+
+  staging:
+    risk_settings:
+      default_leverage: 2.0
+    brokers:
+      bybit:
+        testnet: true
+
+  production:
+    risk_settings:
+      default_leverage: 2.0
+      max_leverage: 3.0  # More conservative in prod
+    testing:
+      sandbox_mode: false
+      mock_brokers: false
+    monitoring:
+      alerts:
+        enabled: true
+    security:
+      audit:
+        log_all_requests: true

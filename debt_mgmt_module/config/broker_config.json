@@ -1,0 +1,60 @@
+{
+  "active_broker": "bybit",
+  "risk_settings": {
+    "max_position_per_symbol": 750,
+    "max_total_exposure": 3000,
+    "min_position_size": 50,
+    "max_position_size": 750,
+    "max_concurrent_positions": 8,
+    "default_leverage": 75
+  },
+  "brokers": {
+    "bybit": {
+      "name": "Bybit",
+      "testnet": false,
+      "api_key": null,
+      "api_secret": null
+    },
+    "binance": {
+      "name": "Binance Futures",
+      "testnet": false,
+      "api_key": null,
+      "api_secret": null
+    },
+    "okx": {
+      "name": "OKX",
+      "sandbox": false,
+      "api_key": null,
+      "api_secret": null,
+      "passphrase": null
+    },
+    "coinbase": {
+      "name": "Coinbase Advanced Trade",
+      "sandbox": false,
+      "api_key": null,
+      "api_secret": null
+    },
+    "kraken": {
+      "name": "Kraken",
+      "api_key": null,
+      "api_secret": null
+    },
+    "crypto.com": {
+      "name": "Crypto.com Exchange", 
+      "api_key": null,
+      "api_secret": null
+    },
+    "deribit": {
+      "name": "Deribit",
+      "test": false,
+      "client_id": null,
+      "client_secret": null
+    },
+    "ftx": {
+      "name": "FTX",
+      "subaccount": null,
+      "api_key": null,
+      "api_secret": null
+    }
+  }
+}
