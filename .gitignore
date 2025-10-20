@@ -226,3 +226,9 @@ integrations/strategies_external/external_strategies/openalgo/
 integrations/tradingview/tradingview_venv/
 integrations/tradingview/__pycache__/
 **/__pycache__/
+
+# ============================================================================
+# Duplicate Files (Cleanup - ignore duplicates after reorganization)
+# ============================================================================
+***DEPLOYMENT_ROADMAP.md
+start-here.md
