@@ -1,0 +1,562 @@
+{
+  "metadata": {
+    "project": "AlgoTrendy v2.6 - TradingView Integration",
+    "analysis_date": "2025-10-19",
+    "python_version": "3.13.7",
+    "total_files": 10,
+    "virtual_environment": "/root/AlgoTrendy_v2.6/integrations/tradingview/tradingview_venv"
+  },
+  "files": [
+    {
+      "file": "dynamic_timeframe_demo.py",
+      "path": "/root/AlgoTrendy_v2.6/integrations/tradingview/dynamic_timeframe_demo.py",
+      "purpose": "Demonstrates dynamic timeframe adaptation based on market conditions",
+      "imports": {
+        "standard": [
+          "asyncio",
+          "json",
+          "time",
+          "datetime",
+          "logging",
+          "typing.Dict",
+          "typing.List",
+          "typing.Any"
+        ],
+        "third_party": [
+          "requests",
+          "pandas"
+        ],
+        "internal": []
+      },
+      "status": "pass",
+      "issues": []
+    },
+    {
+      "file": "memgpt_tradingview_companion.py",
+      "path": "/root/AlgoTrendy_v2.6/integrations/tradingview/memgpt_tradingview_companion.py",
+      "purpose": "Real-time MemGPT decision streaming to TradingView via Flask API",
+      "imports": {
+        "standard": [
+          "asyncio",
+          "json",
+          "time",
+          "datetime",
+          "typing.Dict",
+          "typing.List",
+          "typing.Any",
+          "typing.Optional",
+          "dataclasses.dataclass",
+          "dataclasses.asdict",
+          "threading",
+          "logging",
+          "pathlib.Path",
+          "random",
+          "glob"
+        ],
+        "third_party": [
+          "flask.Flask",
+          "flask.jsonify",
+          "flask.request",
+          "flask_cors.CORS",
+          "requests",
+          "websocket"
+        ],
+        "internal": []
+      },
+      "status": "pass_with_warnings",
+      "issues": [
+        {
+          "type": "duplicate_code",
+          "severity": "low",
+          "description": "Duplicate @dataclass definitions (MEMThought and MemGPTDecision)",
+          "lines": [28, 48]
+        },
+        {
+          "type": "duplicate_import",
+          "severity": "low",
+          "description": "Duplicate pathlib.Path imports",
+          "lines": [22, 44]
+        }
+      ]
+    },
+    {
+      "file": "memgpt_tradingview_plotter.py",
+      "path": "/root/AlgoTrendy_v2.6/integrations/tradingview/memgpt_tradingview_plotter.py",
+      "purpose": "Sends MemGPT trades to TradingView for visual plotting",
+      "imports": {
+        "standard": [
+          "sys",
+          "json",
+          "time",
+          "datetime",
+          "threading"
+        ],
+        "third_party": [
+          "requests",
+          "flask.Flask",
+          "flask.jsonify"
+        ],
+        "internal": []
+      },
+      "status": "pass_with_warnings",
+      "issues": [
+        {
+          "type": "hardcoded_path",
+          "severity": "medium",
+          "description": "Hardcoded path to old v2.5 directory",
+          "line": 9,
+          "code": "sys.path.append('/root/algotrendy_v2.5')",
+          "recommendation": "Update to v2.6 path or remove"
+        }
+      ]
+    },
+    {
+      "file": "memgpt_tradingview_tradestation_bridge.py",
+      "path": "/root/AlgoTrendy_v2.6/integrations/tradingview/memgpt_tradingview_tradestation_bridge.py",
+      "purpose": "Webhook bridge between TradingView alerts and TradeStation paper trading",
+      "imports": {
+        "standard": [
+          "asyncio",
+          "threading",
+          "time",
+          "datetime",
+          "logging",
+          "typing.Dict",
+          "typing.Any",
+          "json"
+        ],
+        "third_party": [
+          "flask.Flask",
+          "flask.request",
+          "flask.jsonify",
+          "flask_cors.CORS",
+          "requests"
+        ],
+        "internal": [
+          "memgpt_tradestation_integration.TradeStationPaperTrader",
+          "memgpt_tradestation_integration.MemGPTTradeSignal"
+        ]
+      },
+      "status": "fail",
+      "issues": [
+        {
+          "type": "import_path_error",
+          "severity": "high",
+          "description": "Internal import missing path specification",
+          "line": 22,
+          "code": "from memgpt_tradestation_integration import TradeStationPaperTrader, MemGPTTradeSignal",
+          "recommendation": "Change to: from servers.memgpt_tradestation_integration import TradeStationPaperTrader, MemGPTTradeSignal",
+          "required_fix": true
+        }
+      ]
+    },
+    {
+      "file": "tradingview_data_publisher.py",
+      "path": "/root/AlgoTrendy_v2.6/integrations/tradingview/tradingview_data_publisher.py",
+      "purpose": "Publishes MemGPT data to TradingView via webhooks",
+      "imports": {
+        "standard": [
+          "json",
+          "time",
+          "datetime",
+          "typing.Dict",
+          "typing.Any",
+          "threading",
+          "logging"
+        ],
+        "third_party": [
+          "requests"
+        ],
+        "internal": []
+      },
+      "status": "pass",
+      "issues": []
+    },
+    {
+      "file": "tradingview_integration_strategy.py",
+      "path": "/root/AlgoTrendy_v2.6/integrations/tradingview/tradingview_integration_strategy.py",
+      "purpose": "Strategy documentation and planning script (informational only)",
+      "imports": {
+        "standard": [],
+        "third_party": [],
+        "internal": []
+      },
+      "status": "pass",
+      "issues": []
+    },
+    {
+      "file": "tradingview_paper_trading_dashboard.py",
+      "path": "/root/AlgoTrendy_v2.6/integrations/tradingview/tradingview_paper_trading_dashboard.py",
+      "purpose": "Web dashboard for monitoring paper trades from TradingView alerts",
+      "imports": {
+        "standard": [
+          "json",
+          "datetime"
+        ],
+        "third_party": [
+          "flask.Flask",
+          "flask.render_template_string",
+          "flask.jsonify",
+          "requests"
+        ],
+        "internal": []
+      },
+      "status": "pass",
+      "issues": []
+    },
+    {
+      "file": "servers/memgpt_tradestation_integration.py",
+      "path": "/root/AlgoTrendy_v2.6/integrations/tradingview/servers/memgpt_tradestation_integration.py",
+      "purpose": "Core TradeStation paper trading integration for MemGPT",
+      "imports": {
+        "standard": [
+          "asyncio",
+          "json",
+          "time",
+          "datetime",
+          "typing.Dict",
+          "typing.List",
+          "typing.Any",
+          "typing.Optional",
+          "dataclasses.dataclass",
+          "logging",
+          "pathlib.Path",
+          "threading"
+        ],
+        "third_party": [
+          "requests",
+          "websocket"
+        ],
+        "internal": []
+      },
+      "status": "pass",
+      "issues": []
+    },
+    {
+      "file": "servers/memgpt_tradingview_tradestation_bridge.py",
+      "path": "/root/AlgoTrendy_v2.6/integrations/tradingview/servers/memgpt_tradingview_tradestation_bridge.py",
+      "purpose": "Server version - Webhook bridge between TradingView and TradeStation",
+      "imports": {
+        "standard": [
+          "asyncio",
+          "threading",
+          "time",
+          "datetime",
+          "logging",
+          "typing.Dict",
+          "typing.Any",
+          "json"
+        ],
+        "third_party": [
+          "flask.Flask",
+          "flask.request",
+          "flask.jsonify",
+          "flask_cors.CORS",
+          "requests"
+        ],
+        "internal": [
+          "memgpt_tradestation_integration.TradeStationPaperTrader",
+          "memgpt_tradestation_integration.MemGPTTradeSignal"
+        ]
+      },
+      "status": "pass",
+      "issues": [],
+      "notes": "Internal import works correctly from servers/ directory"
+    },
+    {
+      "file": "servers/memgpt_tradingview_companion.py",
+      "path": "/root/AlgoTrendy_v2.6/integrations/tradingview/servers/memgpt_tradingview_companion.py",
+      "purpose": "Server version - Real-time MemGPT companion for TradingView",
+      "imports": {
+        "standard": [
+          "asyncio",
+          "json",
+          "time",
+          "datetime",
+          "typing.Dict",
+          "typing.List",
+          "typing.Any",
+          "typing.Optional",
+          "dataclasses.dataclass",
+          "dataclasses.asdict",
+          "threading",
+          "logging",
+          "pathlib.Path"
+        ],
+        "third_party": [
+          "flask.Flask",
+          "flask.jsonify",
+          "flask.request",
+          "flask_cors.CORS",
+          "requests",
+          "websocket"
+        ],
+        "internal": []
+      },
+      "status": "pass_with_warnings",
+      "issues": [
+        {
+          "type": "duplicate_code",
+          "severity": "low",
+          "description": "Duplicate @dataclass definitions (same as companion in root)",
+          "lines": [28, 50]
+        }
+      ]
+    }
+  ],
+  "dependency_summary": {
+    "standard_library": {
+      "total_unique": 21,
+      "modules": [
+        "asyncio",
+        "json",
+        "time",
+        "datetime",
+        "logging",
+        "threading",
+        "typing",
+        "dataclasses",
+        "pathlib",
+        "sys",
+        "random",
+        "glob"
+      ],
+      "usage_frequency": {
+        "time": 8,
+        "logging": 8,
+        "json": 7,
+        "datetime": 7,
+        "typing": 7,
+        "threading": 5,
+        "asyncio": 4,
+        "dataclasses": 3,
+        "pathlib": 3,
+        "sys": 1,
+        "random": 1,
+        "glob": 1
+      }
+    },
+    "third_party": {
+      "total_packages": 13,
+      "actively_used": 6,
+      "packages": {
+        "flask": {
+          "version": ">=2.3.0",
+          "used_by": 4,
+          "status": "critical"
+        },
+        "flask-cors": {
+          "version": ">=4.0.0",
+          "used_by": 3,
+          "status": "critical"
+        },
+        "requests": {
+          "version": ">=2.31.0",
+          "used_by": 8,
+          "status": "critical"
+        },
+        "websocket-client": {
+          "version": ">=1.6.0",
+          "used_by": 2,
+          "status": "critical"
+        },
+        "websockets": {
+          "version": ">=11.0.0",
+          "used_by": 0,
+          "status": "unused",
+          "note": "Listed but websocket-client is used instead"
+        },
+        "pandas": {
+          "version": ">=2.0.0",
+          "used_by": 1,
+          "status": "required"
+        },
+        "numpy": {
+          "version": ">=1.24.0",
+          "used_by": 0,
+          "status": "optional"
+        },
+        "jq": {
+          "version": ">=1.6.0",
+          "used_by": 0,
+          "status": "unused"
+        },
+        "python-dateutil": {
+          "version": ">=2.8.0",
+          "used_by": 0,
+          "status": "unused"
+        },
+        "colorlog": {
+          "version": ">=6.7.0",
+          "used_by": 0,
+          "status": "unused"
+        },
+        "python-dotenv": {
+          "version": ">=1.0.0",
+          "used_by": 0,
+          "status": "unused"
+        },
+        "cryptography": {
+          "version": ">=41.0.0",
+          "used_by": 0,
+          "status": "unused"
+        },
+        "pytest": {
+          "version": ">=7.4.0",
+          "used_by": 0,
+          "status": "dev_dependency"
+        },
+        "black": {
+          "version": ">=23.0.0",
+          "used_by": 0,
+          "status": "dev_dependency"
+        },
+        "flake8": {
+          "version": ">=6.0.0",
+          "used_by": 0,
+          "status": "dev_dependency"
+        }
+      }
+    },
+    "internal": {
+      "total_imports": 1,
+      "modules": [
+        {
+          "module": "servers.memgpt_tradestation_integration",
+          "exports": [
+            "TradeStationPaperTrader",
+            "MemGPTTradeSignal"
+          ],
+          "used_by": [
+            "servers/memgpt_tradingview_tradestation_bridge.py",
+            "memgpt_tradingview_tradestation_bridge.py"
+          ],
+          "status": "valid",
+          "notes": "One usage has import path issue (root level file)"
+        }
+      ]
+    }
+  },
+  "circular_dependencies": {
+    "detected": false,
+    "analysis": "No circular dependencies found. All imports are unidirectional.",
+    "dependency_graph": {
+      "root_files": [
+        "dynamic_timeframe_demo.py (no deps)",
+        "memgpt_tradingview_companion.py (no deps)",
+        "memgpt_tradingview_plotter.py (no deps)",
+        "memgpt_tradingview_tradestation_bridge.py -> servers.memgpt_tradestation_integration",
+        "tradingview_data_publisher.py (no deps)",
+        "tradingview_integration_strategy.py (no deps)",
+        "tradingview_paper_trading_dashboard.py (no deps)"
+      ],
+      "server_files": [
+        "servers/memgpt_tradestation_integration.py (no deps)",
+        "servers/memgpt_tradingview_tradestation_bridge.py -> memgpt_tradestation_integration",
+        "servers/memgpt_tradingview_companion.py (no deps)"
+      ]
+    }
+  },
+  "issues": {
+    "critical": 1,
+    "warnings": 3,
+    "info": 7,
+    "details": [
+      {
+        "severity": "critical",
+        "type": "import_path_error",
+        "file": "memgpt_tradingview_tradestation_bridge.py",
+        "description": "Internal import missing path specification",
+        "fix_required": true
+      },
+      {
+        "severity": "warning",
+        "type": "hardcoded_path",
+        "file": "memgpt_tradingview_plotter.py",
+        "description": "References old v2.5 directory path",
+        "fix_required": false
+      },
+      {
+        "severity": "warning",
+        "type": "duplicate_code",
+        "file": "memgpt_tradingview_companion.py",
+        "description": "Duplicate dataclass definitions",
+        "fix_required": false
+      },
+      {
+        "severity": "warning",
+        "type": "duplicate_code",
+        "file": "servers/memgpt_tradingview_companion.py",
+        "description": "Duplicate dataclass definitions",
+        "fix_required": false
+      },
+      {
+        "severity": "info",
+        "type": "unused_dependency",
+        "packages": [
+          "numpy",
+          "jq",
+          "python-dateutil",
+          "colorlog",
+          "python-dotenv",
+          "cryptography"
+        ],
+        "description": "Listed in requirements.txt but not imported",
+        "recommendation": "Consider removing to reduce dependencies"
+      }
+    ]
+  },
+  "recommendations": {
+    "immediate": [
+      {
+        "priority": "high",
+        "action": "Fix import path in memgpt_tradingview_tradestation_bridge.py",
+        "file": "memgpt_tradingview_tradestation_bridge.py",
+        "line": 22,
+        "change_from": "from memgpt_tradestation_integration import TradeStationPaperTrader, MemGPTTradeSignal",
+        "change_to": "from servers.memgpt_tradestation_integration import TradeStationPaperTrader, MemGPTTradeSignal"
+      },
+      {
+        "priority": "medium",
+        "action": "Update old version path references",
+        "file": "memgpt_tradingview_plotter.py",
+        "line": 9,
+        "change_from": "sys.path.append('/root/algotrendy_v2.5')",
+        "change_to": "sys.path.append('/root/AlgoTrendy_v2.6') or remove"
+      }
+    ],
+    "optional": [
+      {
+        "priority": "low",
+        "action": "Clean up duplicate code",
+        "files": [
+          "memgpt_tradingview_companion.py",
+          "servers/memgpt_tradingview_companion.py"
+        ],
+        "description": "Remove duplicate @dataclass definitions"
+      },
+      {
+        "priority": "low",
+        "action": "Streamline requirements.txt",
+        "description": "Remove unused packages to reduce installation time",
+        "packages_to_remove": [
+          "numpy",
+          "jq",
+          "python-dateutil",
+          "colorlog",
+          "python-dotenv",
+          "cryptography"
+        ]
+      }
+    ]
+  },
+  "analysis_result": {
+    "status": "PASS",
+    "overall_health": "good",
+    "critical_issues": 1,
+    "warnings": 3,
+    "circular_dependencies": 0,
+    "missing_dependencies": 0,
+    "notes": "All issues are non-critical and easily fixable. Ready for Phase 3 after applying recommended fixes."
+  }
+}

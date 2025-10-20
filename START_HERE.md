@@ -10,19 +10,19 @@
 
 **This is your entry point. Read these first:**
 
-1. **SESSION_HANDOFF.md** (12 KB)
+1. **ai_context/SESSION_HANDOFF.md** (12 KB)
    - Comprehensive overview of all work completed
    - Critical information and next steps
    - Directory structure and file locations
    - **👉 READ THIS FIRST**
 
-2. **CONTINUATION_STATUS.md** (6.9 KB)
+2. **ai_context/CONTINUATION_STATUS.md** (6.9 KB)
    - Quick reference guide
    - Missing components summary
    - 8-phase implementation roadmap
    - Key metrics and timelines
 
-3. **AUDIT_SUMMARY.md** (in `algotrendy_v2.6_eval.4/`)
+3. **AUDIT_SUMMARY.md** (in `docs/archived/evaluations/v2.6_eval_archive/`)
    - 5-minute executive summary
    - Missing components by category
    - Implementation options
@@ -55,18 +55,23 @@
 ### Main Files (Read These)
 ```
 /root/AlgoTrendy_v2.6/
-├── SESSION_HANDOFF.md ...................... (⭐ COMPREHENSIVE OVERVIEW)
-├── CONTINUATION_STATUS.md ................. (Quick reference)
-├── FINNHUB_INTEGRATION_COMPLETE.md ........ (API documentation)
-└── algotrendy_v2.6_eval.4/ (Evaluation directory)
-    ├── README.md
-    ├── AUDIT_SUMMARY.md ................... (5-min read)
-    ├── MISSING_COMPONENTS_COMPREHENSIVE_AUDIT.md
-    ├── MEM_ML_INVENTORY_V2.5.md
-    ├── MEM_ML_INTEGRATION_ROADMAP.md
-    ├── MEM_ML_COPY_REPORT.md
-    ├── MEM_ML_INTEGRATION_SUMMARY.md
-    └── MEM_ML_HANDOFF_CHECKLIST.md
+├── ai_context/
+│   ├── SESSION_HANDOFF.md ................. (⭐ COMPREHENSIVE OVERVIEW)
+│   └── CONTINUATION_STATUS.md ............. (Quick reference)
+├── docs/
+│   ├── implementation/
+│   │   └── data-providers/
+│   │       └── FINNHUB_INTEGRATION_COMPLETE.md (API documentation)
+│   ├── status/
+│   │   └── MISSING_COMPONENTS_COMPREHENSIVE_AUDIT.md
+│   └── archived/evaluations/v2.6_eval_archive/
+│       ├── README.md
+│       ├── AUDIT_SUMMARY.md ............... (5-min read)
+│       ├── MEM_ML_INVENTORY_V2.5.md
+│       ├── MEM_ML_INTEGRATION_ROADMAP.md
+│       ├── MEM_ML_COPY_REPORT.md
+│       ├── MEM_ML_INTEGRATION_SUMMARY.md
+│       └── MEM_ML_HANDOFF_CHECKLIST.md
 ```
 
 ### Integrated Components
@@ -93,13 +98,13 @@
 ## 🎯 YOUR NEXT STEPS
 
 ### Today (This Hour)
-- [ ] Read SESSION_HANDOFF.md (⭐ Required)
-- [ ] Skim CONTINUATION_STATUS.md (5 min)
-- [ ] Review AUDIT_SUMMARY.md (5 min)
+- [ ] Read ai_context/SESSION_HANDOFF.md (⭐ Required)
+- [ ] Skim ai_context/CONTINUATION_STATUS.md (5 min)
+- [ ] Review docs/archived/evaluations/v2.6_eval_archive/AUDIT_SUMMARY.md (5 min)
 
 ### Tomorrow (First Half Day)
-- [ ] Read MISSING_COMPONENTS_COMPREHENSIVE_AUDIT.md (30 min)
-- [ ] Review MEM_ML_INTEGRATION_ROADMAP.md (30 min)
+- [ ] Read docs/status/MISSING_COMPONENTS_COMPREHENSIVE_AUDIT.md (30 min)
+- [ ] Review docs/archived/evaluations/v2.6_eval_archive/MEM_ML_INTEGRATION_ROADMAP.md (30 min)
 - [ ] Make implementation path decision (Complete/MVP/Parallel)
 
 ### Day 2 Afternoon (Start Implementation)
@@ -178,18 +183,18 @@
 ## 📞 QUICK REFERENCE
 
 ### For Managers
-→ Read SESSION_HANDOFF.md (15 min)
-→ Check AUDIT_SUMMARY.md (5 min)
+→ Read ai_context/SESSION_HANDOFF.md (15 min)
+→ Check docs/archived/evaluations/v2.6_eval_archive/AUDIT_SUMMARY.md (5 min)
 → Decide on implementation path
 
 ### For Developers
-→ Read SESSION_HANDOFF.md (30 min)
-→ Study MISSING_COMPONENTS_COMPREHENSIVE_AUDIT.md (30 min)
-→ Review MEM_ML_INTEGRATION_ROADMAP.md (30 min)
+→ Read ai_context/SESSION_HANDOFF.md (30 min)
+→ Study docs/status/MISSING_COMPONENTS_COMPREHENSIVE_AUDIT.md (30 min)
+→ Review docs/archived/evaluations/v2.6_eval_archive/MEM_ML_INTEGRATION_ROADMAP.md (30 min)
 → Start Phase 7A implementation
 
 ### For QA/Testing
-→ Review MEM_ML_COPY_REPORT.md (5 min)
+→ Review docs/implementation/integrations/MEM_ML_COPY_REPORT.md (5 min)
 → Verify v2.5 preservation (/root/algotrendy_v2.5/)
 → Verify v2.6 integration (/root/AlgoTrendy_v2.6/)
 → Spot-check a few critical files
@@ -219,10 +224,10 @@ Next Action: Read SESSION_HANDOFF.md and choose implementation path.
 
 ---
 
-*This is your starting point. Read SESSION_HANDOFF.md next.*
+*This is your starting point. Read ai_context/SESSION_HANDOFF.md next.*
 
 **Questions?** All answers are in the comprehensive documentation.
-**Files?** All in `/root/AlgoTrendy_v2.6/` and subdirectories.
+**Files?** All organized in `/root/AlgoTrendy_v2.6/` subdirectories (docs/, ai_context/, planning/, etc.).
 **v2.5 Data?** All preserved 100% intact in `/root/algotrendy_v2.5/`
 
 Let's build! 🚀

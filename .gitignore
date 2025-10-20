@@ -220,3 +220,4 @@ devtools/analysis/*.sarif
 !appsettings.json.example
 !docker-compose.example.yml
 trees/
+integrations/strategies_external/external_strategies/openalgo/

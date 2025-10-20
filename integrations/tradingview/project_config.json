@@ -1,0 +1,111 @@
+{
+  "project_name": "MemGPT TradingView Integration Project",
+  "version": "2.0.0",
+  "description": "Complete MemGPT trading system with TradingView integration, direction predictions, and automated execution",
+  
+  "components": {
+    "pine_scripts": {
+      "memgpt_companion_enhanced.pine": "Enhanced Pine Script with move confidence and reversal tracking",
+      "memgpt_basic_companion.pine": "Basic MemGPT companion for simple setups",
+      "memgpt_strategy_template.pine": "Template for creating custom MemGPT strategies"
+    },
+    
+    "servers": {
+      "memgpt_tradingview_companion.py": "Flask server providing real-time MemGPT analysis",
+      "memgpt_tradingview_tradestation_bridge.py": "Webhook bridge for automated trading",
+      "memgpt_tradestation_integration.py": "Direct TradeStation API integration"
+    },
+    
+    "templates": {
+      "webhook_template.json": "TradingView webhook configuration template",
+      "alert_templates.json": "Pre-configured alert templates",
+      "custom_indicator_template.pine": "Template for integrating custom indicators"
+    }
+  },
+  
+  "features": {
+    "core": [
+      "Real-time MemGPT analysis streaming",
+      "Advanced technical indicator integration",
+      "Multi-timeframe analysis",
+      "Dynamic confidence scoring"
+    ],
+    
+    "enhanced": [
+      "Move confidence prediction (0.2%+ directional moves)",
+      "Reversal probability tracking",
+      "Direction strength analysis (strong/moderate)",
+      "Performance accuracy tracking",
+      "Custom indicator integration"
+    ],
+    
+    "automation": [
+      "TradeStation paper trading integration",
+      "TradingView webhook alerts",
+      "Automated order execution",
+      "Risk management integration"
+    ],
+    
+    "visualization": [
+      "Dynamic status table with live updates",
+      "Direction strength arrows and indicators", 
+      "Confidence zone backgrounds",
+      "Target price lines and projections",
+      "Comprehensive reasoning labels"
+    ]
+  },
+  
+  "configuration": {
+    "memgpt_server": {
+      "ip": "216.238.90.131",
+      "port": 5003,
+      "update_frequency": 5,
+      "confidence_threshold": 0.65
+    },
+    
+    "tradestation": {
+      "api_url": "https://sim-api.tradestation.com/v3",
+      "paper_account": "SIM123456",
+      "max_position_size": 1000,
+      "risk_per_trade": 0.02
+    },
+    
+    "webhook_bridge": {
+      "port": 5004,
+      "endpoints": {
+        "tradingview_webhook": "/webhook",
+        "memgpt_analysis": "/memgpt/<symbol>",
+        "system_status": "/status",
+        "trade_history": "/trades"
+      }
+    }
+  },
+  
+  "installation": {
+    "requirements": [
+      "python3",
+      "flask",
+      "flask-cors", 
+      "requests",
+      "websocket-client",
+      "asyncio"
+    ],
+    
+    "setup_steps": [
+      "1. Install Python dependencies: pip install -r requirements.txt",
+      "2. Configure API credentials in environment files",
+      "3. Start MemGPT companion server",
+      "4. Start webhook bridge server", 
+      "5. Add Pine Script to TradingView charts",
+      "6. Configure TradingView alerts with webhook URLs"
+    ]
+  },
+  
+  "usage": {
+    "basic_setup": "Use memgpt_companion_enhanced.pine for complete analysis",
+    "custom_indicators": "Enable custom indicator integration in Pine Script settings",
+    "paper_trading": "Configure TradeStation credentials for automated execution",
+    "alerts": "Set up TradingView alerts pointing to webhook bridge",
+    "monitoring": "Check system status at http://localhost:5004/status"
+  }
+}

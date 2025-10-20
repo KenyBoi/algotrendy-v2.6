@@ -88,11 +88,11 @@ curl "http://localhost:5001/latest?symbol=AAPL"
 ```
 
 **Documentation:**
-- 📄 `FREE_TIER_QUICKSTART.md` - 15-minute setup guide
-- 📄 `FREE_TIER_DATA_STRATEGY.md` - Complete 8-week roadmap
-- 📄 `FREE_TIER_TEST_RESULTS.md` - Comprehensive test report
-- 📄 `FREE_TIER_WORKING_EXAMPLES.md` - 6 complete code examples
-- 📄 `IMPLEMENTATION_COMPLETE.md` - Executive summary
+- 📄 `docs/deployment/FREE_TIER_QUICKSTART.md` - 15-minute setup guide
+- 📄 `docs/implementation/data-providers/FREE_TIER_DATA_STRATEGY.md` - Complete 8-week roadmap
+- 📄 `docs/implementation/data-providers/FREE_TIER_TEST_RESULTS.md` - Comprehensive test report
+- 📄 `docs/implementation/data-providers/FREE_TIER_WORKING_EXAMPLES.md` - 6 complete code examples
+- 📄 `docs/status/IMPLEMENTATION_COMPLETE.md` - Executive summary
 
 **Key Achievement:** Eliminated the $50K-100K/year data infrastructure gap at **zero cost**.
 
@@ -379,7 +379,7 @@ public interface IBroker {
 - ✅ Fixed integration test skipping (SkippableFact pattern, proper credential handling)
 - ✅ Achieved 100% test success rate
 
-**Documentation:** See `TEST_STATUS_REPORT.md` for detailed test analysis
+**Documentation:** See `reports/TEST_STATUS_REPORT.md` for detailed test analysis
 
 **Future Enhancement:** Margin/Leverage scenario tests, load testing (1000+ concurrent users)
 
@@ -411,22 +411,30 @@ public interface IBroker {
 ```
 AlgoTrendy_v2.6/
 ├── README.md (this file)
-├── PROJECT_OVERVIEW.md                              ← QUICK SUMMARY (phase completion %)
+├── START_HERE.md                                    ← ENTRY POINT FOR NEW DEVELOPERS
 ├── docs/
-│   ├── algotrendy_v2.6_investigational_findings.md  ← START HERE
-│   ├── existing_infrastructure.md                   ← 🌐 PRODUCTION DEPLOYMENT INFO
-│   └── planning_session_transcript.md               ← Complete planning session
-├── planning/
+│   ├── architecture/
+│   │   ├── PROJECT_OVERVIEW.md                      ← QUICK SUMMARY (phase completion %)
+│   │   ├── FEATURES.md                              ← Complete feature inventory
+│   │   └── ARCHITECTURE_DIAGRAMS.md                 ← System diagrams
+│   ├── deployment/                                  ← Deployment guides
+│   ├── implementation/                              ← Implementation docs
+│   │   ├── brokers/                                 ← Broker integrations
+│   │   ├── data-providers/                          ← Data provider implementations
+│   │   └── integrations/                            ← External integrations
+│   ├── status/                                      ← Status reports
+│   └── archived/evaluations/                        ← Historical evaluations
+├── ai_context/                                      ← AI assistant context & session summaries
+├── planning/                                        ← Implementation planning docs
 │   ├── migration_plan.md                            ← Phase-by-phase plan
-│   ├── file_inventory_and_migration_map.md          ← File-by-file instructions
-│   ├── migration_tracker.md                         ← (Create when work begins)
-│   └── daily_log.md                                 ← (Create when work begins)
-├── backend/ (empty - will be created in Phase 1)
-├── frontend/ (empty - will be created in Phase 5)
-├── database/ (empty - will be created in Phase 1)
-├── infrastructure/ (empty - will be created in Phase 6)
-├── scripts/
-└── tests/
+│   └── file_inventory_and_migration_map.md          ← File-by-file instructions
+├── reports/                                         ← Test and validation reports
+├── backend/                                         ← C# .NET 8 backend (production ready)
+├── frontend/                                        ← Next.js 15 frontend
+├── ml-service/                                      ← Python ML prediction service
+├── integrations/                                    ← TradingView, strategies, etc.
+├── scripts/                                         ← Deployment and utility scripts
+└── tests/                                           ← Test suites
 ```
 
 ---
@@ -784,11 +792,11 @@ Before starting Phase 1:
 ## 📚 FREE Tier Data Documentation
 
 **Quick Reference:**
-- 📄 `FREE_TIER_QUICKSTART.md` - 15-minute setup guide (start here!)
-- 📄 `FREE_TIER_DATA_STRATEGY.md` - Complete 8-week implementation roadmap
-- 📄 `FREE_TIER_TEST_RESULTS.md` - Comprehensive test results & metrics
-- 📄 `FREE_TIER_WORKING_EXAMPLES.md` - 6 complete code examples
-- 📄 `IMPLEMENTATION_COMPLETE.md` - Executive summary
+- 📄 `docs/deployment/FREE_TIER_QUICKSTART.md` - 15-minute setup guide (start here!)
+- 📄 `docs/implementation/data-providers/FREE_TIER_DATA_STRATEGY.md` - Complete 8-week implementation roadmap
+- 📄 `docs/implementation/data-providers/FREE_TIER_TEST_RESULTS.md` - Comprehensive test results & metrics
+- 📄 `docs/implementation/data-providers/FREE_TIER_WORKING_EXAMPLES.md` - 6 complete code examples
+- 📄 `docs/status/IMPLEMENTATION_COMPLETE.md` - Executive summary
 
 **Service Status:**
 - yfinance service: ✅ Running on port 5001

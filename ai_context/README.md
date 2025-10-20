@@ -73,8 +73,8 @@ You are Claude, assigned to work on **AlgoTrendy**, a cryptocurrency trading pla
 | **Location** | /root/AlgoTrendy_v2.6 | Main project folder |
 | **Legacy Version** | v2.5 (Python, intact) | Reference + backup |
 | **Deployment** | Docker (245MB optimized) | Production-ready |
-| **Brokers** | Binance (MVP), OKX/Coinbase/Kraken (REST data only) | Trading limited |
-| **Next Phase** | Phase 7 (Backtesting, more brokers, more strategies) | Post-MVP |
+| **Brokers** | 5 full implementations (Binance, Bybit, Interactive Brokers, NinjaTrader, TradeStation) | Multi-broker trading |
+| **Next Phase** | Phase 7+ (More data channels, more strategies, analytics) | Enhancement |
 
 ---
 
@@ -99,16 +99,16 @@ v2.6 (C# .NET 8, CURRENT, PRODUCTION-READY)
     • QuestDB for time-series
     • 2 MVP strategies (Momentum, RSI)
     • 4 REST data channels (Binance, OKX, Coinbase, Kraken)
-    • Binance broker integration (MVP)
+    • 5 broker integrations (Binance, Bybit, Interactive Brokers, NinjaTrader, TradeStation)
+    • Backtesting engine with 8 indicators ✅
     • Docker deployment (multi-stage, 245MB)
     • 226/264 tests passing ✅
 
     ⏳ PHASE 7+ (To do):
-    • Backtesting engine
-    • Additional brokers (Bybit, OKX, Kraken)
+    • Trading brokers for OKX, Coinbase, Kraken (data-only now)
     • Additional strategies (MACD, MFI, VWAP)
+    • Advanced analytics and dashboards
     • Performance optimization
-    • Advanced analytics
 ```
 
 ---
@@ -163,7 +163,8 @@ v2.6 (C# .NET 8, CURRENT, PRODUCTION-READY)
 - ✅ **Trading Engine:** Orders, positions, PnL, risk management
 - ✅ **Data Channels:** 4 exchanges (REST polling, 60-sec intervals)
 - ✅ **Strategies:** 2 MVP (Momentum, RSI) with indicators
-- ✅ **Broker:** Binance testnet/production ready
+- ✅ **Brokers:** 5 full implementations (Binance, Bybit, Interactive Brokers, NinjaTrader, TradeStation)
+- ✅ **Backtesting:** Custom engine with 8 indicators, 6 API endpoints
 - ✅ **Docker:** Multi-stage build, 245MB optimized, production-ready
 - ✅ **Documentation:** Comprehensive (50+ KB)
 - ✅ **Testing:** 226 passing, 26 failed (fixtures), 12 skipped (credentials)
@@ -172,14 +173,13 @@ v2.6 (C# .NET 8, CURRENT, PRODUCTION-READY)
 
 ## ⏳ What's NOT Ready (Phase 7+)
 
-- ✅ **Backtesting Engine** - COMPLETE (enabled October 19, 2025, fully integrated)
-- ⏳ **Additional Brokers** - ⚠️ EXIST IN v2.5 (Bybit, Alpaca, OKX full, Kraken full), need porting (40-50 hours)
-- ⏳ **Additional Strategies** - MACD, MFI, VWAP, moving averages, etc.
+- ⏳ **Trading Brokers for OKX/Coinbase/Kraken** - Data channels exist, need trading capability (8-12 hours each)
+- ⏳ **Additional Strategies** - MACD, MFI, VWAP, moving averages, etc. (12-20 hours)
+- ⏳ **Advanced Analytics** - Portfolio metrics, reporting, dashboards (30+ hours)
 - ⏳ **Performance Optimization** - Not needed yet (meets targets)
-- ⏳ **Advanced Analytics** - Portfolio metrics, reporting, dashboards
-- ⏳ **Data Migration** - v2.5 market data to v2.6 QuestDB (simple, not urgent)
+- ⏳ **Data Migration** - v2.5 market data to v2.6 QuestDB (simple, not urgent, 1-2 hours)
 
-**NOTE:** Major modules from v2.5 (backtesting, brokers) were not included in v2.6 rewrite. Reference implementation exists in `/root/algotrendy_v2.5`. See `MISSING_MODULES_DISCOVERY.md` for details.
+**NOTE:** All major modules have been successfully ported to v2.6. Legacy v2.5 exists in `/root/algotrendy_v2.5` as reference only.
 
 ---
 

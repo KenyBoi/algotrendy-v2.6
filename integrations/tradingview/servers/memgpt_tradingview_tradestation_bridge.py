@@ -19,7 +19,7 @@ from typing import Dict, Any
 import requests
 
 # Import our TradeStation integration
-from servers.memgpt_tradestation_integration import TradeStationPaperTrader, MemGPTTradeSignal
+from memgpt_tradestation_integration import TradeStationPaperTrader, MemGPTTradeSignal
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
