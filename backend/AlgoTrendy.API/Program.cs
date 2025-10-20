@@ -150,6 +150,7 @@ builder.Services.AddHttpClient();
 builder.Services.AddHttpClient<IMLPredictionService, MLPredictionService>();
 builder.Services.AddScoped<AlgoTrendy.TradingEngine.Services.MLFeatureService>();
 builder.Services.AddScoped<AlgoTrendy.TradingEngine.Services.IndicatorService>();
+builder.Services.AddSingleton<AlgoTrendy.Core.Services.SymbolFormatterService>();
 
 // Register all market data channels as scoped services
 builder.Services.AddScoped<BinanceRestChannel>();

@@ -1,3 +1,5 @@
+using AlgoTrendy.Core.Enums;
+
 namespace AlgoTrendy.Core.Models;
 
 /// <summary>
@@ -51,9 +53,14 @@ public class MarketData
     public long? TradesCount { get; init; }
 
     /// <summary>
-    /// Data source (binance, okx, coinbase, kraken, bybit)
+    /// Data source (binance, okx, coinbase, kraken, bybit, alphavantage, yfinance)
     /// </summary>
     public required string Source { get; init; }
+
+    /// <summary>
+    /// Asset type classification (Cryptocurrency, Stock, Futures, Options, ETF, Forex)
+    /// </summary>
+    public AssetType AssetType { get; init; } = AssetType.Cryptocurrency;
 
     /// <summary>
     /// Additional metadata in JSON format
