@@ -1,0 +1,13 @@
+# AlgoTrendy Project Instructions for Claude Code
+
+## CRITICAL RULE: NO SAMPLE DATA
+NEVER use sample/mock/fake stock data. ONLY use real stock data from actual market data sources (APIs, databases, live feeds).
+
+This applies to:
+- Ticker symbols (use real tickers like AAPL, MSFT, GOOGL - never use fake ones like SAMPLE, TEST, DEMO)
+- Stock prices (must come from real data sources)
+- Trading volumes
+- Market data of any kind
+- All financial/trading data
+
+If real data is not available, ask the user first - do not generate sample data under any circumstances.

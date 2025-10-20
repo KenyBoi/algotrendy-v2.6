@@ -8,6 +8,11 @@
     <PackageReference Include="Binance.Net" Version="10.1.0" />
     <PackageReference Include="CryptoExchange.Net" Version="9.10.0" />
     <PackageReference Include="Bybit.Net" Version="5.10.1" />
+    <PackageReference Include="Kraken.Net" Version="4.5.0.30" />
+    <!-- OKX.Net v1.0.4 is outdated and incompatible - OKX broker needs custom REST implementation -->
+    <!-- <PackageReference Include="OKX.Net" Version="1.0.4" /> -->
+    <!-- Kraken.Net is .NET Framework-based, not .NET 8 native - consider custom REST implementation -->
+    <!-- <PackageReference Include="Kraken.Net" Version="4.5.0" /> -->
     <PackageReference Include="Microsoft.Extensions.Caching.Memory" Version="9.0.10" />
     <PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" Version="9.0.10" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="9.0.10" />

@@ -1,0 +1,76 @@
+version: '3.8'
+
+services:
+  # Frontend (React/TypeScript)
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: trading-frontend
+    ports:
+      - "3000:80"
+    environment:
+      # These will be baked into the build, but you can override with .env file
+      - VITE_API_BASE_URL=${VITE_API_BASE_URL:-http://localhost:5000/api}
+      - VITE_WS_URL=${VITE_WS_URL:-ws://localhost:5000/ws}
+    depends_on:
+      - backend
+    networks:
+      - trading-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost/health"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+
+  # Backend (.NET/C# - adjust according to your setup)
+  backend:
+    # Replace with your backend image/build
+    image: your-backend-image:latest
+    # OR build from your backend directory:
+    # build:
+    #   context: ../backend
+    #   dockerfile: Dockerfile
+    container_name: trading-backend
+    ports:
+      - "5000:5000"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - QuestDB__Host=questdb
+      - QuestDB__Port=9000
+      - ConnectionStrings__QuestDB=http://questdb:9000
+    depends_on:
+      - questdb
+    networks:
+      - trading-network
+    restart: unless-stopped
+
+  # QuestDB for time-series data
+  questdb:
+    image: questdb/questdb:latest
+    container_name: trading-questdb
+    ports:
+      - "9000:9000"  # REST API & Web Console
+      - "8812:8812"  # Postgres wire protocol
+      - "9009:9009"  # InfluxDB line protocol
+    volumes:
+      - questdb-data:/var/lib/questdb
+    networks:
+      - trading-network
+    restart: unless-stopped
+    environment:
+      - QDB_TELEMETRY_ENABLED=false
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:9000"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+
+networks:
+  trading-network:
+    driver: bridge
+
+volumes:
+  questdb-data:
+    driver: local

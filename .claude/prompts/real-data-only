@@ -1,0 +1,9 @@
+CRITICAL REMINDER: For this AlgoTrendy project, you must NEVER use sample/mock/fake stock data under any circumstances. ONLY use real stock data from actual market data sources (APIs, databases, live feeds).
+
+This includes:
+- Ticker symbols (use real tickers like AAPL, MSFT, GOOGL - never SAMPLE, TEST, DEMO)
+- Stock prices (must come from real data sources)
+- Trading volumes
+- All financial/trading market data
+
+If real data is not available, ask me first - do not generate sample data.

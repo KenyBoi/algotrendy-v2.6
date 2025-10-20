@@ -217,6 +217,7 @@ devtools/analysis/*.sarif
 # Keep Important Example Files
 # ============================================================================
 !.env.example
+!.env.production.template
 !appsettings.json.example
 !docker-compose.example.yml
 trees/

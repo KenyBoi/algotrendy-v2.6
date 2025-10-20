@@ -11,6 +11,37 @@
 
 ---
 
+## 🚨 CRITICAL DEVELOPMENT POLICY: REAL DATA ONLY
+
+**ABSOLUTE REQUIREMENT FOR ALL DEVELOPERS & AI ASSISTANTS:**
+
+This is a **FINANCIAL TRADING PLATFORM** handling real money. All market data **MUST** be from legitimate sources.
+
+### ❌ NEVER ALLOWED:
+- Sample/mock/fake stock ticker symbols (e.g., "SAMPLE", "TEST", "DEMO", "MOCK", "FAKE")
+- Generated/hardcoded stock prices
+- Fabricated trading volumes
+- Synthetic market data of any kind
+- Placeholder financial data
+
+### ✅ ONLY ALLOWED:
+- Real ticker symbols from actual exchanges (e.g., AAPL, MSFT, GOOGL, BTC-USD)
+- Market data from legitimate APIs (Alpha Vantage, yfinance, broker APIs)
+- Historical data from verified sources
+- Live data feeds from production systems
+
+### 📋 If Real Data Is Not Available:
+1. **ASK FIRST** - Never assume it's okay to use fake data
+2. Use explicit null/empty states in UI ("No data available")
+3. Request proper API credentials or data source configuration
+4. Document the data requirement in issues/tickets
+
+**Violation of this policy indicates a fundamental misunderstanding of financial systems and poses serious risk to the platform's integrity.**
+
+See `.clauderc` for AI assistant-specific instructions.
+
+---
+
 ## 🎉 MAJOR ACHIEVEMENT: FREE Tier Data Infrastructure
 
 **Implementation Date:** October 19, 2025

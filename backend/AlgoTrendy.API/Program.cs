@@ -234,12 +234,28 @@ builder.Services.Configure<AlgoTrendy.TradingEngine.Brokers.InteractiveBrokersOp
     options.UsePaperTrading = builder.Configuration.GetValue<bool>("IBKR_USE_PAPER", true);
 });
 
+// Configure Kraken broker options (DISABLED - WIP)
+// builder.Services.Configure<AlgoTrendy.TradingEngine.Brokers.KrakenOptions>(options =>
+// {
+//     options.ApiKey = builder.Configuration["Kraken__ApiKey"] ?? Environment.GetEnvironmentVariable("KRAKEN_API_KEY") ?? "";
+//     options.ApiSecret = builder.Configuration["Kraken__ApiSecret"] ?? Environment.GetEnvironmentVariable("KRAKEN_API_SECRET") ?? "";
+// });
+
+// Configure Coinbase broker options (DISABLED - WIP)
+// builder.Services.Configure<AlgoTrendy.TradingEngine.Brokers.CoinbaseOptions>(options =>
+// {
+//     options.ApiKey = builder.Configuration["Coinbase__ApiKey"] ?? Environment.GetEnvironmentVariable("COINBASE_API_KEY") ?? "";
+//     options.ApiSecret = builder.Configuration["Coinbase__ApiSecret"] ?? Environment.GetEnvironmentVariable("COINBASE_API_SECRET") ?? "";
+// });
+
 // Register all brokers as named services
 builder.Services.AddScoped<AlgoTrendy.TradingEngine.Brokers.BinanceBroker>();
 builder.Services.AddScoped<AlgoTrendy.TradingEngine.Brokers.BybitBroker>();
 builder.Services.AddScoped<AlgoTrendy.TradingEngine.Brokers.TradeStationBroker>();
 builder.Services.AddScoped<AlgoTrendy.TradingEngine.Brokers.NinjaTraderBroker>();
 builder.Services.AddScoped<AlgoTrendy.TradingEngine.Brokers.InteractiveBrokersBroker>();
+// builder.Services.AddScoped<AlgoTrendy.TradingEngine.Brokers.KrakenBroker>(); // DISABLED - WIP
+// builder.Services.AddScoped<AlgoTrendy.TradingEngine.Brokers.CoinbaseBroker>(); // DISABLED - WIP
 
 // Register default broker (can be configured via environment variable)
 builder.Services.AddScoped<IBroker>(sp =>
@@ -253,6 +269,8 @@ builder.Services.AddScoped<IBroker>(sp =>
         "tradestation" => sp.GetRequiredService<AlgoTrendy.TradingEngine.Brokers.TradeStationBroker>(),
         "ninjatrader" => sp.GetRequiredService<AlgoTrendy.TradingEngine.Brokers.NinjaTraderBroker>(),
         "interactivebrokers" or "ibkr" => sp.GetRequiredService<AlgoTrendy.TradingEngine.Brokers.InteractiveBrokersBroker>(),
+        // "kraken" => sp.GetRequiredService<AlgoTrendy.TradingEngine.Brokers.KrakenBroker>(), // DISABLED - WIP
+        // "coinbase" => sp.GetRequiredService<AlgoTrendy.TradingEngine.Brokers.CoinbaseBroker>(), // DISABLED - WIP
         _ => sp.GetRequiredService<AlgoTrendy.TradingEngine.Brokers.BybitBroker>() // Default to Bybit
     };
 });
@@ -266,11 +284,29 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowFrontend", policy =>
     {
-        policy.WithOrigins(
-                "http://localhost:3000",  // Next.js dev server
-                "http://localhost:5000",  // API dev server
-                "http://216.238.90.131:3000"  // Production frontend
-            )
+        // Get additional allowed origins from configuration
+        var configuredOrigins = builder.Configuration["AllowedOrigins"]
+            ?.Split(',', StringSplitOptions.RemoveEmptyEntries)
+            ?? Array.Empty<string>();
+
+        var allowedOrigins = new List<string>
+        {
+            "http://localhost:3000",  // Next.js dev server
+            "http://localhost:5000",  // API dev server
+            "http://localhost:5298",  // .NET API dev server
+            "https://localhost:7228", // .NET API dev server HTTPS
+            "http://216.238.90.131:3000",  // Legacy production frontend
+            // Production domains
+            "https://algotrendy.com",
+            "https://www.algotrendy.com",
+            "https://app.algotrendy.com",
+            "https://api.algotrendy.com"
+        };
+
+        // Add any configured origins
+        allowedOrigins.AddRange(configuredOrigins);
+
+        policy.WithOrigins(allowedOrigins.ToArray())
             .AllowAnyMethod()
             .AllowAnyHeader()
             .AllowCredentials();

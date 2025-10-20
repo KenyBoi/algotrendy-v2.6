@@ -1,0 +1,665 @@
+{
+  "apiVersion": "2.6",
+  "title": "AlgoTrendy Frontend-Backend Interface",
+  "description": "Complete library of all frontend-backend interface points including API endpoints, WebSocket events, and data models",
+  "baseUrls": {
+    "development": "http://localhost:5298/api",
+    "production": "https://api.algotrendy.com/api"
+  },
+  "websocket": {
+    "development": "http://localhost:5298/hubs/marketdata",
+    "production": "https://api.algotrendy.com/hubs/marketdata"
+  },
+  "endpoints": [
+    {
+      "controller": "MarketData",
+      "baseRoute": "/api/v1/marketdata",
+      "endpoints": [
+        {
+          "name": "Get Market Data by Symbol",
+          "route": "GET /api/v1/marketdata/{symbol}",
+          "description": "Get OHLCV market data for a specific symbol within a time range",
+          "type": "request/response",
+          "parameters": {
+            "path": [
+              { "name": "symbol", "type": "string", "required": true }
+            ],
+            "query": [
+              { "name": "startTime", "type": "DateTime", "required": true },
+              { "name": "endTime", "type": "DateTime", "required": true }
+            ]
+          },
+          "response": { "type": "MarketData[]", "statusCode": 200 }
+        },
+        {
+          "name": "Get Latest Market Data",
+          "route": "GET /api/v1/marketdata/{symbol}/latest",
+          "description": "Get the most recent market data for a symbol",
+          "type": "request/response",
+          "parameters": {
+            "path": [
+              { "name": "symbol", "type": "string", "required": true }
+            ]
+          },
+          "response": { "type": "MarketData", "statusCode": 200 }
+        },
+        {
+          "name": "Get Latest Market Data (Batch)",
+          "route": "GET /api/v1/marketdata/latest",
+          "description": "Get latest market data for multiple symbols at once",
+          "type": "request/response",
+          "parameters": {
+            "query": [
+              { "name": "symbols", "type": "string", "required": true, "description": "Comma-separated list" }
+            ]
+          },
+          "response": { "type": "Record<string, MarketData>", "statusCode": 200 }
+        },
+        {
+          "name": "Get Aggregated Market Data",
+          "route": "GET /api/v1/marketdata/{symbol}/aggregated",
+          "description": "Get aggregated candles (hourly, daily, weekly)",
+          "type": "request/response",
+          "parameters": {
+            "path": [
+              { "name": "symbol", "type": "string", "required": true }
+            ],
+            "query": [
+              { "name": "interval", "type": "string", "required": true, "enum": ["1h", "1d", "1w"] },
+              { "name": "startTime", "type": "DateTime", "required": true },
+              { "name": "endTime", "type": "DateTime", "required": true }
+            ]
+          },
+          "response": { "type": "MarketData[]", "statusCode": 200 }
+        },
+        {
+          "name": "Insert Market Data",
+          "route": "POST /api/v1/marketdata",
+          "description": "Insert a single market data record (admin only)",
+          "type": "request/response",
+          "requestBody": { "type": "MarketData", "required": true },
+          "response": { "statusCode": 201 }
+        },
+        {
+          "name": "Insert Market Data (Batch)",
+          "route": "POST /api/v1/marketdata/batch",
+          "description": "Insert multiple market data records at once",
+          "type": "request/response",
+          "requestBody": { "type": "MarketData[]", "required": true },
+          "response": { "type": "number", "statusCode": 201, "description": "Count of records inserted" }
+        },
+        {
+          "name": "Get Options Expirations",
+          "route": "GET /api/v1/marketdata/stocks/{symbol}/options/expirations",
+          "description": "Get available option expiration dates for a stock",
+          "type": "request/response",
+          "parameters": {
+            "path": [
+              { "name": "symbol", "type": "string", "required": true }
+            ]
+          },
+          "response": { "type": "string[]", "statusCode": 200, "description": "Dates in YYYY-MM-DD format" }
+        },
+        {
+          "name": "Get Options Chain",
+          "route": "GET /api/v1/marketdata/stocks/{symbol}/options/chain",
+          "description": "Get options chain (calls and puts) for a stock and expiration",
+          "type": "request/response",
+          "parameters": {
+            "path": [
+              { "name": "symbol", "type": "string", "required": true }
+            ],
+            "query": [
+              { "name": "expiration", "type": "string", "required": true, "description": "YYYY-MM-DD format" }
+            ]
+          },
+          "response": { "type": "object", "statusCode": 200 }
+        },
+        {
+          "name": "Get Open Interest",
+          "route": "GET /api/v1/marketdata/futures/{symbol}/openinterest",
+          "description": "Get current open interest for a futures contract",
+          "type": "request/response",
+          "parameters": {
+            "path": [
+              { "name": "symbol", "type": "string", "required": true }
+            ]
+          },
+          "response": { "type": "decimal", "statusCode": 200 }
+        },
+        {
+          "name": "Get Funding Rate",
+          "route": "GET /api/v1/marketdata/futures/{symbol}/fundingrate",
+          "description": "Get current funding rate for perpetual futures",
+          "type": "request/response",
+          "parameters": {
+            "path": [
+              { "name": "symbol", "type": "string", "required": true }
+            ]
+          },
+          "response": { "type": "decimal", "statusCode": 200 }
+        },
+        {
+          "name": "Get Channel Status",
+          "route": "GET /api/v1/marketdata/channels/status",
+          "description": "Get status of all market data channels",
+          "type": "request/response",
+          "response": { "type": "ChannelStatus", "statusCode": 200 }
+        }
+      ]
+    },
+    {
+      "controller": "Trading",
+      "baseRoute": "/api/trading",
+      "endpoints": [
+        {
+          "name": "Place Order",
+          "route": "POST /api/trading/orders",
+          "description": "Submit a new trading order",
+          "type": "request/response",
+          "requestBody": { "type": "OrderRequest", "required": true },
+          "response": { "type": "Order", "statusCode": 200 }
+        },
+        {
+          "name": "Cancel Order",
+          "route": "DELETE /api/trading/orders/{orderId}",
+          "description": "Cancel an active order",
+          "type": "request/response",
+          "parameters": {
+            "path": [
+              { "name": "orderId", "type": "string", "required": true }
+            ]
+          },
+          "response": { "type": "Order", "statusCode": 200 }
+        },
+        {
+          "name": "Get Order Status",
+          "route": "GET /api/trading/orders/{orderId}",
+          "description": "Get current status of a specific order",
+          "type": "request/response",
+          "parameters": {
+            "path": [
+              { "name": "orderId", "type": "string", "required": true }
+            ]
+          },
+          "response": { "type": "Order", "statusCode": 200 }
+        },
+        {
+          "name": "Validate Order",
+          "route": "POST /api/trading/orders/validate",
+          "description": "Validate an order before submission (no actual order placed)",
+          "type": "request/response",
+          "requestBody": { "type": "OrderRequest", "required": true },
+          "response": { "type": "ValidationResult", "statusCode": 200 }
+        },
+        {
+          "name": "Get Balance",
+          "route": "GET /api/trading/balance/{exchange}/{currency}",
+          "description": "Get account balance for a specific currency on an exchange",
+          "type": "request/response",
+          "parameters": {
+            "path": [
+              { "name": "exchange", "type": "string", "required": true },
+              { "name": "currency", "type": "string", "required": true }
+            ]
+          },
+          "response": { "type": "BalanceResponse", "statusCode": 200 }
+        }
+      ]
+    },
+    {
+      "controller": "Orders",
+      "baseRoute": "/api/orders",
+      "endpoints": [
+        {
+          "name": "Get All Orders",
+          "route": "GET /api/orders",
+          "description": "Retrieve all orders",
+          "type": "request/response",
+          "response": { "type": "Order[]", "statusCode": 200 }
+        }
+      ]
+    },
+    {
+      "controller": "Portfolio",
+      "baseRoute": "/api/portfolio",
+      "endpoints": [
+        {
+          "name": "Get Debt Summary",
+          "route": "GET /api/portfolio/debt-summary",
+          "description": "Get comprehensive debt and margin summary",
+          "type": "request/response",
+          "response": { "type": "DebtSummary", "statusCode": 200 }
+        },
+        {
+          "name": "Get Leverage Info",
+          "route": "GET /api/portfolio/leverage/{symbol}",
+          "description": "Get leverage information for a specific symbol",
+          "type": "request/response",
+          "parameters": {
+            "path": [
+              { "name": "symbol", "type": "string", "required": true }
+            ]
+          },
+          "response": { "type": "LeverageInfo", "statusCode": 200 }
+        },
+        {
+          "name": "Set Leverage",
+          "route": "PUT /api/portfolio/leverage",
+          "description": "Set leverage for a trading symbol",
+          "type": "request/response",
+          "requestBody": { "type": "SetLeverageRequest", "required": true },
+          "response": { "type": "LeverageInfo", "statusCode": 200 }
+        },
+        {
+          "name": "Get Margin Health",
+          "route": "GET /api/portfolio/margin-health",
+          "description": "Get account-wide margin health ratio",
+          "type": "request/response",
+          "response": { "type": "MarginHealthResponse", "statusCode": 200 }
+        },
+        {
+          "name": "Get Leverage Exposure",
+          "route": "GET /api/portfolio/leverage-exposure",
+          "description": "Get total leverage exposure across all positions",
+          "type": "request/response",
+          "response": { "type": "LeverageExposureResponse", "statusCode": 200 }
+        },
+        {
+          "name": "Get Liquidation Risk Positions",
+          "route": "GET /api/portfolio/liquidation-risk-positions",
+          "description": "Get all positions at risk of liquidation",
+          "type": "request/response",
+          "response": { "type": "Position[]", "statusCode": 200 }
+        },
+        {
+          "name": "Validate Leverage",
+          "route": "POST /api/portfolio/validate-leverage",
+          "description": "Validate if a leverage setting is allowed",
+          "type": "request/response",
+          "requestBody": { "type": "ValidateLeverageRequest", "required": true },
+          "response": { "type": "LeverageValidationResponse", "statusCode": 200 }
+        },
+        {
+          "name": "Get Margin Configuration",
+          "route": "GET /api/portfolio/margin-configuration",
+          "description": "Get broker's margin configuration limits",
+          "type": "request/response",
+          "response": { "type": "MarginConfiguration", "statusCode": 200 }
+        },
+        {
+          "name": "Close Position",
+          "route": "DELETE /api/portfolio/positions/{positionId}",
+          "description": "Close a leveraged position and settle debt",
+          "type": "request/response",
+          "parameters": {
+            "path": [
+              { "name": "positionId", "type": "string", "required": true }
+            ]
+          },
+          "requestBody": { "type": "ClosePositionRequest", "required": true },
+          "response": { "type": "ClosePositionResponse", "statusCode": 200 }
+        }
+      ]
+    },
+    {
+      "controller": "Backtesting",
+      "baseRoute": "/api/v1/backtesting",
+      "endpoints": [
+        {
+          "name": "Get Configuration Options",
+          "route": "GET /api/v1/backtesting/config",
+          "description": "Get available configuration options for backtesting UI",
+          "type": "request/response",
+          "response": { "type": "BacktestConfigOptions", "statusCode": 200 }
+        },
+        {
+          "name": "Run Backtest",
+          "route": "POST /api/v1/backtesting/run",
+          "description": "Execute a backtest with the given configuration",
+          "type": "request/response",
+          "requestBody": { "type": "BacktestConfig", "required": true },
+          "response": { "type": "BacktestResults", "statusCode": 200 }
+        },
+        {
+          "name": "Get Backtest Results",
+          "route": "GET /api/v1/backtesting/results/{id}",
+          "description": "Get results of a previous backtest",
+          "type": "request/response",
+          "parameters": {
+            "path": [
+              { "name": "id", "type": "string", "required": true }
+            ]
+          },
+          "response": { "type": "BacktestResults", "statusCode": 200 }
+        },
+        {
+          "name": "Get Backtest History",
+          "route": "GET /api/v1/backtesting/history",
+          "description": "Get list of recent backtests",
+          "type": "request/response",
+          "parameters": {
+            "query": [
+              { "name": "limit", "type": "number", "required": false, "default": 50, "max": 500 }
+            ]
+          },
+          "response": { "type": "BacktestHistoryItem[]", "statusCode": 200 }
+        },
+        {
+          "name": "Get Available Indicators",
+          "route": "GET /api/v1/backtesting/indicators",
+          "description": "Get list of available technical indicators",
+          "type": "request/response",
+          "response": { "type": "Record<string, Record<string, any>>", "statusCode": 200 }
+        },
+        {
+          "name": "Delete Backtest",
+          "route": "DELETE /api/v1/backtesting/{id}",
+          "description": "Delete a backtest by ID",
+          "type": "request/response",
+          "parameters": {
+            "path": [
+              { "name": "id", "type": "string", "required": true }
+            ]
+          },
+          "response": { "statusCode": 204 }
+        }
+      ]
+    },
+    {
+      "controller": "CryptoData",
+      "baseRoute": "/api/v1/cryptodata",
+      "endpoints": [
+        {
+          "name": "Get Crypto Candles",
+          "route": "GET /api/v1/cryptodata/candles",
+          "description": "Get cryptocurrency OHLCV candlestick data",
+          "type": "request/response",
+          "parameters": {
+            "query": [
+              { "name": "symbol", "type": "string", "required": true, "example": "BINANCE:BTCUSDT" },
+              { "name": "resolution", "type": "string", "required": false, "default": "1", "enum": ["1", "5", "15", "30", "60", "D", "W", "M"] },
+              { "name": "from", "type": "number", "required": false, "description": "Unix timestamp" },
+              { "name": "to", "type": "number", "required": false, "description": "Unix timestamp" }
+            ]
+          },
+          "response": { "type": "CryptoCandle[]", "statusCode": 200 }
+        },
+        {
+          "name": "Get Crypto Quote",
+          "route": "GET /api/v1/cryptodata/quote",
+          "description": "Get latest price for a cryptocurrency",
+          "type": "request/response",
+          "parameters": {
+            "query": [
+              { "name": "symbol", "type": "string", "required": true, "example": "BINANCE:BTCUSDT" }
+            ]
+          },
+          "response": { "type": "QuoteResponse", "statusCode": 200 }
+        },
+        {
+          "name": "Get Crypto Exchanges",
+          "route": "GET /api/v1/cryptodata/exchanges",
+          "description": "Get list of supported cryptocurrency exchanges",
+          "type": "request/response",
+          "response": { "type": "CryptoExchange[]", "statusCode": 200 }
+        },
+        {
+          "name": "Get Crypto Symbols",
+          "route": "GET /api/v1/cryptodata/symbols",
+          "description": "Get list of symbols for a specific exchange",
+          "type": "request/response",
+          "parameters": {
+            "query": [
+              { "name": "exchange", "type": "string", "required": true, "example": "binance" }
+            ]
+          },
+          "response": { "type": "CryptoSymbol[]", "statusCode": 200 }
+        },
+        {
+          "name": "Get Crypto Candles (Batch)",
+          "route": "GET /api/v1/cryptodata/candles/batch",
+          "description": "Get candles for multiple symbols (max 10)",
+          "type": "request/response",
+          "parameters": {
+            "query": [
+              { "name": "symbols", "type": "string", "required": true, "description": "Comma-separated, max 10" },
+              { "name": "resolution", "type": "string", "required": false, "default": "1" },
+              { "name": "from", "type": "number", "required": false },
+              { "name": "to", "type": "number", "required": false }
+            ]
+          },
+          "response": { "type": "Record<string, CryptoCandle[]>", "statusCode": 200 }
+        }
+      ]
+    }
+  ],
+  "websocket": {
+    "hub": "/hubs/marketdata",
+    "protocol": "SignalR",
+    "clientToServer": [
+      {
+        "method": "SubscribeToSymbols",
+        "description": "Subscribe to real-time market data for specific symbols",
+        "parameters": [
+          { "name": "symbols", "type": "string", "description": "Comma-separated list" }
+        ],
+        "serverEvent": "Subscribed"
+      },
+      {
+        "method": "UnsubscribeFromSymbols",
+        "description": "Unsubscribe from market data updates",
+        "parameters": [
+          { "name": "symbols", "type": "string", "description": "Comma-separated list" }
+        ],
+        "serverEvent": "Unsubscribed"
+      },
+      {
+        "method": "Ping",
+        "description": "Test connection (keepalive)",
+        "parameters": [],
+        "serverEvent": "Pong"
+      }
+    ],
+    "serverToClient": [
+      {
+        "event": "ReceiveMarketData",
+        "description": "Real-time market data updates",
+        "type": "real-time",
+        "dataType": "MarketData"
+      },
+      {
+        "event": "Subscribed",
+        "description": "Confirmation of successful subscription",
+        "dataType": "string[]"
+      },
+      {
+        "event": "Unsubscribed",
+        "description": "Confirmation of successful unsubscription",
+        "dataType": "string[]"
+      },
+      {
+        "event": "Pong",
+        "description": "Response to ping (connection test)",
+        "dataType": "DateTime"
+      }
+    ]
+  },
+  "dataModels": {
+    "MarketData": {
+      "description": "OHLCV market data for a trading symbol",
+      "fields": [
+        { "name": "symbol", "type": "string", "required": true, "description": "Trading symbol (e.g., BTCUSDT)" },
+        { "name": "timestamp", "type": "DateTime", "required": true, "description": "Candle timestamp (UTC)" },
+        { "name": "open", "type": "decimal", "required": true, "description": "Opening price" },
+        { "name": "high", "type": "decimal", "required": true, "description": "Highest price" },
+        { "name": "low", "type": "decimal", "required": true, "description": "Lowest price" },
+        { "name": "close", "type": "decimal", "required": true, "description": "Closing price" },
+        { "name": "volume", "type": "decimal", "required": true, "description": "Volume in base currency" },
+        { "name": "quoteVolume", "type": "decimal", "required": false, "description": "Volume in quote currency" },
+        { "name": "tradesCount", "type": "long", "required": false, "description": "Number of trades" },
+        { "name": "source", "type": "string", "required": true, "description": "Data source (e.g., binance)" },
+        { "name": "assetType", "type": "AssetType", "required": true, "description": "Asset classification" },
+        { "name": "metadata", "type": "string", "required": false, "description": "Additional metadata (JSON)" },
+        { "name": "changePercent", "type": "decimal", "computed": true, "description": "Price change percentage" },
+        { "name": "range", "type": "decimal", "computed": true, "description": "High - Low" },
+        { "name": "isBullish", "type": "boolean", "computed": true, "description": "Close > Open" },
+        { "name": "isBearish", "type": "boolean", "computed": true, "description": "Close < Open" }
+      ]
+    },
+    "Order": {
+      "description": "Trading order in the system",
+      "fields": [
+        { "name": "orderId", "type": "string", "required": true, "description": "Unique order ID (UUID)" },
+        { "name": "clientOrderId", "type": "string", "required": true, "description": "Client idempotency key" },
+        { "name": "exchangeOrderId", "type": "string", "required": false, "description": "Exchange-provided ID" },
+        { "name": "symbol", "type": "string", "required": true, "description": "Trading symbol" },
+        { "name": "exchange", "type": "string", "required": true, "description": "Exchange name" },
+        { "name": "side", "type": "OrderSide", "required": true, "description": "Buy or Sell" },
+        { "name": "type", "type": "OrderType", "required": true, "description": "Order type" },
+        { "name": "status", "type": "OrderStatus", "required": true, "description": "Current status" },
+        { "name": "quantity", "type": "decimal", "required": true, "description": "Order quantity" },
+        { "name": "filledQuantity", "type": "decimal", "required": true, "description": "Filled quantity" },
+        { "name": "price", "type": "decimal", "required": false, "description": "Limit price" },
+        { "name": "stopPrice", "type": "decimal", "required": false, "description": "Stop price" },
+        { "name": "averageFillPrice", "type": "decimal", "required": false, "description": "Average execution price" },
+        { "name": "strategyId", "type": "string", "required": false, "description": "Strategy ID" },
+        { "name": "createdAt", "type": "DateTime", "required": true, "description": "Creation timestamp (UTC)" },
+        { "name": "updatedAt", "type": "DateTime", "required": true, "description": "Last update timestamp" },
+        { "name": "submittedAt", "type": "DateTime", "required": false, "description": "Submission timestamp" },
+        { "name": "closedAt", "type": "DateTime", "required": false, "description": "Completion timestamp" },
+        { "name": "metadata", "type": "string", "required": false, "description": "Additional metadata (JSON)" },
+        { "name": "remainingQuantity", "type": "decimal", "computed": true, "description": "Unfilled quantity" },
+        { "name": "isTerminal", "type": "boolean", "computed": true, "description": "Cannot be modified" },
+        { "name": "isActive", "type": "boolean", "computed": true, "description": "Active on exchange" }
+      ]
+    },
+    "OrderRequest": {
+      "description": "Request to place an order",
+      "fields": [
+        { "name": "clientOrderId", "type": "string", "required": false, "description": "Optional idempotency key (auto-generated if not provided)" },
+        { "name": "symbol", "type": "string", "required": true, "description": "Trading symbol" },
+        { "name": "exchange", "type": "string", "required": true, "description": "Exchange name" },
+        { "name": "side", "type": "OrderSide", "required": true, "description": "Buy or Sell" },
+        { "name": "type", "type": "OrderType", "required": true, "description": "Order type" },
+        { "name": "quantity", "type": "decimal", "required": true, "description": "Quantity" },
+        { "name": "price", "type": "decimal", "required": false, "description": "Limit price (required for Limit orders)" },
+        { "name": "stopPrice", "type": "decimal", "required": false, "description": "Stop price (required for Stop orders)" },
+        { "name": "strategyId", "type": "string", "required": false, "description": "Optional strategy ID" },
+        { "name": "metadata", "type": "string", "required": false, "description": "Optional metadata (JSON)" }
+      ]
+    },
+    "Position": {
+      "description": "Active trading position",
+      "fields": [
+        { "name": "positionId", "type": "string", "required": true },
+        { "name": "symbol", "type": "string", "required": true },
+        { "name": "exchange", "type": "string", "required": true },
+        { "name": "side", "type": "OrderSide", "required": true },
+        { "name": "quantity", "type": "decimal", "required": true },
+        { "name": "entryPrice", "type": "decimal", "required": true },
+        { "name": "currentPrice", "type": "decimal", "required": true },
+        { "name": "stopLoss", "type": "decimal", "required": false },
+        { "name": "takeProfit", "type": "decimal", "required": false },
+        { "name": "strategyId", "type": "string", "required": false },
+        { "name": "openOrderId", "type": "string", "required": false },
+        { "name": "openedAt", "type": "DateTime", "required": true },
+        { "name": "updatedAt", "type": "DateTime", "required": true },
+        { "name": "leverage", "type": "decimal", "required": true, "default": 1.0 },
+        { "name": "marginType", "type": "MarginType", "required": false },
+        { "name": "collateralAmount", "type": "decimal", "required": false },
+        { "name": "borrowedAmount", "type": "decimal", "required": false },
+        { "name": "interestRate", "type": "decimal", "required": false },
+        { "name": "liquidationPrice", "type": "decimal", "required": false },
+        { "name": "marginHealthRatio", "type": "decimal", "required": false },
+        { "name": "unrealizedPnL", "type": "decimal", "computed": true },
+        { "name": "unrealizedPnLPercent", "type": "decimal", "computed": true },
+        { "name": "entryValue", "type": "decimal", "computed": true },
+        { "name": "currentValue", "type": "decimal", "computed": true },
+        { "name": "isStopLossHit", "type": "boolean", "computed": true },
+        { "name": "isTakeProfitHit", "type": "boolean", "computed": true },
+        { "name": "isMarginPosition", "type": "boolean", "computed": true },
+        { "name": "effectivePositionSize", "type": "decimal", "computed": true },
+        { "name": "usedMargin", "type": "decimal", "computed": true },
+        { "name": "isInLiquidationRisk", "type": "boolean", "computed": true }
+      ]
+    }
+  },
+  "enums": {
+    "OrderSide": {
+      "values": ["Buy", "Sell"],
+      "descriptions": {
+        "Buy": "Buy order - going long",
+        "Sell": "Sell order - going short or closing long"
+      }
+    },
+    "OrderType": {
+      "values": ["Market", "Limit", "StopLoss", "StopLimit", "TakeProfit"],
+      "descriptions": {
+        "Market": "Executes at current market price",
+        "Limit": "Executes at specified price or better",
+        "StopLoss": "Triggers when price reaches stop",
+        "StopLimit": "Becomes limit order at stop price",
+        "TakeProfit": "Closes position at profit target"
+      }
+    },
+    "OrderStatus": {
+      "values": ["Pending", "Open", "PartiallyFilled", "Filled", "Cancelled", "Rejected", "Expired"],
+      "descriptions": {
+        "Pending": "Created but not submitted",
+        "Open": "Active on exchange",
+        "PartiallyFilled": "Partially filled",
+        "Filled": "Completely filled",
+        "Cancelled": "Cancelled",
+        "Rejected": "Rejected by exchange",
+        "Expired": "Expired (time-in-force)"
+      }
+    },
+    "AssetType": {
+      "values": ["Cryptocurrency", "Stock", "Futures", "Options", "ETF", "Forex"],
+      "numericValues": {
+        "Cryptocurrency": 0,
+        "Stock": 1,
+        "Futures": 2,
+        "Options": 3,
+        "ETF": 4,
+        "Forex": 5
+      }
+    },
+    "MarginType": {
+      "values": ["Cross", "Isolated"],
+      "descriptions": {
+        "Cross": "Entire account as collateral",
+        "Isolated": "Specific amount per position"
+      }
+    }
+  },
+  "rateLimits": {
+    "marketData": { "requestsPerMinute": 1200, "scope": "per IP" },
+    "trading": { "requestsPerMinute": 60, "scope": "per IP" },
+    "batch": { "requestsPerMinute": 100, "scope": "per IP" },
+    "general": { "requestsPerMinute": 100, "scope": "per IP" }
+  },
+  "httpStatusCodes": {
+    "200": "Success",
+    "201": "Created",
+    "204": "No Content",
+    "400": "Bad Request (validation error)",
+    "404": "Not Found",
+    "429": "Too Many Requests (rate limit exceeded)",
+    "500": "Internal Server Error",
+    "503": "Service Unavailable"
+  },
+  "corsOrigins": [
+    "http://localhost:3000",
+    "http://localhost:5000",
+    "http://localhost:5298",
+    "https://localhost:7228",
+    "https://algotrendy.com",
+    "https://www.algotrendy.com",
+    "https://app.algotrendy.com",
+    "https://api.algotrendy.com"
+  ],
+  "lastUpdated": "2025-10-20",
+  "version": "2.6"
+}

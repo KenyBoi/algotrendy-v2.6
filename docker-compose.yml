@@ -190,6 +190,38 @@ services:
         max-file: "3"
 
   # ==========================================================================
+  # Frontend - React + Vite Trading Interface
+  # ==========================================================================
+  frontend:
+    build:
+      context: ./docs/design/algotrendy_browser_figma
+      dockerfile: Dockerfile
+    image: algotrendy-frontend:v1.0
+    container_name: algotrendy-frontend
+    restart: unless-stopped
+    depends_on:
+      - api
+    networks:
+      algotrendy-network:
+        ipv4_address: 172.20.0.25
+    ports:
+      - "3000:80"
+    environment:
+      - VITE_API_BASE_URL=http://api:5002/api
+      - VITE_WS_URL=http://api:5002/hubs/market
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # ==========================================================================
   # Nginx - Reverse Proxy with SSL Termination
   # ==========================================================================
   nginx:
@@ -198,6 +230,7 @@ services:
     restart: unless-stopped
     depends_on:
       - api
+      - frontend
     networks:
       algotrendy-network:
         ipv4_address: 172.20.0.30

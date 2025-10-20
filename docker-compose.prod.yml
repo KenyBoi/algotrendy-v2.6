@@ -131,7 +131,7 @@ services:
       - Finnhub__RateLimitPerMinute=60
 
       # CORS Settings (Restrict to production domain)
-      - AllowedOrigins=${ALLOWED_ORIGINS:-https://yourdomain.com}
+      - AllowedOrigins=${ALLOWED_ORIGINS:-https://algotrendy.com,https://www.algotrendy.com,https://app.algotrendy.com}
 
       # Market Data Settings
       - MarketData__FetchIntervalSeconds=${MARKET_DATA_FETCH_INTERVAL:-60}
@@ -216,22 +216,22 @@ services:
       - /tmp
 
   # ==========================================================================
-  # Certbot - SSL Certificate Renewal (Optional, for Let's Encrypt)
+  # Certbot - SSL Certificate Renewal (For Let's Encrypt)
   # ==========================================================================
-  # Uncomment this service if using Let's Encrypt certificates
-  # certbot:
-  #   image: certbot/certbot:latest
-  #   container_name: algotrendy-certbot
-  #   volumes:
-  #     - ./certbot/conf:/etc/letsencrypt
-  #     - ./certbot/www:/var/www/certbot
-  #   entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew; sleep 12h & wait $${!}; done;'"
-  #   restart: unless-stopped
-  #   logging:
-  #     driver: "json-file"
-  #     options:
-  #       max-size: "10m"
-  #       max-file: "3"
+  # Automatically renews SSL certificates every 12 hours
+  certbot:
+    image: certbot/certbot:latest
+    container_name: algotrendy-certbot
+    volumes:
+      - ./certbot/conf:/etc/letsencrypt
+      - ./certbot/www:/var/www/certbot
+    entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew; sleep 12h & wait $${!}; done;'"
+    restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
 
 # ============================================================================
 # Production Deployment Notes:

@@ -34,7 +34,10 @@ public class StrategyFactory
         _strategies = new Dictionary<string, Func<IStrategy>>(StringComparer.OrdinalIgnoreCase)
         {
             ["momentum"] = CreateMomentumStrategy,
-            ["rsi"] = CreateRSIStrategy
+            ["rsi"] = CreateRSIStrategy,
+            ["macd"] = CreateMACDStrategy,
+            ["mfi"] = CreateMFIStrategy,
+            ["vwap"] = CreateVWAPStrategy
         };
     }
 
@@ -124,6 +127,51 @@ public class StrategyFactory
             config,
             _indicatorService,
             _loggerFactory.CreateLogger<RSIStrategy>());
+    }
+
+    private IStrategy CreateMACDStrategy()
+    {
+        var config = _configuration
+            .GetSection("TradingStrategies:MACD")
+            .Get<MACDStrategyConfig>() ?? new MACDStrategyConfig();
+
+        _logger.LogDebug("Creating MACD strategy with config: FastPeriod={FastPeriod}, SlowPeriod={SlowPeriod}, SignalPeriod={SignalPeriod}",
+            config.FastPeriod, config.SlowPeriod, config.SignalPeriod);
+
+        return new MACDStrategy(
+            config,
+            _indicatorService,
+            _loggerFactory.CreateLogger<MACDStrategy>());
+    }
+
+    private IStrategy CreateMFIStrategy()
+    {
+        var config = _configuration
+            .GetSection("TradingStrategies:MFI")
+            .Get<MFIStrategyConfig>() ?? new MFIStrategyConfig();
+
+        _logger.LogDebug("Creating MFI strategy with config: Period={Period}, OversoldThreshold={OversoldThreshold}, OverboughtThreshold={OverboughtThreshold}",
+            config.Period, config.OversoldThreshold, config.OverboughtThreshold);
+
+        return new MFIStrategy(
+            config,
+            _indicatorService,
+            _loggerFactory.CreateLogger<MFIStrategy>());
+    }
+
+    private IStrategy CreateVWAPStrategy()
+    {
+        var config = _configuration
+            .GetSection("TradingStrategies:VWAP")
+            .Get<VWAPStrategyConfig>() ?? new VWAPStrategyConfig();
+
+        _logger.LogDebug("Creating VWAP strategy with config: Period={Period}, BuyDeviationThreshold={BuyDeviationThreshold}, SellDeviationThreshold={SellDeviationThreshold}",
+            config.Period, config.BuyDeviationThreshold, config.SellDeviationThreshold);
+
+        return new VWAPStrategy(
+            config,
+            _indicatorService,
+            _loggerFactory.CreateLogger<VWAPStrategy>());
     }
 
     #endregion

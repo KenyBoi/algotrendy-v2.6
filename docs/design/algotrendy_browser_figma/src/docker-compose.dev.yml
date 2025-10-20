@@ -1,0 +1,26 @@
+version: '3.8'
+
+# Development docker-compose for frontend only
+# Use this if you want to run frontend in Docker while developing
+
+services:
+  frontend-dev:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    container_name: trading-frontend-dev
+    ports:
+      - "3000:5173"
+    volumes:
+      - .:/app
+      - /app/node_modules
+    environment:
+      - VITE_API_BASE_URL=${VITE_API_BASE_URL:-http://localhost:5000/api}
+      - VITE_WS_URL=${VITE_WS_URL:-ws://localhost:5000/ws}
+    networks:
+      - trading-network
+    command: npm run dev -- --host 0.0.0.0
+
+networks:
+  trading-network:
+    driver: bridge

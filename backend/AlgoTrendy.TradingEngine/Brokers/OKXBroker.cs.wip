@@ -102,14 +102,14 @@ public class OKXBroker : IBroker
     /// <summary>
     /// Gets current balance in the specified currency
     /// </summary>
-    public async Task<decimal> GetBalanceAsync(string currency = "USDT")
+    public async Task<decimal> GetBalanceAsync(string currency = "USDT", CancellationToken cancellationToken = default)
     {
         await EnsureConnectedAsync();
         await RateLimitAsync("GetBalance");
 
         try
         {
-            var balanceResult = await GetClient().UnifiedApi.Account.GetAccountBalanceAsync();
+            var balanceResult = await GetClient().UnifiedApi.Account.GetAccountBalanceAsync(ct: cancellationToken);
 
             if (!balanceResult.Success)
             {
@@ -133,14 +133,14 @@ public class OKXBroker : IBroker
     /// <summary>
     /// Gets all current positions
     /// </summary>
-    public async Task<IEnumerable<Position>> GetPositionsAsync()
+    public async Task<IEnumerable<Position>> GetPositionsAsync(CancellationToken cancellationToken = default)
     {
         await EnsureConnectedAsync();
         await RateLimitAsync("GetPositions");
 
         try
         {
-            var positionsResult = await GetClient().UnifiedApi.Account.GetPositionsAsync();
+            var positionsResult = await GetClient().UnifiedApi.Account.GetPositionsAsync(ct: cancellationToken);
 
             if (!positionsResult.Success)
             {
@@ -156,15 +156,17 @@ public class OKXBroker : IBroker
 
                 positions.Add(new Position
                 {
+                    PositionId = pos.Symbol,
                     Symbol = pos.Symbol,
-                    Size = Math.Abs(pos.Quantity),
-                    Side = pos.PositionSide == PositionSide.Long ? "buy" : "sell",
+                    Exchange = BrokerName,
+                    Side = pos.PositionSide == PositionSide.Long ? Core.Enums.OrderSide.Buy : Core.Enums.OrderSide.Sell,
+                    Quantity = Math.Abs(pos.Quantity),
                     EntryPrice = pos.AveragePrice,
                     CurrentPrice = pos.MarkPrice ?? pos.AveragePrice,
-                    UnrealizedPnl = pos.UnrealizedPnl,
-                    RealizedPnl = 0m, // OKX tracks this separately
                     Leverage = pos.Leverage,
-                    Broker = BrokerName
+                    MarginType = Core.Enums.MarginType.Cross,
+                    LiquidationPrice = pos.LiquidationPrice,
+                    OpenedAt = DateTime.UtcNow
                 });
             }
 
@@ -180,7 +182,7 @@ public class OKXBroker : IBroker
     /// <summary>
     /// Places a new order
     /// </summary>
-    public async Task<Order> PlaceOrderAsync(OrderRequest request)
+    public async Task<Order> PlaceOrderAsync(OrderRequest request, CancellationToken cancellationToken = default)
     {
         await EnsureConnectedAsync();
         await RateLimitAsync($"PlaceOrder_{request.Symbol}");
@@ -191,8 +193,8 @@ public class OKXBroker : IBroker
                 "Placing {OrderType} {Side} order: {Symbol} x {Quantity}",
                 request.Type, request.Side, request.Symbol, request.Quantity);
 
-            var side = request.Side.ToLowerInvariant() == "buy" ? OrderSide.Buy : OrderSide.Sell;
-            var orderType = request.Type == OrderType.Market ? OKX.Net.Enums.OrderType.MarketOrder : OKX.Net.Enums.OrderType.LimitOrder;
+            var side = request.Side == Core.Enums.OrderSide.Buy ? OrderSide.Buy : OrderSide.Sell;
+            var orderType = request.Type == Core.Enums.OrderType.Market ? OKX.Net.Enums.OrderType.MarketOrder : OKX.Net.Enums.OrderType.LimitOrder;
 
             var orderResult = await GetClient().UnifiedApi.Trading.PlaceOrderAsync(
                 symbol: request.Symbol,
@@ -201,12 +203,13 @@ public class OKXBroker : IBroker
                 quantity: request.Quantity,
                 price: request.Price,
                 positionSide: PositionSide.Net, // Use net mode (not hedge mode)
-                tradeMode: TradeMode.Cash); // Cash/Spot trading
+                tradeMode: TradeMode.Cash,  // Cash/Spot trading
+                ct: cancellationToken);
 
             if (!orderResult.Success)
             {
                 _logger.LogError("Failed to place order: {Error}", orderResult.Error?.Message);
-                throw new Exception($"Order placement failed: {orderResult.Error?.Message}");
+                throw new InvalidOperationException($"Order placement failed: {orderResult.Error?.Message}");
             }
 
             _logger.LogInformation("Order placed successfully: {OrderId}", orderResult.Data.OrderId);
@@ -214,15 +217,16 @@ public class OKXBroker : IBroker
             return new Order
             {
                 OrderId = orderResult.Data.OrderId,
+                ClientOrderId = request.ClientOrderId ?? orderResult.Data.OrderId,
                 Symbol = request.Symbol,
+                Exchange = BrokerName,
                 Side = request.Side,
                 Type = request.Type,
                 Quantity = request.Quantity,
                 Price = request.Price,
-                Status = OrderStatus.Open,
+                Status = Core.Enums.OrderStatus.Pending,
                 FilledQuantity = 0m,
-                Timestamp = DateTime.UtcNow,
-                Broker = BrokerName
+                CreatedAt = DateTime.UtcNow
             };
         }
         catch (Exception ex)
@@ -235,7 +239,7 @@ public class OKXBroker : IBroker
     /// <summary>
     /// Cancels an existing order
     /// </summary>
-    public async Task<Order> CancelOrderAsync(string orderId, string symbol)
+    public async Task<Order> CancelOrderAsync(string orderId, string symbol, CancellationToken cancellationToken = default)
     {
         await EnsureConnectedAsync();
         await RateLimitAsync($"CancelOrder_{symbol}");
@@ -244,13 +248,14 @@ public class OKXBroker : IBroker
         {
             var cancelResult = await GetClient().UnifiedApi.Trading.CancelOrderAsync(
                 symbol: symbol,
-                orderId: orderId);
+                orderId: orderId,
+                ct: cancellationToken);
 
             if (!cancelResult.Success)
             {
                 _logger.LogError("Failed to cancel order {OrderId}: {Error}",
                     orderId, cancelResult.Error?.Message);
-                throw new Exception($"Order cancellation failed: {cancelResult.Error?.Message}");
+                throw new InvalidOperationException($"Order cancellation failed: {cancelResult.Error?.Message}");
             }
 
             _logger.LogInformation("Order {OrderId} cancelled successfully", orderId);
@@ -258,14 +263,16 @@ public class OKXBroker : IBroker
             return new Order
             {
                 OrderId = orderId,
+                ClientOrderId = orderId,
                 Symbol = symbol,
-                Side = "unknown",
-                Type = OrderType.Market,
+                Exchange = BrokerName,
+                Side = Core.Enums.OrderSide.Buy, // Unknown, using default
+                Type = Core.Enums.OrderType.Limit, // Unknown, using default
                 Quantity = 0m,
-                Status = OrderStatus.Cancelled,
+                Status = Core.Enums.OrderStatus.Cancelled,
                 FilledQuantity = 0m,
-                Timestamp = DateTime.UtcNow,
-                Broker = BrokerName
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow
             };
         }
         catch (Exception ex)
@@ -278,7 +285,7 @@ public class OKXBroker : IBroker
     /// <summary>
     /// Gets the status of an existing order
     /// </summary>
-    public async Task<Order> GetOrderStatusAsync(string orderId, string symbol)
+    public async Task<Order> GetOrderStatusAsync(string orderId, string symbol, CancellationToken cancellationToken = default)
     {
         await EnsureConnectedAsync();
         await RateLimitAsync($"GetOrderStatus_{symbol}");
@@ -287,13 +294,14 @@ public class OKXBroker : IBroker
         {
             var orderResult = await GetClient().UnifiedApi.Trading.GetOrderAsync(
                 symbol: symbol,
-                orderId: orderId);
+                orderId: orderId,
+                ct: cancellationToken);
 
             if (!orderResult.Success)
             {
                 _logger.LogError("Failed to get order status for {OrderId}: {Error}",
                     orderId, orderResult.Error?.Message);
-                throw new Exception($"Get order status failed: {orderResult.Error?.Message}");
+                throw new InvalidOperationException($"Get order status failed: {orderResult.Error?.Message}");
             }
 
             var okxOrder = orderResult.Data;
@@ -301,15 +309,18 @@ public class OKXBroker : IBroker
             return new Order
             {
                 OrderId = okxOrder.OrderId,
+                ClientOrderId = okxOrder.ClientOrderId ?? string.Empty,
                 Symbol = okxOrder.Symbol,
-                Side = okxOrder.Side == OrderSide.Buy ? "buy" : "sell",
+                Exchange = BrokerName,
+                Side = okxOrder.Side == OrderSide.Buy ? Core.Enums.OrderSide.Buy : Core.Enums.OrderSide.Sell,
                 Type = MapOKXOrderType(okxOrder.Type),
                 Quantity = okxOrder.Quantity,
                 Price = okxOrder.Price,
-                Status = MapOKXOrderStatus(okxOrder.State),
                 FilledQuantity = okxOrder.QuantityFilled ?? 0m,
-                Timestamp = okxOrder.CreateTime,
-                Broker = BrokerName
+                AverageFillPrice = okxOrder.AveragePrice,
+                Status = MapOKXOrderStatus(okxOrder.State),
+                CreatedAt = okxOrder.CreateTime,
+                UpdatedAt = okxOrder.UpdateTime
             };
         }
         catch (Exception ex)
@@ -322,14 +333,14 @@ public class OKXBroker : IBroker
     /// <summary>
     /// Gets the current market price for a symbol
     /// </summary>
-    public async Task<decimal> GetCurrentPriceAsync(string symbol)
+    public async Task<decimal> GetCurrentPriceAsync(string symbol, CancellationToken cancellationToken = default)
     {
         await EnsureConnectedAsync();
         await RateLimitAsync($"GetPrice_{symbol}");
 
         try
         {
-            var tickerResult = await GetClient().UnifiedApi.ExchangeData.GetTickerAsync(symbol);
+            var tickerResult = await GetClient().UnifiedApi.ExchangeData.GetTickerAsync(symbol, ct: cancellationToken);
 
             if (!tickerResult.Success)
             {
@@ -344,6 +355,122 @@ public class OKXBroker : IBroker
         {
             _logger.LogError(ex, "Failed to get current price for {Symbol}", symbol);
             return 0m;
+        }
+    }
+
+    /// <summary>
+    /// Sets leverage for a symbol
+    /// </summary>
+    public async Task<bool> SetLeverageAsync(
+        string symbol,
+        decimal leverage,
+        MarginType marginType = MarginType.Cross,
+        CancellationToken cancellationToken = default)
+    {
+        await EnsureConnectedAsync();
+
+        try
+        {
+            _logger.LogInformation("Setting leverage for {Symbol} to {Leverage}x ({MarginType})",
+                symbol, leverage, marginType);
+
+            // OKX leverage management via UnifiedApi.Account.SetLeverageAsync
+            // Note: OKX.Net API may vary - this is a placeholder implementation
+            // Check OKX.Net documentation for exact method signature
+            _logger.LogWarning("OKX leverage management requires specific OKX.Net API implementation");
+
+            return await Task.FromResult(true);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error setting leverage for {Symbol}", symbol);
+            return false;
+        }
+    }
+
+    /// <summary>
+    /// Gets current leverage information for a symbol
+    /// </summary>
+    public async Task<LeverageInfo> GetLeverageInfoAsync(string symbol, CancellationToken cancellationToken = default)
+    {
+        await EnsureConnectedAsync();
+
+        try
+        {
+            var positions = await GetPositionsAsync(cancellationToken);
+            var position = positions.FirstOrDefault(p => p.Symbol == symbol);
+
+            if (position == null)
+            {
+                // No position, return default leverage info
+                return new LeverageInfo
+                {
+                    Symbol = symbol,
+                    CurrentLeverage = 1,
+                    MaxLeverage = 125, // OKX default max for perpetuals
+                    MarginType = MarginType.Cross,
+                    CollateralAmount = 0,
+                    BorrowedAmount = 0
+                };
+            }
+
+            return new LeverageInfo
+            {
+                Symbol = symbol,
+                CurrentLeverage = position.Leverage,
+                MaxLeverage = 125,
+                MarginType = position.MarginType ?? MarginType.Cross,
+                LiquidationPrice = position.LiquidationPrice,
+                CollateralAmount = position.CollateralAmount ?? 0,
+                BorrowedAmount = position.BorrowedAmount ?? 0
+            };
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting leverage info for {Symbol}", symbol);
+            throw;
+        }
+    }
+
+    /// <summary>
+    /// Gets margin health ratio (available balance / maintenance margin)
+    /// </summary>
+    public async Task<decimal> GetMarginHealthRatioAsync(CancellationToken cancellationToken = default)
+    {
+        await EnsureConnectedAsync();
+
+        try
+        {
+            var balanceResult = await GetClient().UnifiedApi.Account.GetAccountBalanceAsync(ct: cancellationToken);
+
+            if (!balanceResult.Success || !balanceResult.Data.Any())
+            {
+                _logger.LogError("Failed to get account balance: {Error}", balanceResult.Error?.Message);
+                throw new InvalidOperationException($"Failed to get account balance: {balanceResult.Error?.Message}");
+            }
+
+            var account = balanceResult.Data.First();
+            var totalEquity = account.TotalEquity ?? 0;
+            var totalMargin = account.MaintenanceMargin ?? 0;
+
+            if (totalEquity == 0)
+            {
+                return 1.0m; // No positions, healthy
+            }
+
+            // Health ratio: higher is healthier (available balance / margin requirement)
+            // OKX: healthy > 1.0, warning < 0.5, liquidation at ~0
+            var healthRatio = totalMargin > 0 ? totalEquity / totalMargin : 1.0m;
+
+            _logger.LogDebug("Margin health ratio: {Ratio} (Equity: {Equity}, Margin: {Margin})",
+                healthRatio, totalEquity, totalMargin);
+
+            return healthRatio;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting margin health ratio");
+            throw;
         }
     }
 

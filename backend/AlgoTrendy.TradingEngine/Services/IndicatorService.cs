@@ -336,6 +336,180 @@ public class IndicatorService
 
     #endregion
 
+    #region MFI (Money Flow Index)
+
+    /// <summary>
+    /// Calculates MFI (Money Flow Index) with caching
+    /// MFI is a momentum indicator that uses price and volume
+    /// Similar to RSI but incorporates volume
+    /// </summary>
+    /// <param name="symbol">Trading symbol</param>
+    /// <param name="historicalData">Historical OHLCV data (at least period + 1 points)</param>
+    /// <param name="period">MFI period (default: 14)</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>MFI value (0-100)</returns>
+    public virtual async Task<decimal> CalculateMFIAsync(
+        string symbol,
+        IEnumerable<MarketData> historicalData,
+        int period = 14,
+        CancellationToken cancellationToken = default)
+    {
+        var dataList = historicalData.ToList();
+        var latestTimestamp = dataList.LastOrDefault()?.Timestamp ?? DateTime.UtcNow;
+        var cacheKey = $"mfi:{symbol}:{period}:{latestTimestamp:yyyy-MM-dd-HH-mm}";
+
+        // Check cache first
+        if (_cache.TryGetValue(cacheKey, out decimal cachedValue))
+        {
+            _logger.LogInformation(
+                "Indicator cache hit - Indicator: {Indicator}, Symbol: {Symbol}, Period: {Period}",
+                "MFI", symbol, period);
+            return cachedValue;
+        }
+
+        return await _cache.GetOrCreateAsync(cacheKey, async entry =>
+        {
+            await Task.CompletedTask; // Satisfy async requirement
+            entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(1);
+
+            _logger.LogInformation(
+                "Indicator cache miss - Indicator: {Indicator}, Symbol: {Symbol}, Period: {Period}, DataPoints: {DataPoints}",
+                "MFI", symbol, period, dataList.Count);
+
+            if (dataList.Count < period + 1)
+            {
+                _logger.LogWarning(
+                    "Insufficient data for indicator calculation - Indicator: {Indicator}, Symbol: {Symbol}, Required: {Required}, Actual: {Actual}",
+                    "MFI", symbol, period + 1, dataList.Count);
+                return 50m; // Neutral if not enough data
+            }
+
+            // Calculate Typical Price and Raw Money Flow for each period
+            var typicalPrices = new List<decimal>();
+            var rawMoneyFlows = new List<decimal>();
+
+            foreach (var data in dataList)
+            {
+                var typicalPrice = (data.High + data.Low + data.Close) / 3m;
+                var rawMoneyFlow = typicalPrice * data.Volume;
+                typicalPrices.Add(typicalPrice);
+                rawMoneyFlows.Add(rawMoneyFlow);
+            }
+
+            // Calculate positive and negative money flows
+            var positiveFlows = new List<decimal>();
+            var negativeFlows = new List<decimal>();
+
+            for (int i = 1; i < typicalPrices.Count; i++)
+            {
+                if (typicalPrices[i] > typicalPrices[i - 1])
+                {
+                    positiveFlows.Add(rawMoneyFlows[i]);
+                    negativeFlows.Add(0);
+                }
+                else if (typicalPrices[i] < typicalPrices[i - 1])
+                {
+                    positiveFlows.Add(0);
+                    negativeFlows.Add(rawMoneyFlows[i]);
+                }
+                else
+                {
+                    positiveFlows.Add(0);
+                    negativeFlows.Add(0);
+                }
+            }
+
+            // Calculate MFI over the period
+            var positiveFlow = positiveFlows.TakeLast(period).Sum();
+            var negativeFlow = negativeFlows.TakeLast(period).Sum();
+
+            if (negativeFlow == 0)
+            {
+                return 100m; // All positive flow, maximum MFI
+            }
+
+            var moneyFlowRatio = positiveFlow / negativeFlow;
+            var mfi = 100m - (100m / (1m + moneyFlowRatio));
+
+            _logger.LogInformation(
+                "Indicator calculated - Indicator: {Indicator}, Symbol: {Symbol}, Period: {Period}, Value: {Value}, PositiveFlow: {PositiveFlow}, NegativeFlow: {NegativeFlow}",
+                "MFI", symbol, period, mfi, positiveFlow, negativeFlow);
+
+            return mfi;
+        });
+    }
+
+    #endregion
+
+    #region VWAP (Volume Weighted Average Price)
+
+    /// <summary>
+    /// Calculates VWAP (Volume Weighted Average Price) with caching
+    /// VWAP = Σ(Typical Price × Volume) / Σ(Volume)
+    /// </summary>
+    /// <param name="symbol">Trading symbol</param>
+    /// <param name="historicalData">Historical OHLCV data</param>
+    /// <param name="period">Number of periods to calculate over (default: 20)</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>VWAP value</returns>
+    public virtual async Task<decimal> CalculateVWAPAsync(
+        string symbol,
+        IEnumerable<MarketData> historicalData,
+        int period = 20,
+        CancellationToken cancellationToken = default)
+    {
+        var dataList = historicalData.ToList();
+        var latestTimestamp = dataList.LastOrDefault()?.Timestamp ?? DateTime.UtcNow;
+        var cacheKey = $"vwap:{symbol}:{period}:{latestTimestamp:yyyy-MM-dd-HH-mm}";
+
+        return await _cache.GetOrCreateAsync(cacheKey, async entry =>
+        {
+            await Task.CompletedTask; // Satisfy async requirement
+            entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(1);
+
+            _logger.LogDebug("Calculating VWAP for {Symbol} with period {Period}", symbol, period);
+
+            if (dataList.Count < period)
+            {
+                _logger.LogWarning(
+                    "Insufficient data for VWAP calculation. Need {Required}, got {Actual}",
+                    period, dataList.Count);
+
+                // Return simple average if not enough data
+                return dataList.LastOrDefault()?.Close ?? 0m;
+            }
+
+            var recentData = dataList.TakeLast(period).ToList();
+
+            decimal totalPriceVolume = 0m;
+            decimal totalVolume = 0m;
+
+            foreach (var data in recentData)
+            {
+                // Typical price
+                var typicalPrice = (data.High + data.Low + data.Close) / 3m;
+                totalPriceVolume += typicalPrice * data.Volume;
+                totalVolume += data.Volume;
+            }
+
+            if (totalVolume == 0)
+            {
+                _logger.LogWarning("Zero volume for VWAP calculation on {Symbol}", symbol);
+                return recentData.Last().Close;
+            }
+
+            var vwap = totalPriceVolume / totalVolume;
+
+            _logger.LogDebug(
+                "VWAP calculated: {VWAP} for {Symbol} (TotalPriceVolume: {TotalPriceVolume}, TotalVolume: {TotalVolume})",
+                vwap, symbol, totalPriceVolume, totalVolume);
+
+            return vwap;
+        });
+    }
+
+    #endregion
+
     #region Cache Management
 
     /// <summary>

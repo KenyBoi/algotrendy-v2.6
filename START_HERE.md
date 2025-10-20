@@ -1,8 +1,30 @@
 # 🎯 START HERE - AlgoTrendy v2.6 Continuation
 
-**Date:** October 19, 2025  
-**Status:** ✅ READY FOR NEXT PHASE  
+**Date:** October 19, 2025
+**Status:** ✅ READY FOR NEXT PHASE
 **Branch:** fix/cleanup-orphaned-files
+
+---
+
+## 🚨 CRITICAL POLICY: READ THIS FIRST
+
+### REAL DATA ONLY - ZERO TOLERANCE
+
+**This is a FINANCIAL TRADING PLATFORM handling real money.**
+
+**NEVER use sample/mock/fake market data:**
+- ❌ Fake tickers (SAMPLE, TEST, DEMO, MOCK)
+- ❌ Generated prices, volumes, or any market data
+- ❌ Hardcoded financial data
+
+**ONLY use real data:**
+- ✅ Real tickers (AAPL, MSFT, BTC-USD)
+- ✅ Data from legitimate APIs (Alpha Vantage, yfinance, brokers)
+- ✅ Historical data from verified sources
+
+**If real data is unavailable: ASK FIRST. Never assume fake data is acceptable.**
+
+See README.md (top section) and `.clauderc` for complete policy.
 
 ---
 
