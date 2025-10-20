@@ -237,3 +237,6 @@ integrations/tradingview/__pycache__/
 # ============================================================================
 ***DEPLOYMENT_ROADMAP.md
 start-here.md
+
+# IDE extensions (Qodo AI assistant)
+.qodo/
