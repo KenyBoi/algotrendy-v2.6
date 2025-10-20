@@ -12,11 +12,9 @@ namespace AlgoTrendy.TradingEngine.Brokers;
 /// Interactive Brokers (IBKR) broker implementation
 /// Requires TWS (Trader Workstation) or IB Gateway running
 /// </summary>
-public class InteractiveBrokersBroker : IBroker
+public class InteractiveBrokersBroker : BrokerBase
 {
     private readonly InteractiveBrokersOptions _options;
-    private readonly ILogger<InteractiveBrokersBroker> _logger;
-    private bool _isConnected = false;
 
     // TWS/Gateway connection
     private TcpClient? _tcpClient;
@@ -26,17 +24,15 @@ public class InteractiveBrokersBroker : IBroker
     private int _nextRequestId = 1;
     private readonly ConcurrentDictionary<int, TaskCompletionSource<object>> _pendingRequests = new();
 
-    // Rate limiting
-    private readonly SemaphoreSlim _rateLimiter = new(10, 10);
+    protected override int MinRequestIntervalMs => 100;
 
-    public string BrokerName => "interactivebrokers";
+    public override string BrokerName => "interactivebrokers";
 
     public InteractiveBrokersBroker(
         IOptions<InteractiveBrokersOptions> options,
-        ILogger<InteractiveBrokersBroker> logger)
+        ILogger<InteractiveBrokersBroker> logger) : base(logger, 10)
     {
         _options = options?.Value ?? throw new ArgumentNullException(nameof(options));
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
 
         _logger.LogInformation(
             "Interactive Brokers broker configured for {Host}:{Port} (Client ID: {ClientId})",
@@ -46,7 +42,7 @@ public class InteractiveBrokersBroker : IBroker
     /// <summary>
     /// Connects to TWS/IB Gateway
     /// </summary>
-    public async Task<bool> ConnectAsync(CancellationToken cancellationToken = default)
+    public override async Task<bool> ConnectAsync(CancellationToken cancellationToken = default)
     {
         try
         {
@@ -79,7 +75,7 @@ public class InteractiveBrokersBroker : IBroker
     /// NOTE: This is a simplified implementation
     /// Production code should use full IBApi with AccountSummary request
     /// </summary>
-    public async Task<decimal> GetBalanceAsync(string currency = "USD", CancellationToken cancellationToken = default)
+    public override async Task<decimal> GetBalanceAsync(string currency = "USD", CancellationToken cancellationToken = default)
     {
         EnsureConnected();
 
@@ -106,7 +102,7 @@ public class InteractiveBrokersBroker : IBroker
     /// NOTE: This is a simplified implementation
     /// Production code should use full IBApi with Positions request
     /// </summary>
-    public async Task<IEnumerable<Position>> GetPositionsAsync(CancellationToken cancellationToken = default)
+    public override async Task<IEnumerable<Position>> GetPositionsAsync(CancellationToken cancellationToken = default)
     {
         EnsureConnected();
 
@@ -133,10 +129,10 @@ public class InteractiveBrokersBroker : IBroker
     /// NOTE: This is a simplified implementation
     /// Production code should use full IBApi with placeOrder
     /// </summary>
-    public async Task<Order> PlaceOrderAsync(OrderRequest request, CancellationToken cancellationToken = default)
+    public override async Task<Order> PlaceOrderAsync(OrderRequest request, CancellationToken cancellationToken = default)
     {
         EnsureConnected();
-        await _rateLimiter.WaitAsync(cancellationToken);
+        await EnforceRateLimitAsync(cancellationToken);
 
         try
         {
@@ -175,17 +171,13 @@ public class InteractiveBrokersBroker : IBroker
             _logger.LogError(ex, "Error placing IBKR order for {Symbol}", request.Symbol);
             throw;
         }
-        finally
-        {
-            _rateLimiter.Release();
-        }
     }
 
     /// <summary>
     /// Cancels an active order
     /// NOTE: Requires full IBApi implementation
     /// </summary>
-    public async Task<Order> CancelOrderAsync(string orderId, string symbol, CancellationToken cancellationToken = default)
+    public override async Task<Order> CancelOrderAsync(string orderId, string symbol, CancellationToken cancellationToken = default)
     {
         EnsureConnected();
 
@@ -221,7 +213,7 @@ public class InteractiveBrokersBroker : IBroker
     /// Gets the current status of an order
     /// NOTE: Requires full IBApi implementation
     /// </summary>
-    public async Task<Order> GetOrderStatusAsync(string orderId, string symbol, CancellationToken cancellationToken = default)
+    public override async Task<Order> GetOrderStatusAsync(string orderId, string symbol, CancellationToken cancellationToken = default)
     {
         EnsureConnected();
 
@@ -256,7 +248,7 @@ public class InteractiveBrokersBroker : IBroker
     /// Gets current market price for a symbol
     /// NOTE: Requires full IBApi implementation with Market Data subscription
     /// </summary>
-    public async Task<decimal> GetCurrentPriceAsync(string symbol, CancellationToken cancellationToken = default)
+    public override async Task<decimal> GetCurrentPriceAsync(string symbol, CancellationToken cancellationToken = default)
     {
         EnsureConnected();
 
@@ -282,7 +274,7 @@ public class InteractiveBrokersBroker : IBroker
     /// <summary>
     /// Sets leverage (margin requirements handled by IB)
     /// </summary>
-    public Task<bool> SetLeverageAsync(
+    public override Task<bool> SetLeverageAsync(
         string symbol,
         decimal leverage,
         MarginType marginType = MarginType.Cross,
@@ -295,7 +287,7 @@ public class InteractiveBrokersBroker : IBroker
     /// <summary>
     /// Gets leverage info
     /// </summary>
-    public Task<LeverageInfo> GetLeverageInfoAsync(string symbol, CancellationToken cancellationToken = default)
+    public override Task<LeverageInfo> GetLeverageInfoAsync(string symbol, CancellationToken cancellationToken = default)
     {
         return Task.FromResult(new LeverageInfo
         {
@@ -313,7 +305,7 @@ public class InteractiveBrokersBroker : IBroker
     /// Gets margin health ratio
     /// NOTE: Requires full IBApi implementation with AccountSummary
     /// </summary>
-    public async Task<decimal> GetMarginHealthRatioAsync(CancellationToken cancellationToken = default)
+    public override async Task<decimal> GetMarginHealthRatioAsync(CancellationToken cancellationToken = default)
     {
         EnsureConnected();
 
@@ -335,24 +327,12 @@ public class InteractiveBrokersBroker : IBroker
         }
     }
 
-    #region Helper Methods
-
-    private void EnsureConnected()
-    {
-        if (!_isConnected)
-        {
-            throw new InvalidOperationException("Not connected to Interactive Brokers. Call ConnectAsync first.");
-        }
-    }
-
     public void Dispose()
     {
         _stream?.Dispose();
         _tcpClient?.Dispose();
         _isConnected = false;
     }
-
-    #endregion
 }
 
 /// <summary>

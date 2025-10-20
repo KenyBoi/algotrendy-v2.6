@@ -13,27 +13,20 @@ namespace AlgoTrendy.TradingEngine.Brokers;
 /// <summary>
 /// Binance broker implementation using Binance.Net
 /// </summary>
-public class BinanceBroker : IBroker
+public class BinanceBroker : BrokerBase
 {
     private BinanceRestClient? _client;
     private readonly BinanceOptions _options;
-    private readonly ILogger<BinanceBroker> _logger;
-    private bool _isConnected = false;
 
-    // Rate limiting (Binance: 20 orders/second, 1200/minute)
-    private readonly SemaphoreSlim _rateLimiter = new(20, 20); // 20 concurrent requests
-    private readonly Dictionary<string, DateTime> _lastRequestTime = new();
-    private readonly object _requestTimeLock = new();
-    private const int MinRequestIntervalMs = 50; // 50ms = 20 requests/second
+    protected override int MinRequestIntervalMs => 50; // 50ms = 20 requests/second
 
-    public string BrokerName => "binance";
+    public override string BrokerName => "binance";
 
     public BinanceBroker(
         IOptions<BinanceOptions> options,
-        ILogger<BinanceBroker> logger)
+        ILogger<BinanceBroker> logger) : base(logger, 20)
     {
         _options = options?.Value ?? throw new ArgumentNullException(nameof(options));
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
 
         // Configure environment for Binance US if enabled
         if (_options.UseBinanceUS)
@@ -75,7 +68,7 @@ public class BinanceBroker : IBroker
     /// <summary>
     /// Connects to Binance API and verifies credentials
     /// </summary>
-    public async Task<bool> ConnectAsync(CancellationToken cancellationToken = default)
+    public override async Task<bool> ConnectAsync(CancellationToken cancellationToken = default)
     {
         try
         {
@@ -109,7 +102,7 @@ public class BinanceBroker : IBroker
     /// <summary>
     /// Gets account balance for a specific currency
     /// </summary>
-    public async Task<decimal> GetBalanceAsync(string currency = "USDT", CancellationToken cancellationToken = default)
+    public override async Task<decimal> GetBalanceAsync(string currency = "USDT", CancellationToken cancellationToken = default)
     {
         EnsureConnected();
 
@@ -140,7 +133,7 @@ public class BinanceBroker : IBroker
     /// <summary>
     /// Gets all active positions (spot trading doesn't have positions, returns empty)
     /// </summary>
-    public async Task<IEnumerable<Position>> GetPositionsAsync(CancellationToken cancellationToken = default)
+    public override async Task<IEnumerable<Position>> GetPositionsAsync(CancellationToken cancellationToken = default)
     {
         // Spot trading doesn't have positions in the traditional sense
         // Return empty list for now
@@ -150,7 +143,7 @@ public class BinanceBroker : IBroker
     /// <summary>
     /// Places an order on Binance
     /// </summary>
-    public async Task<Order> PlaceOrderAsync(OrderRequest request, CancellationToken cancellationToken = default)
+    public override async Task<Order> PlaceOrderAsync(OrderRequest request, CancellationToken cancellationToken = default)
     {
         EnsureConnected();
 
@@ -246,7 +239,7 @@ public class BinanceBroker : IBroker
     /// <summary>
     /// Cancels an active order on Binance
     /// </summary>
-    public async Task<Order> CancelOrderAsync(string orderId, string symbol, CancellationToken cancellationToken = default)
+    public override async Task<Order> CancelOrderAsync(string orderId, string symbol, CancellationToken cancellationToken = default)
     {
         EnsureConnected();
 
@@ -301,7 +294,7 @@ public class BinanceBroker : IBroker
     /// <summary>
     /// Gets the current status of an order from Binance
     /// </summary>
-    public async Task<Order> GetOrderStatusAsync(string orderId, string symbol, CancellationToken cancellationToken = default)
+    public override async Task<Order> GetOrderStatusAsync(string orderId, string symbol, CancellationToken cancellationToken = default)
     {
         EnsureConnected();
 
@@ -352,7 +345,7 @@ public class BinanceBroker : IBroker
     /// <summary>
     /// Gets current market price for a symbol
     /// </summary>
-    public async Task<decimal> GetCurrentPriceAsync(string symbol, CancellationToken cancellationToken = default)
+    public override async Task<decimal> GetCurrentPriceAsync(string symbol, CancellationToken cancellationToken = default)
     {
         EnsureConnected();
 
@@ -378,48 +371,6 @@ public class BinanceBroker : IBroker
     }
 
     #region Helper Methods
-
-    private void EnsureConnected()
-    {
-        if (!_isConnected)
-        {
-            throw new InvalidOperationException("Not connected to Binance. Call ConnectAsync first.");
-        }
-    }
-
-    /// <summary>
-    /// Enforces rate limiting to prevent Binance API bans
-    /// Binance limits: 20 orders/second, 1200 orders/minute
-    /// </summary>
-    private async Task EnforceRateLimitAsync(string symbol, CancellationToken cancellationToken)
-    {
-        // Acquire semaphore (limits concurrent requests to 20)
-        await _rateLimiter.WaitAsync(cancellationToken);
-
-        try
-        {
-            // Check last request time for this symbol and enforce minimum interval
-            lock (_requestTimeLock)
-            {
-                var now = DateTime.UtcNow;
-                if (_lastRequestTime.TryGetValue(symbol, out var lastTime))
-                {
-                    var elapsedMs = (now - lastTime).TotalMilliseconds;
-                    if (elapsedMs < MinRequestIntervalMs)
-                    {
-                        var delayMs = (int)(MinRequestIntervalMs - elapsedMs);
-                        _logger.LogDebug("Rate limiting: delaying {DelayMs}ms for {Symbol}", delayMs, symbol);
-                        Task.Delay(delayMs, cancellationToken).Wait(cancellationToken);
-                    }
-                }
-                _lastRequestTime[symbol] = DateTime.UtcNow;
-            }
-        }
-        finally
-        {
-            _rateLimiter.Release();
-        }
-    }
 
     private static Binance.Net.Enums.OrderSide MapOrderSide(Core.Enums.OrderSide side)
     {
@@ -483,7 +434,7 @@ public class BinanceBroker : IBroker
     /// <summary>
     /// Sets leverage for a symbol (NOT YET IMPLEMENTED - Returns safe default)
     /// </summary>
-    public async Task<bool> SetLeverageAsync(string symbol, decimal leverage, MarginType marginType, CancellationToken cancellationToken = default)
+    public override async Task<bool> SetLeverageAsync(string symbol, decimal leverage, MarginType marginType, CancellationToken cancellationToken = default)
     {
         _logger.LogWarning("SetLeverageAsync not yet implemented for Binance. Using default leverage 1x.");
 
@@ -500,7 +451,7 @@ public class BinanceBroker : IBroker
     /// <summary>
     /// Gets leverage information for a symbol (NOT YET IMPLEMENTED - Returns safe default)
     /// </summary>
-    public async Task<LeverageInfo> GetLeverageInfoAsync(string symbol, CancellationToken cancellationToken = default)
+    public override async Task<LeverageInfo> GetLeverageInfoAsync(string symbol, CancellationToken cancellationToken = default)
     {
         _logger.LogWarning("GetLeverageInfoAsync not yet implemented for Binance. Returning safe default (1x leverage).");
 
@@ -523,7 +474,7 @@ public class BinanceBroker : IBroker
     /// <summary>
     /// Gets margin health ratio (NOT YET IMPLEMENTED - Returns conservative estimate)
     /// </summary>
-    public async Task<decimal> GetMarginHealthRatioAsync(CancellationToken cancellationToken = default)
+    public override async Task<decimal> GetMarginHealthRatioAsync(CancellationToken cancellationToken = default)
     {
         _logger.LogWarning("GetMarginHealthRatioAsync not yet implemented for Binance. Returning conservative estimate.");
 

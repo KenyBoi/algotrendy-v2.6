@@ -13,36 +13,22 @@ namespace AlgoTrendy.DataChannels.Channels.REST;
 /// Uses Binance Futures API (free, unlimited for market data)
 /// Cost: $0/month
 /// </summary>
-public class FuturesDataChannel : IMarketDataChannel
+public class FuturesDataChannel : RestChannelBase
 {
-    private const string BinanceFuturesUrl = "https://fapi.binance.com";
+    protected override string BaseUrl => "https://fapi.binance.com";
+    public override string ExchangeName => "futures";
 
-    private readonly IHttpClientFactory _httpClientFactory;
-    private readonly IMarketDataRepository _repository;
-    private readonly ILogger<FuturesDataChannel> _logger;
     private readonly IConfiguration _configuration;
-
-    private bool _isConnected = false;
     private List<string> _symbols = new();
-    private readonly List<string> _subscribedSymbols = new();
-
-    public string ExchangeName => "futures";
-    public bool IsConnected => _isConnected;
-    public IReadOnlyList<string> SubscribedSymbols => _subscribedSymbols.AsReadOnly();
-    public DateTime? LastDataReceivedAt { get; private set; }
-    public long TotalMessagesReceived { get; private set; }
 
     public FuturesDataChannel(
         IHttpClientFactory httpClientFactory,
-        IMarketDataRepository repository,
+        IMarketDataRepository marketDataRepository,
         ILogger<FuturesDataChannel> logger,
         IConfiguration configuration)
+        : base(httpClientFactory, marketDataRepository, logger)
     {
-        _httpClientFactory = httpClientFactory ?? throw new ArgumentNullException(nameof(httpClientFactory));
-        _repository = repository ?? throw new ArgumentNullException(nameof(repository));
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _configuration = configuration ?? throw new ArgumentNullException(nameof(configuration));
-
         LoadSymbols();
     }
 
@@ -83,48 +69,27 @@ public class FuturesDataChannel : IMarketDataChannel
             string.Join(", ", _symbols));
     }
 
-    public async Task StartAsync(CancellationToken cancellationToken = default)
+    /// <summary>
+    /// Test connection to Binance Futures API
+    /// </summary>
+    protected override async Task<bool> TestConnectionAsync(CancellationToken cancellationToken)
     {
         try
         {
-            _logger.LogInformation("[FuturesDataChannel] Starting futures data channel...");
-
-            // Test Binance Futures API connectivity
             using var client = _httpClientFactory.CreateClient();
             client.Timeout = TimeSpan.FromSeconds(5);
 
             var response = await client.GetAsync(
-                $"{BinanceFuturesUrl}/fapi/v1/ping",
+                $"{BaseUrl}/fapi/v1/ping",
                 cancellationToken);
 
-            if (!response.IsSuccessStatusCode)
-            {
-                _logger.LogWarning(
-                    "[FuturesDataChannel] Binance Futures API test failed. Status: {Status}",
-                    response.StatusCode);
-                throw new InvalidOperationException(
-                    $"Binance Futures API not accessible. Status: {response.StatusCode}");
-            }
-
-            _isConnected = true;
-            _logger.LogInformation(
-                "[FuturesDataChannel] Connected successfully to Binance Futures API: {Url}",
-                BinanceFuturesUrl);
+            return response.IsSuccessStatusCode;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[FuturesDataChannel] Failed to start futures data channel");
-            _isConnected = false;
-            throw;
+            _logger.LogError(ex, "[FuturesDataChannel] Connection test failed");
+            return false;
         }
-    }
-
-    public Task StopAsync(CancellationToken cancellationToken = default)
-    {
-        _logger.LogInformation("[FuturesDataChannel] Stopping futures data channel...");
-        _isConnected = false;
-        _subscribedSymbols.Clear();
-        return Task.CompletedTask;
     }
 
     /// <summary>
@@ -159,7 +124,7 @@ public class FuturesDataChannel : IMarketDataChannel
             {
                 // Fetch klines from Binance Futures API
                 // Endpoint: /fapi/v1/klines
-                var url = $"{BinanceFuturesUrl}/fapi/v1/klines?symbol={symbol}&interval={interval}&limit={Math.Min(limit, 1000)}";
+                var url = $"{BaseUrl}/fapi/v1/klines?symbol={symbol}&interval={interval}&limit={Math.Min(limit, 1000)}";
 
                 var response = await client.GetAsync(url, cancellationToken);
                 response.EnsureSuccessStatusCode();
@@ -255,7 +220,7 @@ public class FuturesDataChannel : IMarketDataChannel
             var endTime = new DateTimeOffset(endDate).ToUnixTimeMilliseconds();
 
             // Binance Futures allows max 1500 klines per request
-            var url = $"{BinanceFuturesUrl}/fapi/v1/klines?symbol={symbol}&interval={interval}&startTime={startTime}&endTime={endTime}&limit=1500";
+            var url = $"{BaseUrl}/fapi/v1/klines?symbol={symbol}&interval={interval}&startTime={startTime}&endTime={endTime}&limit=1500";
 
             var response = await client.GetAsync(url, cancellationToken);
             response.EnsureSuccessStatusCode();
@@ -324,7 +289,7 @@ public class FuturesDataChannel : IMarketDataChannel
             using var client = _httpClientFactory.CreateClient();
             client.Timeout = TimeSpan.FromSeconds(5);
 
-            var url = $"{BinanceFuturesUrl}/fapi/v1/openInterest?symbol={symbol}";
+            var url = $"{BaseUrl}/fapi/v1/openInterest?symbol={symbol}";
 
             var response = await client.GetAsync(url, cancellationToken);
             response.EnsureSuccessStatusCode();
@@ -358,7 +323,7 @@ public class FuturesDataChannel : IMarketDataChannel
             using var client = _httpClientFactory.CreateClient();
             client.Timeout = TimeSpan.FromSeconds(5);
 
-            var url = $"{BinanceFuturesUrl}/fapi/v1/premiumIndex?symbol={symbol}";
+            var url = $"{BaseUrl}/fapi/v1/premiumIndex?symbol={symbol}";
 
             var response = await client.GetAsync(url, cancellationToken);
             response.EnsureSuccessStatusCode();
@@ -378,50 +343,5 @@ public class FuturesDataChannel : IMarketDataChannel
             _logger.LogError(ex, "[FuturesDataChannel] Error getting funding rate for {Symbol}", symbol);
             return null;
         }
-    }
-
-    public Task SubscribeAsync(IEnumerable<string> symbols, CancellationToken cancellationToken = default)
-    {
-        if (!_isConnected)
-        {
-            throw new InvalidOperationException("Channel is not connected");
-        }
-
-        var symbolList = symbols.ToList();
-        _logger.LogInformation("[FuturesDataChannel] Subscribing to {Count} symbols", symbolList.Count);
-
-        _subscribedSymbols.AddRange(symbolList);
-
-        _logger.LogInformation(
-            "[FuturesDataChannel] Subscribed to symbols: {Symbols}",
-            string.Join(", ", symbolList));
-
-        return Task.CompletedTask;
-    }
-
-    public Task UnsubscribeAsync(IEnumerable<string> symbols, CancellationToken cancellationToken = default)
-    {
-        if (!_isConnected)
-        {
-            throw new InvalidOperationException("Channel is not connected");
-        }
-
-        var symbolList = symbols.ToList();
-        _logger.LogInformation("[FuturesDataChannel] Unsubscribing from {Count} symbols", symbolList.Count);
-
-        foreach (var symbol in symbolList)
-        {
-            _subscribedSymbols.Remove(symbol);
-        }
-
-        _logger.LogInformation("[FuturesDataChannel] Unsubscribed from symbols: {Symbols}", string.Join(", ", symbolList));
-
-        return Task.CompletedTask;
-    }
-
-    public void Dispose()
-    {
-        _isConnected = false;
-        _subscribedSymbols.Clear();
     }
 }

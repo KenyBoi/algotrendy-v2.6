@@ -1,0 +1,8 @@
+{
+  "assetClass": "Equities",
+  "symbol": "SPY",
+  "startDate": "2024-01-01T00:00:00Z",
+  "endDate": "2024-01-31T00:00:00Z",
+  "timeframe": "Day",
+  "initialCapital": 100000
+}

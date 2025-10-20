@@ -14,25 +14,21 @@ namespace AlgoTrendy.TradingEngine.Brokers;
 /// NinjaTrader broker implementation
 /// Supports REST API mode (requires NinjaTrader 8 running)
 /// </summary>
-public class NinjaTraderBroker : IBroker
+public class NinjaTraderBroker : BrokerBase
 {
     private readonly HttpClient _httpClient;
     private readonly NinjaTraderOptions _options;
-    private readonly ILogger<NinjaTraderBroker> _logger;
-    private bool _isConnected = false;
 
-    // Rate limiting
-    private readonly SemaphoreSlim _rateLimiter = new(10, 10);
+    protected override int MinRequestIntervalMs => 100;
 
-    public string BrokerName => "ninjatrader";
+    public override string BrokerName => "ninjatrader";
 
     public NinjaTraderBroker(
         IOptions<NinjaTraderOptions> options,
         ILogger<NinjaTraderBroker> logger,
-        IHttpClientFactory httpClientFactory)
+        IHttpClientFactory httpClientFactory) : base(logger, 10)
     {
         _options = options?.Value ?? throw new ArgumentNullException(nameof(options));
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _httpClient = httpClientFactory.CreateClient("NinjaTrader");
 
         // Configure base URL for REST API
@@ -47,7 +43,7 @@ public class NinjaTraderBroker : IBroker
     /// <summary>
     /// Connects to NinjaTrader (verifies platform is running and accessible)
     /// </summary>
-    public async Task<bool> ConnectAsync(CancellationToken cancellationToken = default)
+    public override async Task<bool> ConnectAsync(CancellationToken cancellationToken = default)
     {
         try
         {
@@ -88,7 +84,7 @@ public class NinjaTraderBroker : IBroker
     /// <summary>
     /// Gets account balance
     /// </summary>
-    public async Task<decimal> GetBalanceAsync(string currency = "USD", CancellationToken cancellationToken = default)
+    public override async Task<decimal> GetBalanceAsync(string currency = "USD", CancellationToken cancellationToken = default)
     {
         EnsureConnected();
 
@@ -117,7 +113,7 @@ public class NinjaTraderBroker : IBroker
     /// <summary>
     /// Gets all active positions
     /// </summary>
-    public async Task<IEnumerable<Position>> GetPositionsAsync(CancellationToken cancellationToken = default)
+    public override async Task<IEnumerable<Position>> GetPositionsAsync(CancellationToken cancellationToken = default)
     {
         EnsureConnected();
 
@@ -168,10 +164,10 @@ public class NinjaTraderBroker : IBroker
     /// <summary>
     /// Places an order on NinjaTrader
     /// </summary>
-    public async Task<Order> PlaceOrderAsync(OrderRequest request, CancellationToken cancellationToken = default)
+    public override async Task<Order> PlaceOrderAsync(OrderRequest request, CancellationToken cancellationToken = default)
     {
         EnsureConnected();
-        await _rateLimiter.WaitAsync(cancellationToken);
+        await EnforceRateLimitAsync(cancellationToken);
 
         try
         {
@@ -229,16 +225,12 @@ public class NinjaTraderBroker : IBroker
             _logger.LogError(ex, "Error placing NinjaTrader order for {Symbol}", request.Symbol);
             throw;
         }
-        finally
-        {
-            _rateLimiter.Release();
-        }
     }
 
     /// <summary>
     /// Cancels an active order
     /// </summary>
-    public async Task<Order> CancelOrderAsync(string orderId, string symbol, CancellationToken cancellationToken = default)
+    public override async Task<Order> CancelOrderAsync(string orderId, string symbol, CancellationToken cancellationToken = default)
     {
         EnsureConnected();
 
@@ -291,7 +283,7 @@ public class NinjaTraderBroker : IBroker
     /// <summary>
     /// Gets the current status of an order
     /// </summary>
-    public async Task<Order> GetOrderStatusAsync(string orderId, string symbol, CancellationToken cancellationToken = default)
+    public override async Task<Order> GetOrderStatusAsync(string orderId, string symbol, CancellationToken cancellationToken = default)
     {
         EnsureConnected();
 
@@ -333,7 +325,7 @@ public class NinjaTraderBroker : IBroker
     /// <summary>
     /// Gets current market price for a symbol
     /// </summary>
-    public async Task<decimal> GetCurrentPriceAsync(string symbol, CancellationToken cancellationToken = default)
+    public override async Task<decimal> GetCurrentPriceAsync(string symbol, CancellationToken cancellationToken = default)
     {
         EnsureConnected();
 
@@ -362,7 +354,7 @@ public class NinjaTraderBroker : IBroker
     /// <summary>
     /// Sets leverage (not applicable for NinjaTrader)
     /// </summary>
-    public Task<bool> SetLeverageAsync(
+    public override Task<bool> SetLeverageAsync(
         string symbol,
         decimal leverage,
         MarginType marginType = MarginType.Cross,
@@ -375,7 +367,7 @@ public class NinjaTraderBroker : IBroker
     /// <summary>
     /// Gets leverage info (not directly applicable)
     /// </summary>
-    public Task<LeverageInfo> GetLeverageInfoAsync(string symbol, CancellationToken cancellationToken = default)
+    public override Task<LeverageInfo> GetLeverageInfoAsync(string symbol, CancellationToken cancellationToken = default)
     {
         return Task.FromResult(new LeverageInfo
         {
@@ -390,7 +382,7 @@ public class NinjaTraderBroker : IBroker
     /// <summary>
     /// Gets margin health ratio
     /// </summary>
-    public async Task<decimal> GetMarginHealthRatioAsync(CancellationToken cancellationToken = default)
+    public override async Task<decimal> GetMarginHealthRatioAsync(CancellationToken cancellationToken = default)
     {
         EnsureConnected();
 
@@ -420,14 +412,6 @@ public class NinjaTraderBroker : IBroker
     }
 
     #region Helper Methods
-
-    private void EnsureConnected()
-    {
-        if (!_isConnected)
-        {
-            throw new InvalidOperationException("Not connected to NinjaTrader. Call ConnectAsync first.");
-        }
-    }
 
     private static string MapOrderType(OrderType type)
     {

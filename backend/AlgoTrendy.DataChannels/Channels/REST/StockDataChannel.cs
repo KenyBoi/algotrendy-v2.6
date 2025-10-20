@@ -12,35 +12,28 @@ namespace AlgoTrendy.DataChannels.Channels.REST;
 /// Fetches real-time and historical stock data for US equities and ETFs
 /// Cost: $0/month (saves $24,000-30,000/year vs Bloomberg/Refinitiv)
 /// </summary>
-public class StockDataChannel : IMarketDataChannel
+public class StockDataChannel : RestChannelBase
 {
+    protected override string BaseUrl => "http://localhost:5001";  // yfinance service
+    public override string ExchangeName => "stocks";
+
     private readonly AlphaVantageProvider _alphaVantageProvider;
     private readonly YFinanceProvider _yfinanceProvider;
-    private readonly IMarketDataRepository _repository;
-    private readonly ILogger<StockDataChannel> _logger;
     private readonly IConfiguration _configuration;
 
-    private bool _isConnected = false;
     private List<string> _symbols = new();
-    private readonly List<string> _subscribedSymbols = new();
-
-    public string ExchangeName => "stocks";
-    public bool IsConnected => _isConnected;
-    public IReadOnlyList<string> SubscribedSymbols => _subscribedSymbols.AsReadOnly();
-    public DateTime? LastDataReceivedAt { get; private set; }
-    public long TotalMessagesReceived { get; private set; }
 
     public StockDataChannel(
+        IHttpClientFactory httpClientFactory,
+        IMarketDataRepository marketDataRepository,
+        ILogger<StockDataChannel> logger,
         AlphaVantageProvider alphaVantageProvider,
         YFinanceProvider yfinanceProvider,
-        IMarketDataRepository repository,
-        ILogger<StockDataChannel> logger,
         IConfiguration configuration)
+        : base(httpClientFactory, marketDataRepository, logger)
     {
         _alphaVantageProvider = alphaVantageProvider ?? throw new ArgumentNullException(nameof(alphaVantageProvider));
         _yfinanceProvider = yfinanceProvider ?? throw new ArgumentNullException(nameof(yfinanceProvider));
-        _repository = repository ?? throw new ArgumentNullException(nameof(repository));
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _configuration = configuration ?? throw new ArgumentNullException(nameof(configuration));
 
         LoadSymbols();
@@ -86,12 +79,13 @@ public class StockDataChannel : IMarketDataChannel
             string.Join(", ", _symbols));
     }
 
-    public async Task StartAsync(CancellationToken cancellationToken = default)
+    /// <summary>
+    /// Test connection to yfinance service
+    /// </summary>
+    protected override async Task<bool> TestConnectionAsync(CancellationToken cancellationToken)
     {
         try
         {
-            _logger.LogInformation("[StockDataChannel] Starting stock data channel...");
-
             // Test yfinance service connectivity
             var testSymbol = "AAPL";
             var testData = await _yfinanceProvider.FetchLatestAsync(testSymbol, cancellationToken);
@@ -100,29 +94,20 @@ public class StockDataChannel : IMarketDataChannel
             {
                 _logger.LogWarning(
                     "[StockDataChannel] yfinance service test failed. Is the service running on port 5001?");
-                throw new InvalidOperationException(
-                    "yfinance service not accessible. Start with: python yfinance_service.py");
+                return false;
             }
 
-            _isConnected = true;
             _logger.LogInformation(
                 "[StockDataChannel] Connected successfully. Test quote: {Symbol} = ${Price}",
                 testSymbol, testData.Close);
+
+            return true;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[StockDataChannel] Failed to start stock data channel");
-            _isConnected = false;
-            throw;
+            _logger.LogError(ex, "[StockDataChannel] Connection test failed");
+            return false;
         }
-    }
-
-    public Task StopAsync(CancellationToken cancellationToken = default)
-    {
-        _logger.LogInformation("[StockDataChannel] Stopping stock data channel...");
-        _isConnected = false;
-        _subscribedSymbols.Clear();
-        return Task.CompletedTask;
     }
 
     /// <summary>
@@ -284,50 +269,5 @@ public class StockDataChannel : IMarketDataChannel
             _logger.LogError(ex, "[StockDataChannel] Error getting options chain for {Symbol}", symbol);
             return null;
         }
-    }
-
-    public Task SubscribeAsync(IEnumerable<string> symbols, CancellationToken cancellationToken = default)
-    {
-        if (!_isConnected)
-        {
-            throw new InvalidOperationException("Channel is not connected");
-        }
-
-        var symbolList = symbols.ToList();
-        _logger.LogInformation("[StockDataChannel] Subscribing to {Count} symbols", symbolList.Count);
-
-        _subscribedSymbols.AddRange(symbolList);
-
-        _logger.LogInformation(
-            "[StockDataChannel] Subscribed to symbols: {Symbols}",
-            string.Join(", ", symbolList));
-
-        return Task.CompletedTask;
-    }
-
-    public Task UnsubscribeAsync(IEnumerable<string> symbols, CancellationToken cancellationToken = default)
-    {
-        if (!_isConnected)
-        {
-            throw new InvalidOperationException("Channel is not connected");
-        }
-
-        var symbolList = symbols.ToList();
-        _logger.LogInformation("[StockDataChannel] Unsubscribing from {Count} symbols", symbolList.Count);
-
-        foreach (var symbol in symbolList)
-        {
-            _subscribedSymbols.Remove(symbol);
-        }
-
-        _logger.LogInformation("[StockDataChannel] Unsubscribed from symbols: {Symbols}", string.Join(", ", symbolList));
-
-        return Task.CompletedTask;
-    }
-
-    public void Dispose()
-    {
-        _isConnected = false;
-        _subscribedSymbols.Clear();
     }
 }

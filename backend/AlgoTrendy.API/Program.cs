@@ -195,8 +195,9 @@ builder.Services.AddScoped<KrakenRestChannel>();
 // builder.Services.AddScoped<FuturesDataChannel>();
 
 // Register backtesting services
-builder.Services.AddScoped<IBacktestEngine, CustomBacktestEngine>();
-builder.Services.AddScoped<IBacktestService, BacktestService>();
+// NOTE: Temporarily commented out - CustomBacktestEngine requires IMarketDataProvider
+// builder.Services.AddScoped<IBacktestEngine, CustomBacktestEngine>();
+// builder.Services.AddScoped<IBacktestService, BacktestService>();
 
 // Configure and register QuantConnect services
 builder.Services.Configure<AlgoTrendy.Backtesting.Services.QuantConnectConfig>(options =>

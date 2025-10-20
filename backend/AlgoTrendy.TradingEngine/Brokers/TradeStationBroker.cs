@@ -15,28 +15,23 @@ namespace AlgoTrendy.TradingEngine.Brokers;
 /// TradeStation broker implementation for US equities trading
 /// Supports both paper trading (sim-api) and production trading
 /// </summary>
-public class TradeStationBroker : IBroker
+public class TradeStationBroker : BrokerBase
 {
     private readonly HttpClient _httpClient;
     private readonly TradeStationOptions _options;
-    private readonly ILogger<TradeStationBroker> _logger;
-    private bool _isConnected = false;
     private string? _accessToken = null;
     private DateTime _tokenExpiry = DateTime.MinValue;
 
-    // Rate limiting
-    private readonly SemaphoreSlim _rateLimiter = new(10, 10);
-    private const int MinRequestIntervalMs = 100;
+    protected override int MinRequestIntervalMs => 100;
 
-    public string BrokerName => "tradestation";
+    public override string BrokerName => "tradestation";
 
     public TradeStationBroker(
         IOptions<TradeStationOptions> options,
         ILogger<TradeStationBroker> logger,
-        IHttpClientFactory httpClientFactory)
+        IHttpClientFactory httpClientFactory) : base(logger, 10)
     {
         _options = options?.Value ?? throw new ArgumentNullException(nameof(options));
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _httpClient = httpClientFactory.CreateClient("TradeStation");
 
         // Configure base URL based on paper trading flag
@@ -56,7 +51,7 @@ public class TradeStationBroker : IBroker
     /// <summary>
     /// Connects to TradeStation API using OAuth 2.0
     /// </summary>
-    public async Task<bool> ConnectAsync(CancellationToken cancellationToken = default)
+    public override async Task<bool> ConnectAsync(CancellationToken cancellationToken = default)
     {
         try
         {
@@ -95,7 +90,7 @@ public class TradeStationBroker : IBroker
     /// <summary>
     /// Gets account balance
     /// </summary>
-    public async Task<decimal> GetBalanceAsync(string currency = "USD", CancellationToken cancellationToken = default)
+    public override async Task<decimal> GetBalanceAsync(string currency = "USD", CancellationToken cancellationToken = default)
     {
         EnsureConnected();
         await EnsureValidTokenAsync(cancellationToken);
@@ -125,7 +120,7 @@ public class TradeStationBroker : IBroker
     /// <summary>
     /// Gets all active positions
     /// </summary>
-    public async Task<IEnumerable<Position>> GetPositionsAsync(CancellationToken cancellationToken = default)
+    public override async Task<IEnumerable<Position>> GetPositionsAsync(CancellationToken cancellationToken = default)
     {
         EnsureConnected();
         await EnsureValidTokenAsync(cancellationToken);
@@ -174,11 +169,11 @@ public class TradeStationBroker : IBroker
     /// <summary>
     /// Places an order on TradeStation
     /// </summary>
-    public async Task<Order> PlaceOrderAsync(OrderRequest request, CancellationToken cancellationToken = default)
+    public override async Task<Order> PlaceOrderAsync(OrderRequest request, CancellationToken cancellationToken = default)
     {
         EnsureConnected();
         await EnsureValidTokenAsync(cancellationToken);
-        await _rateLimiter.WaitAsync(cancellationToken);
+        await EnforceRateLimitAsync(cancellationToken);
 
         try
         {
@@ -235,16 +230,12 @@ public class TradeStationBroker : IBroker
             _logger.LogError(ex, "Error placing TradeStation order for {Symbol}", request.Symbol);
             throw;
         }
-        finally
-        {
-            _rateLimiter.Release();
-        }
     }
 
     /// <summary>
     /// Cancels an active order
     /// </summary>
-    public async Task<Order> CancelOrderAsync(string orderId, string symbol, CancellationToken cancellationToken = default)
+    public override async Task<Order> CancelOrderAsync(string orderId, string symbol, CancellationToken cancellationToken = default)
     {
         EnsureConnected();
         await EnsureValidTokenAsync(cancellationToken);
@@ -287,7 +278,7 @@ public class TradeStationBroker : IBroker
     /// <summary>
     /// Gets the current status of an order
     /// </summary>
-    public async Task<Order> GetOrderStatusAsync(string orderId, string symbol, CancellationToken cancellationToken = default)
+    public override async Task<Order> GetOrderStatusAsync(string orderId, string symbol, CancellationToken cancellationToken = default)
     {
         EnsureConnected();
         await EnsureValidTokenAsync(cancellationToken);
@@ -330,7 +321,7 @@ public class TradeStationBroker : IBroker
     /// <summary>
     /// Gets current market price for a symbol
     /// </summary>
-    public async Task<decimal> GetCurrentPriceAsync(string symbol, CancellationToken cancellationToken = default)
+    public override async Task<decimal> GetCurrentPriceAsync(string symbol, CancellationToken cancellationToken = default)
     {
         EnsureConnected();
         await EnsureValidTokenAsync(cancellationToken);
@@ -360,7 +351,7 @@ public class TradeStationBroker : IBroker
     /// <summary>
     /// Sets leverage (not applicable for equities)
     /// </summary>
-    public Task<bool> SetLeverageAsync(
+    public override Task<bool> SetLeverageAsync(
         string symbol,
         decimal leverage,
         MarginType marginType = MarginType.Cross,
@@ -373,7 +364,7 @@ public class TradeStationBroker : IBroker
     /// <summary>
     /// Gets leverage info (not applicable for equities)
     /// </summary>
-    public Task<LeverageInfo> GetLeverageInfoAsync(string symbol, CancellationToken cancellationToken = default)
+    public override Task<LeverageInfo> GetLeverageInfoAsync(string symbol, CancellationToken cancellationToken = default)
     {
         return Task.FromResult(new LeverageInfo
         {
@@ -390,7 +381,7 @@ public class TradeStationBroker : IBroker
     /// <summary>
     /// Gets margin health ratio
     /// </summary>
-    public async Task<decimal> GetMarginHealthRatioAsync(CancellationToken cancellationToken = default)
+    public override async Task<decimal> GetMarginHealthRatioAsync(CancellationToken cancellationToken = default)
     {
         EnsureConnected();
         await EnsureValidTokenAsync(cancellationToken);
@@ -421,14 +412,6 @@ public class TradeStationBroker : IBroker
     }
 
     #region Helper Methods
-
-    private void EnsureConnected()
-    {
-        if (!_isConnected)
-        {
-            throw new InvalidOperationException("Not connected to TradeStation. Call ConnectAsync first.");
-        }
-    }
 
     private async Task EnsureValidTokenAsync(CancellationToken cancellationToken)
     {

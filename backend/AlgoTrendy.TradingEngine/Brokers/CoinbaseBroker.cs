@@ -13,25 +13,21 @@ namespace AlgoTrendy.TradingEngine.Brokers;
 /// Supports: Spot trading only (no margin/leverage)
 /// Uses: Coinbase.AdvancedTrade v1.4.0 package
 /// </summary>
-public class CoinbaseBroker : IBroker, IDisposable
+public class CoinbaseBroker : BrokerBase, IDisposable
 {
     private CoinbaseClient? _client;
     private readonly CoinbaseOptions _options;
-    private readonly ILogger<CoinbaseBroker> _logger;
-    private bool _isConnected = false;
+    private readonly SemaphoreSlim _rateLimiterLocal = new(10, 10); // For local rate limiting methods
 
-    // Rate limiting (Coinbase: 10 requests/second public, 15 requests/second private)
-    private readonly SemaphoreSlim _rateLimiter = new(10, 10);
-    private const int MinRequestIntervalMs = 100; // ~10 requests/second
+    protected override int MinRequestIntervalMs => 100; // ~10 requests/second
 
-    public string BrokerName => "coinbase";
+    public override string BrokerName => "coinbase";
 
     public CoinbaseBroker(
         IOptions<CoinbaseOptions> options,
-        ILogger<CoinbaseBroker> logger)
+        ILogger<CoinbaseBroker> logger) : base(logger, 10)
     {
         _options = options?.Value ?? throw new ArgumentNullException(nameof(options));
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
     /// <summary>
@@ -56,7 +52,7 @@ public class CoinbaseBroker : IBroker, IDisposable
     /// <summary>
     /// Connects to Coinbase API and verifies credentials
     /// </summary>
-    public async Task<bool> ConnectAsync(CancellationToken cancellationToken = default)
+    public override async Task<bool> ConnectAsync(CancellationToken cancellationToken = default)
     {
         try
         {
@@ -88,7 +84,7 @@ public class CoinbaseBroker : IBroker, IDisposable
     /// <summary>
     /// Gets current balance in the specified currency
     /// </summary>
-    public async Task<decimal> GetBalanceAsync(string currency = "USD", CancellationToken cancellationToken = default)
+    public override async Task<decimal> GetBalanceAsync(string currency = "USD", CancellationToken cancellationToken = default)
     {
         await EnsureConnectedAsync(cancellationToken);
         await RateLimitAsync();
@@ -125,7 +121,7 @@ public class CoinbaseBroker : IBroker, IDisposable
     /// Gets all current positions
     /// Note: Coinbase doesn't have traditional "positions" - we track non-zero balances
     /// </summary>
-    public async Task<IEnumerable<Position>> GetPositionsAsync(CancellationToken cancellationToken = default)
+    public override async Task<IEnumerable<Position>> GetPositionsAsync(CancellationToken cancellationToken = default)
     {
         await EnsureConnectedAsync(cancellationToken);
         await RateLimitAsync();
@@ -175,7 +171,7 @@ public class CoinbaseBroker : IBroker, IDisposable
     /// <summary>
     /// Places a new order
     /// </summary>
-    public async Task<Order> PlaceOrderAsync(OrderRequest request, CancellationToken cancellationToken = default)
+    public override async Task<Order> PlaceOrderAsync(OrderRequest request, CancellationToken cancellationToken = default)
     {
         await EnsureConnectedAsync(cancellationToken);
         await RateLimitAsync();
@@ -248,7 +244,7 @@ public class CoinbaseBroker : IBroker, IDisposable
     /// <summary>
     /// Cancels an existing order
     /// </summary>
-    public async Task<Order> CancelOrderAsync(string orderId, string symbol, CancellationToken cancellationToken = default)
+    public override async Task<Order> CancelOrderAsync(string orderId, string symbol, CancellationToken cancellationToken = default)
     {
         await EnsureConnectedAsync(cancellationToken);
         await RateLimitAsync();
@@ -284,7 +280,7 @@ public class CoinbaseBroker : IBroker, IDisposable
     /// <summary>
     /// Gets the status of an existing order
     /// </summary>
-    public async Task<Order> GetOrderStatusAsync(string orderId, string symbol, CancellationToken cancellationToken = default)
+    public override async Task<Order> GetOrderStatusAsync(string orderId, string symbol, CancellationToken cancellationToken = default)
     {
         await EnsureConnectedAsync(cancellationToken);
         await RateLimitAsync();
@@ -325,7 +321,7 @@ public class CoinbaseBroker : IBroker, IDisposable
     /// <summary>
     /// Gets the current market price for a symbol
     /// </summary>
-    public async Task<decimal> GetCurrentPriceAsync(string symbol, CancellationToken cancellationToken = default)
+    public override async Task<decimal> GetCurrentPriceAsync(string symbol, CancellationToken cancellationToken = default)
     {
         await EnsureConnectedAsync(cancellationToken);
         await RateLimitAsync();
@@ -353,7 +349,7 @@ public class CoinbaseBroker : IBroker, IDisposable
     /// Sets leverage for a symbol
     /// Note: Coinbase Advanced Trade does NOT support leverage/margin trading
     /// </summary>
-    public async Task<bool> SetLeverageAsync(
+    public override async Task<bool> SetLeverageAsync(
         string symbol,
         decimal leverage,
         AlgoTrendy.Core.Enums.MarginType marginType = AlgoTrendy.Core.Enums.MarginType.Cross,
@@ -376,7 +372,7 @@ public class CoinbaseBroker : IBroker, IDisposable
     /// Gets leverage information for a symbol
     /// Note: Coinbase is spot trading only - always returns 1x leverage
     /// </summary>
-    public async Task<LeverageInfo> GetLeverageInfoAsync(string symbol, CancellationToken cancellationToken = default)
+    public override async Task<LeverageInfo> GetLeverageInfoAsync(string symbol, CancellationToken cancellationToken = default)
     {
         await Task.CompletedTask; // Suppress async warning
 
@@ -394,7 +390,7 @@ public class CoinbaseBroker : IBroker, IDisposable
     /// Gets margin health ratio for the account
     /// Note: Coinbase is spot trading only - no margin to track
     /// </summary>
-    public async Task<decimal> GetMarginHealthRatioAsync(CancellationToken cancellationToken = default)
+    public override async Task<decimal> GetMarginHealthRatioAsync(CancellationToken cancellationToken = default)
     {
         await Task.CompletedTask; // Suppress async warning
         return 1.0m; // Fully healthy (no leverage risk)
@@ -410,14 +406,14 @@ public class CoinbaseBroker : IBroker, IDisposable
 
     private async Task RateLimitAsync()
     {
-        await _rateLimiter.WaitAsync();
+        await _rateLimiterLocal.WaitAsync();
         try
         {
             await Task.Delay(MinRequestIntervalMs);
         }
         finally
         {
-            _rateLimiter.Release();
+            _rateLimiterLocal.Release();
         }
     }
 
@@ -457,7 +453,7 @@ public class CoinbaseBroker : IBroker, IDisposable
     public void Dispose()
     {
         _client = null; // CoinbaseClient doesn't implement IDisposable
-        _rateLimiter.Dispose();
+        _rateLimiterLocal.Dispose();
     }
 }
 

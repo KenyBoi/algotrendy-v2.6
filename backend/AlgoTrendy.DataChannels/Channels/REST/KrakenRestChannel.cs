@@ -10,14 +10,10 @@ namespace AlgoTrendy.DataChannels.Channels.REST;
 /// Direct C# port of v2.5 kraken.py implementation
 /// Fetches OHLCV data from Kraken REST API
 /// </summary>
-public class KrakenRestChannel : IMarketDataChannel
+public class KrakenRestChannel : RestChannelBase
 {
-    private const string BaseUrl = "https://api.kraken.com";
-    private readonly IHttpClientFactory _httpClientFactory;
-    private readonly IMarketDataRepository _marketDataRepository;
-    private readonly ILogger<KrakenRestChannel> _logger;
-    private readonly List<string> _subscribedSymbols = new();
-    private bool _isConnected;
+    protected override string BaseUrl => "https://api.kraken.com";
+    public override string ExchangeName => "kraken";
 
     // Default symbols matching v2.5 (Kraken format)
     private static readonly string[] DefaultSymbols = new[]
@@ -44,94 +40,18 @@ public class KrakenRestChannel : IMarketDataChannel
     // Kraken interval mapping (in minutes)
     private static readonly int[] ValidIntervals = { 1, 5, 15, 30, 60, 240, 1440, 10080, 21600 };
 
-    public string ExchangeName => "kraken";
-    public bool IsConnected => _isConnected;
-    public IReadOnlyList<string> SubscribedSymbols => _subscribedSymbols.AsReadOnly();
-    public DateTime? LastDataReceivedAt { get; private set; }
-    public long TotalMessagesReceived { get; private set; }
-
     public KrakenRestChannel(
         IHttpClientFactory httpClientFactory,
         IMarketDataRepository marketDataRepository,
         ILogger<KrakenRestChannel> logger)
+        : base(httpClientFactory, marketDataRepository, logger)
     {
-        _httpClientFactory = httpClientFactory ?? throw new ArgumentNullException(nameof(httpClientFactory));
-        _marketDataRepository = marketDataRepository ?? throw new ArgumentNullException(nameof(marketDataRepository));
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-    }
-
-    public async Task StartAsync(CancellationToken cancellationToken = default)
-    {
-        if (_isConnected)
-        {
-            _logger.LogWarning("Kraken channel is already connected");
-            return;
-        }
-
-        _logger.LogInformation("Starting Kraken REST channel");
-
-        // Test connection to Kraken API
-        var connected = await TestConnectionAsync(cancellationToken);
-        if (!connected)
-        {
-            throw new InvalidOperationException("Failed to connect to Kraken API");
-        }
-
-        _isConnected = true;
-        _logger.LogInformation("Connected to Kraken REST API: {Url}", BaseUrl);
-    }
-
-    public Task StopAsync(CancellationToken cancellationToken = default)
-    {
-        _logger.LogInformation("Stopping Kraken REST channel");
-        _isConnected = false;
-        _subscribedSymbols.Clear();
-        return Task.CompletedTask;
-    }
-
-    public Task SubscribeAsync(IEnumerable<string> symbols, CancellationToken cancellationToken = default)
-    {
-        if (!_isConnected)
-        {
-            throw new InvalidOperationException("Channel is not connected");
-        }
-
-        var symbolList = symbols.ToList();
-        _logger.LogInformation("Subscribing to {Count} symbols on Kraken", symbolList.Count);
-
-        _subscribedSymbols.AddRange(symbolList);
-
-        _logger.LogInformation(
-            "Subscribed to symbols: {Symbols}",
-            string.Join(", ", symbolList));
-
-        return Task.CompletedTask;
-    }
-
-    public Task UnsubscribeAsync(IEnumerable<string> symbols, CancellationToken cancellationToken = default)
-    {
-        if (!_isConnected)
-        {
-            throw new InvalidOperationException("Channel is not connected");
-        }
-
-        var symbolList = symbols.ToList();
-        _logger.LogInformation("Unsubscribing from {Count} symbols on Kraken", symbolList.Count);
-
-        foreach (var symbol in symbolList)
-        {
-            _subscribedSymbols.Remove(symbol);
-        }
-
-        _logger.LogInformation("Unsubscribed from symbols: {Symbols}", string.Join(", ", symbolList));
-
-        return Task.CompletedTask;
     }
 
     /// <summary>
     /// Test connection to Kraken API
     /// </summary>
-    private async Task<bool> TestConnectionAsync(CancellationToken cancellationToken)
+    protected override async Task<bool> TestConnectionAsync(CancellationToken cancellationToken)
     {
         try
         {

@@ -15,27 +15,20 @@ namespace AlgoTrendy.TradingEngine.Brokers;
 /// Bybit broker implementation using Bybit.Net
 /// Supports USDT perpetual futures trading (linear contracts)
 /// </summary>
-public class BybitBroker : IBroker
+public class BybitBroker : BrokerBase
 {
     private readonly BybitRestClient _client;
     private readonly BybitOptions _options;
-    private readonly ILogger<BybitBroker> _logger;
-    private bool _isConnected = false;
 
-    // Rate limiting (Bybit: 10 orders/second for futures)
-    private readonly SemaphoreSlim _rateLimiter = new(10, 10);
-    private readonly Dictionary<string, DateTime> _lastRequestTime = new();
-    private readonly object _requestTimeLock = new();
-    private const int MinRequestIntervalMs = 100; // 100ms = 10 requests/second
+    protected override int MinRequestIntervalMs => 100; // 100ms = 10 requests/second
 
-    public string BrokerName => "bybit";
+    public override string BrokerName => "bybit";
 
     public BybitBroker(
         IOptions<BybitOptions> options,
-        ILogger<BybitBroker> logger)
+        ILogger<BybitBroker> logger) : base(logger, 10)
     {
         _options = options?.Value ?? throw new ArgumentNullException(nameof(options));
-        _logger = logger ?? throw new ArgumentNullException(nameof(options));
 
         // Configure testnet/production environment
         if (_options.UseTestnet)
@@ -65,7 +58,7 @@ public class BybitBroker : IBroker
     /// <summary>
     /// Connects to Bybit API and verifies credentials
     /// </summary>
-    public async Task<bool> ConnectAsync(CancellationToken cancellationToken = default)
+    public override async Task<bool> ConnectAsync(CancellationToken cancellationToken = default)
     {
         try
         {
@@ -106,7 +99,7 @@ public class BybitBroker : IBroker
     /// <summary>
     /// Gets account balance for USDT (Unified Trading Account)
     /// </summary>
-    public async Task<decimal> GetBalanceAsync(string currency = "USDT", CancellationToken cancellationToken = default)
+    public override async Task<decimal> GetBalanceAsync(string currency = "USDT", CancellationToken cancellationToken = default)
     {
         EnsureConnected();
 
@@ -158,7 +151,7 @@ public class BybitBroker : IBroker
     /// <summary>
     /// Gets all active positions for USDT perpetual futures
     /// </summary>
-    public async Task<IEnumerable<Position>> GetPositionsAsync(CancellationToken cancellationToken = default)
+    public override async Task<IEnumerable<Position>> GetPositionsAsync(CancellationToken cancellationToken = default)
     {
         EnsureConnected();
 
@@ -213,7 +206,7 @@ public class BybitBroker : IBroker
     /// <summary>
     /// Places an order on Bybit (USDT perpetual futures)
     /// </summary>
-    public async Task<Order> PlaceOrderAsync(OrderRequest request, CancellationToken cancellationToken = default)
+    public override async Task<Order> PlaceOrderAsync(OrderRequest request, CancellationToken cancellationToken = default)
     {
         EnsureConnected();
 
@@ -291,7 +284,7 @@ public class BybitBroker : IBroker
     /// <summary>
     /// Cancels an active order
     /// </summary>
-    public async Task<Order> CancelOrderAsync(string orderId, string symbol, CancellationToken cancellationToken = default)
+    public override async Task<Order> CancelOrderAsync(string orderId, string symbol, CancellationToken cancellationToken = default)
     {
         EnsureConnected();
 
@@ -343,7 +336,7 @@ public class BybitBroker : IBroker
     /// <summary>
     /// Gets the current status of an order
     /// </summary>
-    public async Task<Order> GetOrderStatusAsync(string orderId, string symbol, CancellationToken cancellationToken = default)
+    public override async Task<Order> GetOrderStatusAsync(string orderId, string symbol, CancellationToken cancellationToken = default)
     {
         EnsureConnected();
 
@@ -392,7 +385,7 @@ public class BybitBroker : IBroker
     /// <summary>
     /// Gets current market price for a symbol
     /// </summary>
-    public async Task<decimal> GetCurrentPriceAsync(string symbol, CancellationToken cancellationToken = default)
+    public override async Task<decimal> GetCurrentPriceAsync(string symbol, CancellationToken cancellationToken = default)
     {
         EnsureConnected();
 
@@ -426,7 +419,7 @@ public class BybitBroker : IBroker
     /// <summary>
     /// Sets leverage for a symbol
     /// </summary>
-    public async Task<bool> SetLeverageAsync(
+    public override async Task<bool> SetLeverageAsync(
         string symbol,
         decimal leverage,
         MarginType marginType = MarginType.Cross,
@@ -456,7 +449,7 @@ public class BybitBroker : IBroker
     /// <summary>
     /// Gets current leverage information for a symbol
     /// </summary>
-    public async Task<LeverageInfo> GetLeverageInfoAsync(string symbol, CancellationToken cancellationToken = default)
+    public override async Task<LeverageInfo> GetLeverageInfoAsync(string symbol, CancellationToken cancellationToken = default)
     {
         EnsureConnected();
 
@@ -498,7 +491,7 @@ public class BybitBroker : IBroker
     /// <summary>
     /// Gets margin health ratio (maintenance margin / total equity)
     /// </summary>
-    public async Task<decimal> GetMarginHealthRatioAsync(CancellationToken cancellationToken = default)
+    public override async Task<decimal> GetMarginHealthRatioAsync(CancellationToken cancellationToken = default)
     {
         EnsureConnected();
 
@@ -538,42 +531,6 @@ public class BybitBroker : IBroker
     }
 
     #region Helper Methods
-
-    private void EnsureConnected()
-    {
-        if (!_isConnected)
-        {
-            throw new InvalidOperationException("Not connected to Bybit. Call ConnectAsync first.");
-        }
-    }
-
-    private async Task EnforceRateLimitAsync(string symbol, CancellationToken cancellationToken)
-    {
-        await _rateLimiter.WaitAsync(cancellationToken);
-
-        try
-        {
-            lock (_requestTimeLock)
-            {
-                if (_lastRequestTime.TryGetValue(symbol, out var lastTime))
-                {
-                    var timeSinceLastRequest = (DateTime.UtcNow - lastTime).TotalMilliseconds;
-                    var waitTime = MinRequestIntervalMs - timeSinceLastRequest;
-
-                    if (waitTime > 0)
-                    {
-                        Task.Delay((int)waitTime, cancellationToken).Wait(cancellationToken);
-                    }
-                }
-
-                _lastRequestTime[symbol] = DateTime.UtcNow;
-            }
-        }
-        finally
-        {
-            _rateLimiter.Release();
-        }
-    }
 
     private static Core.Enums.OrderStatus MapOrderStatus(string bybitStatus)
     {

@@ -14,6 +14,7 @@
 | **📋 Planning** | Roadmaps, remediation plans, TODO trees | [`/planning`](./planning/) |
 | **🏦 Brokers** | Broker integration guides | [`/brokers`](./brokers/) |
 | **📊 Data Providers** | Data channel documentation | [`/data`](./data/) |
+| **🚀 QuantConnect** | Cloud backtesting + MEM AI integration | [`../QUANTCONNECT_MEM_INTEGRATION.md`](../QUANTCONNECT_MEM_INTEGRATION.md) |
 | **📈 Status Reports** | Current status of various components | [`/status`](./status/) |
 | **🧪 Testing** | Testing guides and strategies | [`/testing`](./testing/) |
 | **🔒 Security** | Security documentation | [`/security`](./security/) |
@@ -37,9 +38,10 @@
 
 ### For Backend Developers
 1. **[Architecture Overview](./architecture/PROJECT_OVERVIEW.md)** - System architecture
-2. **[Broker Integrations](./brokers/)** - Supported brokers
-3. **[Data Providers](./data/)** - Market data sources
-4. **[Implementation Guides](./implementation/)** - Technical implementation
+2. **[QuantConnect Integration](../QUANTCONNECT_MEM_INTEGRATION.md)** - Cloud backtesting + MEM AI ✅ NEW
+3. **[Broker Integrations](./brokers/)** - Supported brokers
+4. **[Data Providers](./data/)** - Market data sources
+5. **[Implementation Guides](./implementation/)** - Technical implementation
 
 ### For Project Managers
 1. **[Project Status](./status/BROKER_IMPLEMENTATION_STATUS.md)** - Current status
@@ -149,6 +151,9 @@ docs/
 **Add a new broker:**
 → See [`/brokers/`](./brokers/) and [`/planning/FINAL_BROKER_EXPANSION_PLAN.md`](./planning/FINAL_BROKER_EXPANSION_PLAN.md)
 
+**Run cloud backtests with AI analysis:**
+→ See [`../QUANTCONNECT_MEM_INTEGRATION.md`](../QUANTCONNECT_MEM_INTEGRATION.md) ✅ NEW
+
 **Check project status:**
 → See [`/status/`](./status/)
 
@@ -184,6 +189,7 @@ docs/
 
 | Date | Update | Files |
 |------|--------|-------|
+| 2025-10-20 | QuantConnect + MEM AI integration | `QUANTCONNECT_MEM_INTEGRATION.md` |
 | 2025-10-20 | Created API documentation for frontend | `/api/*` |
 | 2025-10-20 | Added domain deployment guide | `/deployment/DOMAIN_DEPLOYMENT_GUIDE.md` |
 | 2025-10-20 | Organized documentation structure | All folders |
@@ -206,6 +212,7 @@ docs/
 | API Documentation | ✅ Complete | 3 comprehensive guides |
 | Deployment | ✅ Complete | Docker, DNS, domain setup |
 | Architecture | ✅ Complete | Overview, diagrams, features |
+| QuantConnect Integration | ✅ Complete | Cloud backtesting + MEM AI |
 | Planning | ✅ Complete | Roadmaps, plans, TODOs |
 | Brokers | ⚠️ Partial | Some integrations documented |
 | Data Providers | ⚠️ Partial | In progress |
