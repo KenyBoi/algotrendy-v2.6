@@ -1,7 +1,7 @@
 yfinance==0.2.40
 flask==3.0.3
 fredapi==0.5.2
-pandas==2.2.2
+pandas==2.3.3
 numpy==1.26.4
 joblib==1.4.2
 scikit-learn==1.5.2
