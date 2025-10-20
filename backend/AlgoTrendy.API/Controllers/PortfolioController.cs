@@ -614,7 +614,7 @@ public class ClosePositionRequest
     /// </summary>
     [System.ComponentModel.DataAnnotations.Required(ErrorMessage = "Reason is required")]
     [System.ComponentModel.DataAnnotations.StringLength(500, MinimumLength = 3, ErrorMessage = "Reason must be between 3 and 500 characters")]
-    [System.ComponentModel.DataAnnotations.RegularExpression(@"^[a-zA-Z0-9\s,.\-_()]+$", ErrorMessage = "Reason contains invalid characters")]
+    [System.ComponentModel.DataAnnotations.RegularExpression(@"^[a-zA-Z0-9\s,.\-_():%]+$", ErrorMessage = "Reason contains invalid characters")]
     public required string Reason { get; set; }
 }
 
