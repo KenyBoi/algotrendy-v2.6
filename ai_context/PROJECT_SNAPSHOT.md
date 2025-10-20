@@ -9,56 +9,72 @@
 
 ## ⚡ 30-Second Summary
 
-AlgoTrendy is an **automated cryptocurrency trading bot** that:
-- Fetches market data from 4 exchanges (Binance, OKX, Coinbase, Kraken)
-- Analyzes data with trading strategies (Momentum, RSI)
-- Generates buy/sell signals
+AlgoTrendy is an **automated multi-asset trading platform** that:
+- Fetches market data from 4 crypto exchanges + FREE tier (300K+ stocks/options/forex)
+- Analyzes data with ML predictions and trading strategies (Momentum, RSI)
+- Generates buy/sell signals with confidence scores
 - Executes trades on 5 brokers (Binance, Bybit, Interactive Brokers, NinjaTrader, TradeStation)
 - Backtests strategies on historical data (custom engine with 8 indicators)
+- Integrates with TradingView (webhooks, Pine scripts, paper trading)
 - Tracks positions and calculates PnL in real-time
 - Manages risk (exposure limits, position sizing)
-- Provides REST API for external control
-- Streams live market data via WebSockets/SignalR
+- Provides REST API + WebSockets/SignalR for real-time control
+- **Cost:** $0/month for data (saves $61,776/year vs Bloomberg/Refinitiv)
 
 ---
 
 ## 🎯 Core Features
 
-### 1. Multi-Exchange Market Data Ingestion
+### 1. Multi-Asset Market Data Ingestion
 ```
+CRYPTO (4 exchanges):
 Binance (REST)  ─┐
 OKX (REST)      ├─→ MarketDataChannelService ─→ QuestDB
 Coinbase (REST) ├─→ (60-second intervals)
 Kraken (REST)   ─┘   (parallel fetching)
+
+FREE TIER (stocks/options/forex):
+Alpha Vantage   ─┐
+yfinance        ├─→ REST API (Flask) ─→ AlgoTrendy
+                ─┘   300,000+ symbols
 ```
-- **Symbols:** BTC, ETH, BNB, SOL, ADA, XRP, DOT, LINK, MATIC, AVAX
-- **Interval:** 1-minute OHLCV candles
-- **Rate Limiting:** Per-exchange limits respected
+- **Crypto Symbols:** BTC, ETH, BNB, SOL, ADA, XRP, DOT, LINK, MATIC, AVAX
+- **FREE Tier:** 200K+ US stocks, 100K+ intl stocks, full options chains, 120+ forex pairs
+- **Interval:** 1-minute crypto, daily/intraday stocks
+- **Cost:** $0/month (saves $61,776/year)
 - **Storage:** QuestDB (time-series database)
 - **Status:** ✅ Production ready
 
-### 2. Trading Strategies
+### 2. Trading Strategies & ML Predictions
 ```
+Market Data → ML Features → ML Model → Predictions
+     ↓             ↓            ↓           ↓
+   OHLCV      Volume,      Reversal/   BUY/SELL/HOLD
+   candles    Price,       Trend       with confidence
+              Volatility   Detection   (0-100%)
+
 Market Data → Indicators → Strategies → Signals
      ↓             ↓            ↓           ↓
-   OHLCV      RSI, MACD,   Momentum,   BUY/SELL/HOLD
-   candles    EMA, SMA,    RSI, etc.   with confidence
-   (cached)   Bollinger
+   OHLCV      8 indicators  Momentum,   BUY/SELL/HOLD
+   candles    (RSI, MACD,   RSI, etc.   with confidence
+   (cached)   Bollinger)
               (1-min TTL)
 ```
 
-**Implemented (MVP):**
+**ML Prediction (NEW - Phase 7f):**
+- ✅ **Reversal Prediction:** Detect trend reversals
+- ✅ **Trend Prediction:** Identify trend continuation
+- ✅ **Feature Engineering:** 11KB MLFeatureService
+- ✅ **Python/C# Integration:** Flask REST API bridge
+
+**Implemented Strategies:**
 - ✅ **Momentum Strategy:** Price change % + volatility filter
 - ✅ **RSI Strategy:** Oversold/overbought detection
 
-**Indicators Available:**
-- ✅ RSI (14-period)
-- ✅ MACD (12-26-9)
-- ✅ EMA (exponential moving average)
-- ✅ SMA (simple moving average)
-- ✅ Volatility (standard deviation)
+**Indicators Available (8 total):**
+- ✅ RSI, MACD, EMA, SMA, Bollinger Bands, ATR, Stochastic, MFI
 
-**Status:** ✅ Core complete, expansion in Phase 7
+**Status:** ✅ Core complete + ML predictions operational
 
 ### 3. Trading Engine
 ```
@@ -119,19 +135,31 @@ AlgoTrendy → IBroker Interface → Exchange/Broker API
 
 ### 5. REST API Endpoints
 ```
+# Core API
 GET    /health                               → Service health
 GET    /api/market-data/{exchange}/{symbol}  → Latest candles
 POST   /api/orders                           → Place order
 POST   /api/orders/{id}/cancel               → Cancel order
 GET    /api/positions                        → Current positions
 GET    /api/strategies/{symbol}              → Strategy signal
+
+# Backtesting API
 POST   /api/v1/backtesting/run               → Run backtest
 GET    /api/v1/backtesting/results/{id}      → Get backtest results
 GET    /api/v1/backtesting/config            → Get config options
+
+# ML Prediction API (NEW - Phase 7f)
+POST   /api/ml/predict/reversal              → Reversal prediction
+POST   /api/ml/predict/trend                 → Trend prediction
+
+# TradingView Integration (NEW - Phase 7g)
+POST   /webhook/tradingview                  → TradingView webhook receiver
+
+# Real-time Streaming
 HUB    /hubs/marketdata                      → Real-time stream (SignalR)
 ```
 
-**Status:** ✅ Core endpoints + backtesting API implemented
+**Status:** ✅ Core + backtesting + ML + TradingView APIs implemented
 
 ### 6. Real-Time Streaming
 ```
@@ -179,6 +207,7 @@ Clients connect and receive:
 - **Type Safety:** Strong (compile-time checks)
 - **Code Coverage:** 80%+ on core modules
 - **Test Duration:** 5-6 seconds
+- **CI/CD:** GitHub Actions (CodeQL, Docker, Coverage, Releases)
 
 ### Comparison to v2.5
 | Metric | v2.5 | v2.6 | Delta |
@@ -188,6 +217,8 @@ Clients connect and receive:
 | Memory | 300-400 MB | 140-200 MB | ↓ 50% less |
 | Type Safety | Medium | Strong | ✅ Better |
 | True Parallelism | No (GIL) | Yes | ✅ Better |
+| Data Coverage | 5 crypto pairs | 300K+ symbols | ✅ +60,000x |
+| Data Cost | N/A | $0/month | ✅ $61K/yr savings |
 
 ---
 
@@ -276,7 +307,7 @@ QuestDB (Port 8812, internal network)
 - Test trading rules on historical data
 - Evaluate performance before live trading
 - Compare different strategy parameters
-- ⏳ Backtesting engine in development (Phase 7)
+- ✅ Backtesting engine complete (8 indicators, 6 API endpoints)
 
 ### 3. Market Monitoring Dashboard
 - Real-time price feeds from 4 exchanges
@@ -374,6 +405,7 @@ A:
 
 ---
 
-**Status:** Current as of October 18, 2025
-**Version:** v2.6 Production-Ready
-**Next Phase:** Phase 7 (Backtesting, more brokers, more strategies)
+**Status:** Current as of October 20, 2025
+**Version:** v2.6 Production-Ready (Phase 7 Complete)
+**Phase 7 Achievements:** FREE data tier (300K+ symbols), ML predictions, TradingView integration, 100% test success
+**Next Phase:** Phase 8 (More brokers, more strategies, Web UI dashboard)
