@@ -1,3 +1,4 @@
+using AlgoTrendy.Backtesting.Engines;
 using AlgoTrendy.Backtesting.Indicators;
 using AlgoTrendy.Backtesting.Models;
 using AlgoTrendy.Backtesting.Services;
@@ -14,14 +15,17 @@ namespace AlgoTrendy.API.Controllers;
 public class BacktestingController : ControllerBase
 {
     private readonly IBacktestService _backtestService;
+    private readonly BacktestEngineFactory? _engineFactory;
     private readonly ILogger<BacktestingController> _logger;
 
     public BacktestingController(
         IBacktestService backtestService,
-        ILogger<BacktestingController> logger)
+        ILogger<BacktestingController> logger,
+        BacktestEngineFactory? engineFactory = null)
     {
         _backtestService = backtestService ?? throw new ArgumentNullException(nameof(backtestService));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        _engineFactory = engineFactory; // Optional - may be null if not configured
     }
 
     /// <summary>
@@ -205,4 +209,105 @@ public class BacktestingController : ControllerBase
             return StatusCode(500, "An error occurred while deleting the backtest");
         }
     }
+
+    /// <summary>
+    /// Get available backtest engines (Cloud, Local LEAN, Custom)
+    /// </summary>
+    /// <returns>List of available engines with their availability status</returns>
+    [HttpGet("engines")]
+    [ProducesResponseType(typeof(List<object>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    public ActionResult GetAvailableEngines()
+    {
+        try
+        {
+            _logger.LogInformation("Fetching available backtest engines");
+
+            if (_engineFactory == null)
+            {
+                return Ok(new List<object>
+                {
+                    new { name = "Custom", description = "AlgoTrendy built-in engine", available = true }
+                });
+            }
+
+            var engines = _engineFactory.GetAvailableEngines()
+                .Select(e => new
+                {
+                    name = e.Name,
+                    description = e.Description,
+                    available = e.Available
+                })
+                .ToList();
+
+            return Ok(engines);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error fetching available engines");
+            return StatusCode(500, "An error occurred while fetching engines");
+        }
+    }
+
+    /// <summary>
+    /// Run backtest with specific engine selection
+    /// </summary>
+    /// <param name="request">Backtest request with engine type</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Backtest results</returns>
+    [HttpPost("run/with-engine")]
+    [ProducesResponseType(typeof(BacktestResults), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    public async Task<ActionResult<BacktestResults>> RunWithEngineAsync(
+        [FromBody] BacktestWithEngineRequest request,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            if (request?.Config == null)
+                return BadRequest("Backtest configuration is required");
+
+            if (_engineFactory == null)
+                return BadRequest("Engine selection is not available - using default engine via /run endpoint");
+
+            _logger.LogInformation(
+                "Running backtest for {Symbol} with engine: {Engine}",
+                request.Config.Symbol, request.EngineType);
+
+            var engine = _engineFactory.GetEngine(request.EngineType);
+            var results = await engine.RunAsync(request.Config, cancellationToken);
+
+            _logger.LogInformation("Backtest completed: {BacktestId} using {Engine}",
+                results.BacktestId, engine.EngineName);
+
+            return Ok(results);
+        }
+        catch (OperationCanceledException)
+        {
+            _logger.LogWarning("Backtest was cancelled");
+            return StatusCode(499, "Backtest was cancelled");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error running backtest with engine");
+            return StatusCode(500, $"An error occurred while running the backtest: {ex.Message}");
+        }
+    }
+}
+
+/// <summary>
+/// Request model for running backtest with specific engine
+/// </summary>
+public class BacktestWithEngineRequest
+{
+    /// <summary>
+    /// Backtest configuration
+    /// </summary>
+    public required BacktestConfig Config { get; set; }
+
+    /// <summary>
+    /// Engine type to use (Cloud, Local, Custom, Auto)
+    /// </summary>
+    public BacktestEngineType EngineType { get; set; } = BacktestEngineType.Auto;
 }

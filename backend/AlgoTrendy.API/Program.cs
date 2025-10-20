@@ -163,9 +163,9 @@ builder.Services.AddSingleton<AlgoTrendy.Core.Services.TotpService>(sp =>
 builder.Services.AddScoped<AlgoTrendy.Core.Services.MfaService>();
 
 // Portfolio Optimization and Risk Analytics Services
-// NOTE: Temporarily commented out - missing IMarketDataProvider registration
-// builder.Services.AddScoped<IPortfolioOptimizationService, AlgoTrendy.TradingEngine.Services.PortfolioOptimizationService>();
-// builder.Services.AddScoped<IRiskAnalyticsService, AlgoTrendy.TradingEngine.Services.RiskAnalyticsService>();
+// Enabled now that IMarketDataProvider is registered
+builder.Services.AddScoped<IPortfolioOptimizationService, AlgoTrendy.TradingEngine.Services.PortfolioOptimizationService>();
+builder.Services.AddScoped<IRiskAnalyticsService, AlgoTrendy.TradingEngine.Services.RiskAnalyticsService>();
 
 // Register market data providers with factory functions
 builder.Services.AddScoped<AlgoTrendy.DataChannels.Providers.AlphaVantageProvider>(sp =>
@@ -184,6 +184,10 @@ builder.Services.AddScoped<AlgoTrendy.DataChannels.Providers.YFinanceProvider>(s
     return new AlgoTrendy.DataChannels.Providers.YFinanceProvider(httpClient, logger, serviceUrl);
 });
 
+// Register default IMarketDataProvider for backtesting and analytics (use YFinance as default)
+builder.Services.AddScoped<IMarketDataProvider>(sp =>
+    sp.GetRequiredService<AlgoTrendy.DataChannels.Providers.YFinanceProvider>());
+
 // Register all market data channels as scoped services
 builder.Services.AddScoped<BinanceRestChannel>();
 builder.Services.AddScoped<OKXRestChannel>();
@@ -195,9 +199,10 @@ builder.Services.AddScoped<KrakenRestChannel>();
 // builder.Services.AddScoped<FuturesDataChannel>();
 
 // Register backtesting services
-// NOTE: Temporarily commented out - CustomBacktestEngine requires IMarketDataProvider
+// NOTE: CustomBacktestEngine intentionally disabled - requires accuracy verification before use
+// Use QuantConnect engine for production backtesting (requires credentials)
 // builder.Services.AddScoped<IBacktestEngine, CustomBacktestEngine>();
-// builder.Services.AddScoped<IBacktestService, BacktestService>();
+builder.Services.AddScoped<IBacktestService, BacktestService>();
 
 // Configure and register QuantConnect services
 builder.Services.Configure<AlgoTrendy.Backtesting.Services.QuantConnectConfig>(options =>
@@ -217,6 +222,48 @@ builder.Services.Configure<AlgoTrendy.Backtesting.Services.QuantConnectConfig>(o
 builder.Services.AddHttpClient<IQuantConnectApiClient, QuantConnectApiClient>();
 builder.Services.AddScoped<QuantConnectBacktestEngine>();
 builder.Services.AddScoped<IMEMIntegrationService, MEMIntegrationService>();
+
+// Configure and register Local LEAN engine
+builder.Services.Configure<AlgoTrendy.Backtesting.Engines.LocalLeanConfig>(options =>
+{
+    options.AlgorithmsPath = builder.Configuration["LocalLEAN:AlgorithmsPath"]
+        ?? Environment.GetEnvironmentVariable("LEAN_ALGORITHMS_PATH")
+        ?? "/tmp/algotrendy/lean/algorithms";
+    options.ResultsPath = builder.Configuration["LocalLEAN:ResultsPath"]
+        ?? Environment.GetEnvironmentVariable("LEAN_RESULTS_PATH")
+        ?? "/tmp/algotrendy/lean/results";
+    options.DataPath = builder.Configuration["LocalLEAN:DataPath"]
+        ?? Environment.GetEnvironmentVariable("LEAN_DATA_PATH")
+        ?? "/tmp/algotrendy/lean/data";
+    options.ContainerName = builder.Configuration["LocalLEAN:ContainerName"]
+        ?? "algotrendy-lean";
+    options.ImageName = builder.Configuration["LocalLEAN:ImageName"]
+        ?? "algotrendy/lean:latest";
+    options.MaxExecutionMinutes = builder.Configuration.GetValue<int>("LocalLEAN:MaxExecutionMinutes", 30);
+    options.Enabled = builder.Configuration.GetValue<bool>("LocalLEAN:Enabled", true);
+});
+
+builder.Services.AddScoped<LocalLeanBacktestEngine>();
+
+// Configure and register Backtest Engine Factory
+builder.Services.Configure<AlgoTrendy.Backtesting.Engines.BacktestEngineConfig>(options =>
+{
+    var engineType = builder.Configuration["Backtest:DefaultEngine"]
+        ?? Environment.GetEnvironmentVariable("BACKTEST_ENGINE")
+        ?? "auto";
+
+    options.DefaultEngine = engineType.ToLower() switch
+    {
+        "cloud" => AlgoTrendy.Backtesting.Engines.BacktestEngineType.Cloud,
+        "local" => AlgoTrendy.Backtesting.Engines.BacktestEngineType.Local,
+        "custom" => AlgoTrendy.Backtesting.Engines.BacktestEngineType.Custom,
+        _ => AlgoTrendy.Backtesting.Engines.BacktestEngineType.Auto
+    };
+
+    options.AllowCloudFallback = builder.Configuration.GetValue<bool>("Backtest:AllowCloudFallback", true);
+});
+
+builder.Services.AddScoped<BacktestEngineFactory>();
 
 // Configure and register Finnhub service for cryptocurrency market data
 builder.Services.Configure<FinnhubSettings>(options =>

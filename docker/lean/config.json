@@ -1,0 +1,50 @@
+{
+  "algorithm-type-name": "BasicTemplateAlgorithm",
+  "algorithm-language": "CSharp",
+  "algorithm-location": "/algorithms/Main.cs",
+
+  "data-folder": "/data",
+  "data-directory": "/data",
+  "cache-location": "/data",
+  "results-destination-folder": "/results",
+
+  "debugging": false,
+  "debugging-method": "LocalCmdline",
+  "log-handler": "CompositeLogHandler",
+
+  "messaging-handler": "QuantConnect.Messaging.Messaging",
+  "job-queue-handler": "QuantConnect.Queues.JobQueue",
+  "api-handler": "QuantConnect.Api.Api",
+  "map-file-provider": "QuantConnect.Data.Auxiliary.LocalDiskMapFileProvider",
+  "factor-file-provider": "QuantConnect.Data.Auxiliary.LocalDiskFactorFileProvider",
+  "data-provider": "QuantConnect.Lean.Engine.DataFeeds.DefaultDataProvider",
+  "alpha-handler": "QuantConnect.Lean.Engine.Alphas.DefaultAlphaHandler",
+  "data-channel-provider": "DataChannelProvider",
+
+  "environments": {
+    "backtesting": {
+      "live-mode": false,
+      "setup-handler": "QuantConnect.Lean.Engine.Setup.ConsoleSetupHandler",
+      "result-handler": "QuantConnect.Lean.Engine.Results.BacktestingResultHandler",
+      "data-feed-handler": "QuantConnect.Lean.Engine.DataFeeds.FileSystemDataFeed",
+      "real-time-handler": "QuantConnect.Lean.Engine.RealTime.BacktestingRealTimeHandler",
+      "history-provider": "QuantConnect.Lean.Engine.HistoricalData.SubscriptionDataReaderHistoryProvider",
+      "transaction-handler": "QuantConnect.Lean.Engine.TransactionHandlers.BacktestingTransactionHandler"
+    }
+  },
+
+  "close-automatically": true,
+  "maximum-warmup-history-days": 5,
+  "maximum-chart-series": 30,
+
+  "force-exchange-always-open": false,
+  "backtesting-data-type": "Tick",
+  "show-missing-data-logs": true,
+
+  "api-access-token": "",
+  "job-user-id": "0",
+  "api-url": "https://www.quantconnect.com/api/v2/",
+
+  "job-organization-id": "",
+  "job-project-id": 0
+}

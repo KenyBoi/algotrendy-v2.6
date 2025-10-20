@@ -27,6 +27,12 @@ volumes:
     driver: local
   ml_logs:
     driver: local
+  lean_algorithms:
+    driver: local
+  lean_results:
+    driver: local
+  lean_data:
+    driver: local
 
 services:
   # ==========================================================================
@@ -98,6 +104,35 @@ services:
       options:
         max-size: "10m"
         max-file: "3"
+
+  # ==========================================================================
+  # LEAN Engine - Local Backtesting (Optional)
+  # ==========================================================================
+  # Uncomment this service to enable local LEAN backtesting
+  # Note: This is OPTIONAL - backtesting works without it (using Cloud or Custom engine)
+  #
+  # lean:
+  #   build:
+  #     context: ./docker/lean
+  #     dockerfile: Dockerfile
+  #   image: algotrendy/lean:latest
+  #   container_name: algotrendy-lean
+  #   restart: "no"  # Only runs on-demand, not persistent
+  #   networks:
+  #     algotrendy-network:
+  #       ipv4_address: 172.20.0.60
+  #   volumes:
+  #     - lean_algorithms:/algorithms
+  #     - lean_results:/results
+  #     - lean_data:/data
+  #   environment:
+  #     - JOB_USER_ID=0
+  #     - API_ACCESS_TOKEN=
+  #   logging:
+  #     driver: "json-file"
+  #     options:
+  #       max-size: "10m"
+  #       max-file: "3"
 
   # ==========================================================================
   # AlgoTrendy API - .NET 8 Application
