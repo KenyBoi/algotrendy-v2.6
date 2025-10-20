@@ -1,0 +1,382 @@
+using AlgoTrendy.Core.Enums;
+using AlgoTrendy.Core.Interfaces;
+using AlgoTrendy.Core.Models;
+using Alpaca.Markets;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
+
+namespace AlgoTrendy.TradingEngine.Brokers;
+
+/// <summary>
+/// Alpaca broker implementation for stocks and options trading
+/// Supports: Stocks, Options, Crypto (via Alpaca Crypto)
+/// </summary>
+public class AlpacaBroker : IBroker
+{
+    private IAlpacaTradingClient? _tradingClient;
+    private IAlpacaDataClient? _dataClient;
+    private readonly AlpacaOptions _options;
+    private readonly ILogger<AlpacaBroker> _logger;
+    private bool _isConnected = false;
+
+    // Rate limiting (Alpaca: 200 requests/minute)
+    private readonly SemaphoreSlim _rateLimiter = new(10, 10);
+    private readonly Dictionary<string, DateTime> _lastRequestTime = new();
+    private readonly object _requestTimeLock = new();
+    private const int MinRequestIntervalMs = 300; // ~200 requests/minute
+
+    public string BrokerName => "alpaca";
+
+    public AlpacaBroker(
+        IOptions<AlpacaOptions> options,
+        ILogger<AlpacaBroker> logger)
+    {
+        _options = options?.Value ?? throw new ArgumentNullException(nameof(options));
+        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+    }
+
+    /// <summary>
+    /// Gets or initializes the Alpaca clients (lazy initialization)
+    /// </summary>
+    private void InitializeClients()
+    {
+        if (_tradingClient == null)
+        {
+            var environment = _options.UsePaper ? Environments.Paper : Environments.Live;
+
+            var secretKey = new SecretKey(_options.ApiKey, _options.ApiSecret);
+
+            _tradingClient = environment.GetAlpacaTradingClient(secretKey);
+            _dataClient = environment.GetAlpacaDataClient(secretKey);
+
+            _logger.LogInformation(
+                "Alpaca clients initialized for {Environment} environment",
+                _options.UsePaper ? "PAPER" : "LIVE");
+        }
+    }
+
+    /// <summary>
+    /// Connects to Alpaca API and verifies credentials
+    /// </summary>
+    public async Task<bool> ConnectAsync(CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            _logger.LogInformation("Connecting to Alpaca ({Environment})...",
+                _options.UsePaper ? "Paper" : "Live");
+
+            InitializeClients();
+
+            // Test connection by getting account info
+            var account = await _tradingClient!.GetAccountAsync(cancellationToken);
+
+            _isConnected = true;
+            _logger.LogInformation(
+                "Connected to Alpaca successfully. Account: {Status}, Equity: ${Equity}, Buying Power: ${BuyingPower}",
+                account.Status,
+                account.Equity,
+                account.BuyingPower);
+
+            return true;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to connect to Alpaca");
+            return false;
+        }
+    }
+
+    /// <summary>
+    /// Gets current balance in the specified currency
+    /// </summary>
+    public async Task<decimal> GetBalanceAsync(string currency = "USD")
+    {
+        await EnsureConnectedAsync();
+        await RateLimitAsync("GetBalance");
+
+        try
+        {
+            var account = await _tradingClient!.GetAccountAsync();
+            return account.Equity; // Total equity including positions
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to get balance");
+            return 0m;
+        }
+    }
+
+    /// <summary>
+    /// Gets all current positions
+    /// </summary>
+    public async Task<IEnumerable<Position>> GetPositionsAsync()
+    {
+        await EnsureConnectedAsync();
+        await RateLimitAsync("GetPositions");
+
+        try
+        {
+            var alpacaPositions = await _tradingClient!.ListPositionsAsync();
+            var positions = new List<Position>();
+
+            foreach (var pos in alpacaPositions)
+            {
+                positions.Add(new Position
+                {
+                    Symbol = pos.Symbol,
+                    Size = pos.Quantity,
+                    Side = pos.Side == PositionSide.Long ? "buy" : "sell",
+                    EntryPrice = pos.AverageEntryPrice,
+                    CurrentPrice = pos.AssetCurrentPrice ?? pos.AverageEntryPrice,
+                    UnrealizedPnl = pos.UnrealizedProfitLoss ?? 0m,
+                    RealizedPnl = 0m, // Alpaca doesn't provide this per position
+                    Leverage = 1m, // Alpaca stocks are cash account (no leverage by default)
+                    Broker = BrokerName
+                });
+            }
+
+            return positions;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to get positions");
+            return Array.Empty<Position>();
+        }
+    }
+
+    /// <summary>
+    /// Places a new order
+    /// </summary>
+    public async Task<Order> PlaceOrderAsync(OrderRequest request)
+    {
+        await EnsureConnectedAsync();
+        await RateLimitAsync($"PlaceOrder_{request.Symbol}");
+
+        try
+        {
+            _logger.LogInformation(
+                "Placing {OrderType} {Side} order: {Symbol} x {Quantity}",
+                request.Type, request.Side, request.Symbol, request.Quantity);
+
+            var orderSide = request.Side.ToLowerInvariant() == "buy"
+                ? OrderSide.Buy
+                : OrderSide.Sell;
+
+            IOrder alpacaOrder;
+
+            if (request.Type == OrderType.Market)
+            {
+                alpacaOrder = await _tradingClient!.PostOrderAsync(
+                    MarketOrder.Buy(request.Symbol, OrderQuantity.Fractional(request.Quantity)));
+            }
+            else if (request.Type == OrderType.Limit && request.Price.HasValue)
+            {
+                alpacaOrder = await _tradingClient!.PostOrderAsync(
+                    LimitOrder.Buy(request.Symbol, OrderQuantity.Fractional(request.Quantity), request.Price.Value));
+            }
+            else if (request.Type == OrderType.StopLoss && request.StopPrice.HasValue)
+            {
+                alpacaOrder = await _tradingClient!.PostOrderAsync(
+                    StopOrder.Sell(request.Symbol, OrderQuantity.Fractional(request.Quantity), request.StopPrice.Value));
+            }
+            else
+            {
+                throw new ArgumentException($"Unsupported order type: {request.Type}");
+            }
+
+            _logger.LogInformation("Order placed successfully: {OrderId}", alpacaOrder.OrderId);
+
+            return new Order
+            {
+                OrderId = alpacaOrder.OrderId.ToString(),
+                Symbol = alpacaOrder.Symbol,
+                Side = alpacaOrder.OrderSide == OrderSide.Buy ? "buy" : "sell",
+                Type = MapOrderType(alpacaOrder.OrderType),
+                Quantity = alpacaOrder.Quantity ?? 0m,
+                Price = alpacaOrder.LimitPrice,
+                Status = MapOrderStatus(alpacaOrder.OrderStatus),
+                FilledQuantity = alpacaOrder.FilledQuantity ?? 0m,
+                Timestamp = alpacaOrder.CreatedAtUtc ?? DateTime.UtcNow,
+                Broker = BrokerName
+            };
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to place order for {Symbol}", request.Symbol);
+            throw;
+        }
+    }
+
+    /// <summary>
+    /// Cancels an existing order
+    /// </summary>
+    public async Task<Order> CancelOrderAsync(string orderId, string symbol)
+    {
+        await EnsureConnectedAsync();
+        await RateLimitAsync($"CancelOrder_{symbol}");
+
+        try
+        {
+            var orderGuid = Guid.Parse(orderId);
+            var success = await _tradingClient!.DeleteOrderAsync(orderGuid);
+
+            _logger.LogInformation("Order {OrderId} cancelled: {Success}", orderId, success);
+
+            // Fetch the cancelled order details
+            var alpacaOrder = await _tradingClient.GetOrderAsync(orderGuid);
+
+            return new Order
+            {
+                OrderId = alpacaOrder.OrderId.ToString(),
+                Symbol = alpacaOrder.Symbol,
+                Side = alpacaOrder.OrderSide == OrderSide.Buy ? "buy" : "sell",
+                Type = MapOrderType(alpacaOrder.OrderType),
+                Quantity = alpacaOrder.Quantity ?? 0m,
+                Price = alpacaOrder.LimitPrice,
+                Status = OrderStatus.Cancelled,
+                FilledQuantity = alpacaOrder.FilledQuantity ?? 0m,
+                Timestamp = alpacaOrder.CreatedAtUtc ?? DateTime.UtcNow,
+                Broker = BrokerName
+            };
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to cancel order {OrderId}", orderId);
+            throw;
+        }
+    }
+
+    /// <summary>
+    /// Gets the status of an existing order
+    /// </summary>
+    public async Task<Order> GetOrderStatusAsync(string orderId, string symbol)
+    {
+        await EnsureConnectedAsync();
+        await RateLimitAsync($"GetOrderStatus_{symbol}");
+
+        try
+        {
+            var orderGuid = Guid.Parse(orderId);
+            var alpacaOrder = await _tradingClient!.GetOrderAsync(orderGuid);
+
+            return new Order
+            {
+                OrderId = alpacaOrder.OrderId.ToString(),
+                Symbol = alpacaOrder.Symbol,
+                Side = alpacaOrder.OrderSide == OrderSide.Buy ? "buy" : "sell",
+                Type = MapOrderType(alpacaOrder.OrderType),
+                Quantity = alpacaOrder.Quantity ?? 0m,
+                Price = alpacaOrder.LimitPrice,
+                Status = MapOrderStatus(alpacaOrder.OrderStatus),
+                FilledQuantity = alpacaOrder.FilledQuantity ?? 0m,
+                Timestamp = alpacaOrder.CreatedAtUtc ?? DateTime.UtcNow,
+                Broker = BrokerName
+            };
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to get order status for {OrderId}", orderId);
+            throw;
+        }
+    }
+
+    /// <summary>
+    /// Gets the current market price for a symbol
+    /// </summary>
+    public async Task<decimal> GetCurrentPriceAsync(string symbol)
+    {
+        await EnsureConnectedAsync();
+        await RateLimitAsync($"GetPrice_{symbol}");
+
+        try
+        {
+            var quote = await _dataClient!.GetLatestQuoteAsync(
+                new LatestMarketDataRequest(symbol));
+
+            return quote.BidPrice; // Use bid price for market orders
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to get current price for {Symbol}", symbol);
+            return 0m;
+        }
+    }
+
+    // Helper methods
+
+    private async Task EnsureConnectedAsync()
+    {
+        if (!_isConnected)
+        {
+            await ConnectAsync();
+        }
+    }
+
+    private async Task RateLimitAsync(string operation)
+    {
+        await _rateLimiter.WaitAsync();
+        try
+        {
+            lock (_requestTimeLock)
+            {
+                if (_lastRequestTime.TryGetValue(operation, out var lastTime))
+                {
+                    var elapsed = (DateTime.UtcNow - lastTime).TotalMilliseconds;
+                    if (elapsed < MinRequestIntervalMs)
+                    {
+                        var delay = MinRequestIntervalMs - (int)elapsed;
+                        Task.Delay(delay).Wait();
+                    }
+                }
+                _lastRequestTime[operation] = DateTime.UtcNow;
+            }
+        }
+        finally
+        {
+            _rateLimiter.Release();
+        }
+    }
+
+    private OrderType MapOrderType(Alpaca.Markets.OrderType alpacaType)
+    {
+        return alpacaType switch
+        {
+            Alpaca.Markets.OrderType.Market => OrderType.Market,
+            Alpaca.Markets.OrderType.Limit => OrderType.Limit,
+            Alpaca.Markets.OrderType.Stop => OrderType.StopLoss,
+            Alpaca.Markets.OrderType.StopLimit => OrderType.StopLimit,
+            _ => OrderType.Market
+        };
+    }
+
+    private OrderStatus MapOrderStatus(Alpaca.Markets.OrderStatus alpacaStatus)
+    {
+        return alpacaStatus switch
+        {
+            Alpaca.Markets.OrderStatus.New => OrderStatus.Open,
+            Alpaca.Markets.OrderStatus.PartiallyFilled => OrderStatus.PartiallyFilled,
+            Alpaca.Markets.OrderStatus.Filled => OrderStatus.Filled,
+            Alpaca.Markets.OrderStatus.Canceled => OrderStatus.Cancelled,
+            Alpaca.Markets.OrderStatus.Expired => OrderStatus.Expired,
+            Alpaca.Markets.OrderStatus.Rejected => OrderStatus.Rejected,
+            _ => OrderStatus.Open
+        };
+    }
+
+    public void Dispose()
+    {
+        _tradingClient?.Dispose();
+        _dataClient?.Dispose();
+        _rateLimiter?.Dispose();
+    }
+}
+
+/// <summary>
+/// Configuration options for Alpaca broker
+/// </summary>
+public class AlpacaOptions
+{
+    public string ApiKey { get; set; } = string.Empty;
+    public string ApiSecret { get; set; } = string.Empty;
+    public bool UsePaper { get; set; } = true; // Default to paper trading
+}

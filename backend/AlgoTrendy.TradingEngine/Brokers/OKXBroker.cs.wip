@@ -1,0 +1,424 @@
+using AlgoTrendy.Core.Enums;
+using AlgoTrendy.Core.Interfaces;
+using AlgoTrendy.Core.Models;
+using CryptoExchange.Net.Authentication;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
+using OKX.Net.Clients;
+using OKX.Net.Enums;
+using OKX.Net.Objects;
+
+namespace AlgoTrendy.TradingEngine.Brokers;
+
+/// <summary>
+/// OKX broker implementation for cryptocurrency trading
+/// Supports: Spot, Margin, Futures, Perpetual, Options
+/// </summary>
+public class OKXBroker : IBroker
+{
+    private OKXRestClient? _client;
+    private readonly OKXOptions _options;
+    private readonly ILogger<OKXBroker> _logger;
+    private bool _isConnected = false;
+
+    // Rate limiting (OKX: 20 requests/2 seconds = 10 requests/second)
+    private readonly SemaphoreSlim _rateLimiter = new(10, 10);
+    private readonly Dictionary<string, DateTime> _lastRequestTime = new();
+    private readonly object _requestTimeLock = new();
+    private const int MinRequestIntervalMs = 100; // ~10 requests/second
+
+    public string BrokerName => "okx";
+
+    public OKXBroker(
+        IOptions<OKXOptions> options,
+        ILogger<OKXBroker> logger)
+    {
+        _options = options?.Value ?? throw new ArgumentNullException(nameof(options));
+        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+    }
+
+    /// <summary>
+    /// Gets or initializes the OKX REST client (lazy initialization)
+    /// </summary>
+    private OKXRestClient GetClient()
+    {
+        if (_client == null)
+        {
+            _client = new OKXRestClient(opts =>
+            {
+                opts.ApiCredentials = new OKXApiCredentials(
+                    _options.ApiKey,
+                    _options.ApiSecret,
+                    _options.Passphrase);
+
+                // Set to demo trading if enabled
+                if (_options.UseDemoTrading)
+                {
+                    opts.Environment = OKXApiEnvironment.Demo;
+                    _logger.LogInformation("OKX client configured for DEMO trading");
+                }
+                else
+                {
+                    _logger.LogInformation("OKX client configured for LIVE trading");
+                }
+            });
+        }
+        return _client;
+    }
+
+    /// <summary>
+    /// Connects to OKX API and verifies credentials
+    /// </summary>
+    public async Task<bool> ConnectAsync(CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            _logger.LogInformation("Connecting to OKX ({Environment})...",
+                _options.UseDemoTrading ? "Demo" : "Live");
+
+            // Test connection by getting account balance
+            var balanceResult = await GetClient().UnifiedApi.Account.GetAccountBalanceAsync(ct: cancellationToken);
+
+            if (!balanceResult.Success)
+            {
+                _logger.LogError("Failed to connect to OKX: {Error}", balanceResult.Error?.Message);
+                return false;
+            }
+
+            _isConnected = true;
+            _logger.LogInformation(
+                "Connected to OKX successfully. Account has {AssetCount} assets",
+                balanceResult.Data.FirstOrDefault()?.Assets?.Count() ?? 0);
+
+            return true;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to connect to OKX");
+            return false;
+        }
+    }
+
+    /// <summary>
+    /// Gets current balance in the specified currency
+    /// </summary>
+    public async Task<decimal> GetBalanceAsync(string currency = "USDT")
+    {
+        await EnsureConnectedAsync();
+        await RateLimitAsync("GetBalance");
+
+        try
+        {
+            var balanceResult = await GetClient().UnifiedApi.Account.GetAccountBalanceAsync();
+
+            if (!balanceResult.Success)
+            {
+                _logger.LogWarning("Failed to get balance: {Error}", balanceResult.Error?.Message);
+                return 0m;
+            }
+
+            var balance = balanceResult.Data
+                .FirstOrDefault()?.Assets
+                ?.FirstOrDefault(a => a.Asset == currency);
+
+            return balance?.AvailableBalance ?? 0m;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to get balance for {Currency}", currency);
+            return 0m;
+        }
+    }
+
+    /// <summary>
+    /// Gets all current positions
+    /// </summary>
+    public async Task<IEnumerable<Position>> GetPositionsAsync()
+    {
+        await EnsureConnectedAsync();
+        await RateLimitAsync("GetPositions");
+
+        try
+        {
+            var positionsResult = await GetClient().UnifiedApi.Account.GetPositionsAsync();
+
+            if (!positionsResult.Success)
+            {
+                _logger.LogWarning("Failed to get positions: {Error}", positionsResult.Error?.Message);
+                return Array.Empty<Position>();
+            }
+
+            var positions = new List<Position>();
+
+            foreach (var pos in positionsResult.Data)
+            {
+                if (pos.Quantity == 0) continue; // Skip closed positions
+
+                positions.Add(new Position
+                {
+                    Symbol = pos.Symbol,
+                    Size = Math.Abs(pos.Quantity),
+                    Side = pos.PositionSide == PositionSide.Long ? "buy" : "sell",
+                    EntryPrice = pos.AveragePrice,
+                    CurrentPrice = pos.MarkPrice ?? pos.AveragePrice,
+                    UnrealizedPnl = pos.UnrealizedPnl,
+                    RealizedPnl = 0m, // OKX tracks this separately
+                    Leverage = pos.Leverage,
+                    Broker = BrokerName
+                });
+            }
+
+            return positions;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to get positions");
+            return Array.Empty<Position>();
+        }
+    }
+
+    /// <summary>
+    /// Places a new order
+    /// </summary>
+    public async Task<Order> PlaceOrderAsync(OrderRequest request)
+    {
+        await EnsureConnectedAsync();
+        await RateLimitAsync($"PlaceOrder_{request.Symbol}");
+
+        try
+        {
+            _logger.LogInformation(
+                "Placing {OrderType} {Side} order: {Symbol} x {Quantity}",
+                request.Type, request.Side, request.Symbol, request.Quantity);
+
+            var side = request.Side.ToLowerInvariant() == "buy" ? OrderSide.Buy : OrderSide.Sell;
+            var orderType = request.Type == OrderType.Market ? OKX.Net.Enums.OrderType.MarketOrder : OKX.Net.Enums.OrderType.LimitOrder;
+
+            var orderResult = await GetClient().UnifiedApi.Trading.PlaceOrderAsync(
+                symbol: request.Symbol,
+                side: side,
+                type: orderType,
+                quantity: request.Quantity,
+                price: request.Price,
+                positionSide: PositionSide.Net, // Use net mode (not hedge mode)
+                tradeMode: TradeMode.Cash); // Cash/Spot trading
+
+            if (!orderResult.Success)
+            {
+                _logger.LogError("Failed to place order: {Error}", orderResult.Error?.Message);
+                throw new Exception($"Order placement failed: {orderResult.Error?.Message}");
+            }
+
+            _logger.LogInformation("Order placed successfully: {OrderId}", orderResult.Data.OrderId);
+
+            return new Order
+            {
+                OrderId = orderResult.Data.OrderId,
+                Symbol = request.Symbol,
+                Side = request.Side,
+                Type = request.Type,
+                Quantity = request.Quantity,
+                Price = request.Price,
+                Status = OrderStatus.Open,
+                FilledQuantity = 0m,
+                Timestamp = DateTime.UtcNow,
+                Broker = BrokerName
+            };
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to place order for {Symbol}", request.Symbol);
+            throw;
+        }
+    }
+
+    /// <summary>
+    /// Cancels an existing order
+    /// </summary>
+    public async Task<Order> CancelOrderAsync(string orderId, string symbol)
+    {
+        await EnsureConnectedAsync();
+        await RateLimitAsync($"CancelOrder_{symbol}");
+
+        try
+        {
+            var cancelResult = await GetClient().UnifiedApi.Trading.CancelOrderAsync(
+                symbol: symbol,
+                orderId: orderId);
+
+            if (!cancelResult.Success)
+            {
+                _logger.LogError("Failed to cancel order {OrderId}: {Error}",
+                    orderId, cancelResult.Error?.Message);
+                throw new Exception($"Order cancellation failed: {cancelResult.Error?.Message}");
+            }
+
+            _logger.LogInformation("Order {OrderId} cancelled successfully", orderId);
+
+            return new Order
+            {
+                OrderId = orderId,
+                Symbol = symbol,
+                Side = "unknown",
+                Type = OrderType.Market,
+                Quantity = 0m,
+                Status = OrderStatus.Cancelled,
+                FilledQuantity = 0m,
+                Timestamp = DateTime.UtcNow,
+                Broker = BrokerName
+            };
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to cancel order {OrderId}", orderId);
+            throw;
+        }
+    }
+
+    /// <summary>
+    /// Gets the status of an existing order
+    /// </summary>
+    public async Task<Order> GetOrderStatusAsync(string orderId, string symbol)
+    {
+        await EnsureConnectedAsync();
+        await RateLimitAsync($"GetOrderStatus_{symbol}");
+
+        try
+        {
+            var orderResult = await GetClient().UnifiedApi.Trading.GetOrderAsync(
+                symbol: symbol,
+                orderId: orderId);
+
+            if (!orderResult.Success)
+            {
+                _logger.LogError("Failed to get order status for {OrderId}: {Error}",
+                    orderId, orderResult.Error?.Message);
+                throw new Exception($"Get order status failed: {orderResult.Error?.Message}");
+            }
+
+            var okxOrder = orderResult.Data;
+
+            return new Order
+            {
+                OrderId = okxOrder.OrderId,
+                Symbol = okxOrder.Symbol,
+                Side = okxOrder.Side == OrderSide.Buy ? "buy" : "sell",
+                Type = MapOKXOrderType(okxOrder.Type),
+                Quantity = okxOrder.Quantity,
+                Price = okxOrder.Price,
+                Status = MapOKXOrderStatus(okxOrder.State),
+                FilledQuantity = okxOrder.QuantityFilled ?? 0m,
+                Timestamp = okxOrder.CreateTime,
+                Broker = BrokerName
+            };
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to get order status for {OrderId}", orderId);
+            throw;
+        }
+    }
+
+    /// <summary>
+    /// Gets the current market price for a symbol
+    /// </summary>
+    public async Task<decimal> GetCurrentPriceAsync(string symbol)
+    {
+        await EnsureConnectedAsync();
+        await RateLimitAsync($"GetPrice_{symbol}");
+
+        try
+        {
+            var tickerResult = await GetClient().UnifiedApi.ExchangeData.GetTickerAsync(symbol);
+
+            if (!tickerResult.Success)
+            {
+                _logger.LogError("Failed to get price for {Symbol}: {Error}",
+                    symbol, tickerResult.Error?.Message);
+                return 0m;
+            }
+
+            return tickerResult.Data.LastPrice ?? 0m;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to get current price for {Symbol}", symbol);
+            return 0m;
+        }
+    }
+
+    // Helper methods
+
+    private async Task EnsureConnectedAsync()
+    {
+        if (!_isConnected)
+        {
+            await ConnectAsync();
+        }
+    }
+
+    private async Task RateLimitAsync(string operation)
+    {
+        await _rateLimiter.WaitAsync();
+        try
+        {
+            lock (_requestTimeLock)
+            {
+                if (_lastRequestTime.TryGetValue(operation, out var lastTime))
+                {
+                    var elapsed = (DateTime.UtcNow - lastTime).TotalMilliseconds;
+                    if (elapsed < MinRequestIntervalMs)
+                    {
+                        var delay = MinRequestIntervalMs - (int)elapsed;
+                        Task.Delay(delay).Wait();
+                    }
+                }
+                _lastRequestTime[operation] = DateTime.UtcNow;
+            }
+        }
+        finally
+        {
+            _rateLimiter.Release();
+        }
+    }
+
+    private OrderType MapOKXOrderType(OKX.Net.Enums.OrderType okxType)
+    {
+        return okxType switch
+        {
+            OKX.Net.Enums.OrderType.MarketOrder => OrderType.Market,
+            OKX.Net.Enums.OrderType.LimitOrder => OrderType.Limit,
+            OKX.Net.Enums.OrderType.PostOnly => OrderType.Limit,
+            _ => OrderType.Market
+        };
+    }
+
+    private OrderStatus MapOKXOrderStatus(OKX.Net.Enums.OrderStatus okxStatus)
+    {
+        return okxStatus switch
+        {
+            OKX.Net.Enums.OrderStatus.Live => OrderStatus.Open,
+            OKX.Net.Enums.OrderStatus.PartiallyFilled => OrderStatus.PartiallyFilled,
+            OKX.Net.Enums.OrderStatus.Filled => OrderStatus.Filled,
+            OKX.Net.Enums.OrderStatus.Canceled => OrderStatus.Cancelled,
+            _ => OrderStatus.Open
+        };
+    }
+
+    public void Dispose()
+    {
+        _client?.Dispose();
+        _rateLimiter?.Dispose();
+    }
+}
+
+/// <summary>
+/// Configuration options for OKX broker
+/// </summary>
+public class OKXOptions
+{
+    public string ApiKey { get; set; } = string.Empty;
+    public string ApiSecret { get; set; } = string.Empty;
+    public string Passphrase { get; set; } = string.Empty;
+    public bool UseDemoTrading { get; set; } = true; // Default to demo trading
+}

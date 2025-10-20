@@ -1,0 +1,420 @@
+using AlgoTrendy.Core.Enums;
+using AlgoTrendy.Core.Interfaces;
+using AlgoTrendy.Core.Models;
+using CryptoExchange.Net.Authentication;
+using Kraken.Net.Clients;
+using Kraken.Net.Enums;
+using Kraken.Net.Objects;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
+
+namespace AlgoTrendy.TradingEngine.Brokers;
+
+/// <summary>
+/// Kraken broker implementation for cryptocurrency trading
+/// Supports: Spot trading with up to 5x leverage on select pairs
+/// </summary>
+public class KrakenBroker : IBroker
+{
+    private KrakenRestClient? _client;
+    private readonly KrakenOptions _options;
+    private readonly ILogger<KrakenBroker> _logger;
+    private bool _isConnected = false;
+
+    // Rate limiting (Kraken: 15-20 calls/second depending on tier)
+    private readonly SemaphoreSlim _rateLimiter = new(15, 15);
+    private readonly Dictionary<string, DateTime> _lastRequestTime = new();
+    private readonly object _requestTimeLock = new();
+    private const int MinRequestIntervalMs = 67; // ~15 requests/second
+
+    public string BrokerName => "kraken";
+
+    public KrakenBroker(
+        IOptions<KrakenOptions> options,
+        ILogger<KrakenBroker> logger)
+    {
+        _options = options?.Value ?? throw new ArgumentNullException(nameof(options));
+        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+    }
+
+    /// <summary>
+    /// Gets or initializes the Kraken REST client (lazy initialization)
+    /// </summary>
+    private KrakenRestClient GetClient()
+    {
+        if (_client == null)
+        {
+            _client = new KrakenRestClient(opts =>
+            {
+                opts.ApiCredentials = new ApiCredentials(
+                    _options.ApiKey,
+                    _options.ApiSecret);
+            });
+
+            _logger.LogInformation("Kraken client initialized");
+        }
+        return _client;
+    }
+
+    /// <summary>
+    /// Connects to Kraken API and verifies credentials
+    /// </summary>
+    public async Task<bool> ConnectAsync(CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            _logger.LogInformation("Connecting to Kraken...");
+
+            // Test connection by getting account balance
+            var balanceResult = await GetClient().SpotApi.Account.GetBalancesAsync(ct: cancellationToken);
+
+            if (!balanceResult.Success)
+            {
+                _logger.LogError("Failed to connect to Kraken: {Error}", balanceResult.Error?.Message);
+                return false;
+            }
+
+            _isConnected = true;
+            _logger.LogInformation(
+                "Connected to Kraken successfully. Account has {AssetCount} assets",
+                balanceResult.Data.Count());
+
+            return true;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to connect to Kraken");
+            return false;
+        }
+    }
+
+    /// <summary>
+    /// Gets current balance in the specified currency
+    /// </summary>
+    public async Task<decimal> GetBalanceAsync(string currency = "USDT")
+    {
+        await EnsureConnectedAsync();
+        await RateLimitAsync("GetBalance");
+
+        try
+        {
+            var balanceResult = await GetClient().SpotApi.Account.GetBalancesAsync();
+
+            if (!balanceResult.Success)
+            {
+                _logger.LogWarning("Failed to get balance: {Error}", balanceResult.Error?.Message);
+                return 0m;
+            }
+
+            // Kraken uses different naming: ZUSD for USD, XXBT for BTC, etc.
+            var krakenCurrency = MapCurrencyToKraken(currency);
+            var balance = balanceResult.Data.FirstOrDefault(b => b.Asset == krakenCurrency);
+
+            return balance?.Available ?? 0m;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to get balance for {Currency}", currency);
+            return 0m;
+        }
+    }
+
+    /// <summary>
+    /// Gets all current positions
+    /// </summary>
+    public async Task<IEnumerable<Position>> GetPositionsAsync()
+    {
+        await EnsureConnectedAsync();
+        await RateLimitAsync("GetPositions");
+
+        try
+        {
+            var openOrdersResult = await GetClient().SpotApi.Trading.GetOpenOrdersAsync();
+
+            if (!openOrdersResult.Success)
+            {
+                _logger.LogWarning("Failed to get positions: {Error}", openOrdersResult.Error?.Message);
+                return Array.Empty<Position>();
+            }
+
+            var positions = new List<Position>();
+
+            foreach (var order in openOrdersResult.Data.Open)
+            {
+                positions.Add(new Position
+                {
+                    Symbol = order.Value.Symbol,
+                    Size = order.Value.Quantity,
+                    Side = order.Value.Side == OrderSide.Buy ? "buy" : "sell",
+                    EntryPrice = order.Value.Price ?? 0m,
+                    CurrentPrice = order.Value.Price ?? 0m,
+                    UnrealizedPnl = 0m, // Would need to calculate based on current price
+                    RealizedPnl = 0m,
+                    Leverage = 1m, // Kraken leverage is per-trade, not per-position
+                    Broker = BrokerName
+                });
+            }
+
+            return positions;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to get positions");
+            return Array.Empty<Position>();
+        }
+    }
+
+    /// <summary>
+    /// Places a new order
+    /// </summary>
+    public async Task<Order> PlaceOrderAsync(OrderRequest request)
+    {
+        await EnsureConnectedAsync();
+        await RateLimitAsync($"PlaceOrder_{request.Symbol}");
+
+        try
+        {
+            _logger.LogInformation(
+                "Placing {OrderType} {Side} order: {Symbol} x {Quantity}",
+                request.Type, request.Side, request.Symbol, request.Quantity);
+
+            var side = request.Side.ToLowerInvariant() == "buy" ? OrderSide.Buy : OrderSide.Sell;
+            var orderType = request.Type == OrderType.Market ? Kraken.Net.Enums.OrderType.Market : Kraken.Net.Enums.OrderType.Limit;
+
+            var orderResult = await GetClient().SpotApi.Trading.PlaceOrderAsync(
+                request.Symbol,
+                side,
+                orderType,
+                request.Quantity,
+                price: request.Price);
+
+            if (!orderResult.Success)
+            {
+                _logger.LogError("Failed to place order: {Error}", orderResult.Error?.Message);
+                throw new Exception($"Order placement failed: {orderResult.Error?.Message}");
+            }
+
+            _logger.LogInformation("Order placed successfully: {OrderIds}",
+                string.Join(", ", orderResult.Data.OrderIds ?? Array.Empty<string>()));
+
+            return new Order
+            {
+                OrderId = orderResult.Data.OrderIds?.FirstOrDefault() ?? Guid.NewGuid().ToString(),
+                Symbol = request.Symbol,
+                Side = request.Side,
+                Type = request.Type,
+                Quantity = request.Quantity,
+                Price = request.Price,
+                Status = OrderStatus.Open,
+                FilledQuantity = 0m,
+                Timestamp = DateTime.UtcNow,
+                Broker = BrokerName
+            };
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to place order for {Symbol}", request.Symbol);
+            throw;
+        }
+    }
+
+    /// <summary>
+    /// Cancels an existing order
+    /// </summary>
+    public async Task<Order> CancelOrderAsync(string orderId, string symbol)
+    {
+        await EnsureConnectedAsync();
+        await RateLimitAsync($"CancelOrder_{symbol}");
+
+        try
+        {
+            var cancelResult = await GetClient().SpotApi.Trading.CancelOrderAsync(orderId);
+
+            if (!cancelResult.Success)
+            {
+                _logger.LogError("Failed to cancel order {OrderId}: {Error}",
+                    orderId, cancelResult.Error?.Message);
+                throw new Exception($"Order cancellation failed: {cancelResult.Error?.Message}");
+            }
+
+            _logger.LogInformation("Order {OrderId} cancelled successfully", orderId);
+
+            return new Order
+            {
+                OrderId = orderId,
+                Symbol = symbol,
+                Side = "unknown",
+                Type = OrderType.Market,
+                Quantity = 0m,
+                Status = OrderStatus.Cancelled,
+                FilledQuantity = 0m,
+                Timestamp = DateTime.UtcNow,
+                Broker = BrokerName
+            };
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to cancel order {OrderId}", orderId);
+            throw;
+        }
+    }
+
+    /// <summary>
+    /// Gets the status of an existing order
+    /// </summary>
+    public async Task<Order> GetOrderStatusAsync(string orderId, string symbol)
+    {
+        await EnsureConnectedAsync();
+        await RateLimitAsync($"GetOrderStatus_{symbol}");
+
+        try
+        {
+            var orderResult = await GetClient().SpotApi.Trading.GetOrderAsync(orderId);
+
+            if (!orderResult.Success)
+            {
+                _logger.LogError("Failed to get order status for {OrderId}: {Error}",
+                    orderId, orderResult.Error?.Message);
+                throw new Exception($"Get order status failed: {orderResult.Error?.Message}");
+            }
+
+            var krakenOrder = orderResult.Data.First().Value;
+
+            return new Order
+            {
+                OrderId = orderId,
+                Symbol = krakenOrder.Symbol,
+                Side = krakenOrder.Side == OrderSide.Buy ? "buy" : "sell",
+                Type = MapKrakenOrderType(krakenOrder.Type),
+                Quantity = krakenOrder.Quantity,
+                Price = krakenOrder.Price,
+                Status = MapKrakenOrderStatus(krakenOrder.Status),
+                FilledQuantity = krakenOrder.QuantityFilled,
+                Timestamp = krakenOrder.CreateTime,
+                Broker = BrokerName
+            };
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to get order status for {OrderId}", orderId);
+            throw;
+        }
+    }
+
+    /// <summary>
+    /// Gets the current market price for a symbol
+    /// </summary>
+    public async Task<decimal> GetCurrentPriceAsync(string symbol)
+    {
+        await EnsureConnectedAsync();
+        await RateLimitAsync($"GetPrice_{symbol}");
+
+        try
+        {
+            var tickerResult = await GetClient().SpotApi.ExchangeData.GetTickerAsync(symbol);
+
+            if (!tickerResult.Success)
+            {
+                _logger.LogError("Failed to get price for {Symbol}: {Error}",
+                    symbol, tickerResult.Error?.Message);
+                return 0m;
+            }
+
+            var ticker = tickerResult.Data.First().Value;
+            return ticker.LastTrade?.Price ?? 0m;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to get current price for {Symbol}", symbol);
+            return 0m;
+        }
+    }
+
+    // Helper methods
+
+    private async Task EnsureConnectedAsync()
+    {
+        if (!_isConnected)
+        {
+            await ConnectAsync();
+        }
+    }
+
+    private async Task RateLimitAsync(string operation)
+    {
+        await _rateLimiter.WaitAsync();
+        try
+        {
+            lock (_requestTimeLock)
+            {
+                if (_lastRequestTime.TryGetValue(operation, out var lastTime))
+                {
+                    var elapsed = (DateTime.UtcNow - lastTime).TotalMilliseconds;
+                    if (elapsed < MinRequestIntervalMs)
+                    {
+                        var delay = MinRequestIntervalMs - (int)elapsed;
+                        Task.Delay(delay).Wait();
+                    }
+                }
+                _lastRequestTime[operation] = DateTime.UtcNow;
+            }
+        }
+        finally
+        {
+            _rateLimiter.Release();
+        }
+    }
+
+    private string MapCurrencyToKraken(string currency)
+    {
+        return currency.ToUpperInvariant() switch
+        {
+            "USD" => "ZUSD",
+            "EUR" => "ZEUR",
+            "BTC" => "XXBT",
+            "ETH" => "XETH",
+            "USDT" => "USDT",
+            _ => currency
+        };
+    }
+
+    private OrderType MapKrakenOrderType(Kraken.Net.Enums.OrderType krakenType)
+    {
+        return krakenType switch
+        {
+            Kraken.Net.Enums.OrderType.Market => OrderType.Market,
+            Kraken.Net.Enums.OrderType.Limit => OrderType.Limit,
+            Kraken.Net.Enums.OrderType.StopLoss => OrderType.StopLoss,
+            Kraken.Net.Enums.OrderType.TakeProfit => OrderType.TakeProfit,
+            _ => OrderType.Market
+        };
+    }
+
+    private OrderStatus MapKrakenOrderStatus(Kraken.Net.Enums.OrderStatus krakenStatus)
+    {
+        return krakenStatus switch
+        {
+            Kraken.Net.Enums.OrderStatus.Pending => OrderStatus.Open,
+            Kraken.Net.Enums.OrderStatus.Open => OrderStatus.Open,
+            Kraken.Net.Enums.OrderStatus.Closed => OrderStatus.Filled,
+            Kraken.Net.Enums.OrderStatus.Canceled => OrderStatus.Cancelled,
+            Kraken.Net.Enums.OrderStatus.Expired => OrderStatus.Expired,
+            _ => OrderStatus.Open
+        };
+    }
+
+    public void Dispose()
+    {
+        _client?.Dispose();
+        _rateLimiter?.Dispose();
+    }
+}
+
+/// <summary>
+/// Configuration options for Kraken broker
+/// </summary>
+public class KrakenOptions
+{
+    public string ApiKey { get; set; } = string.Empty;
+    public string ApiSecret { get; set; } = string.Empty;
+}

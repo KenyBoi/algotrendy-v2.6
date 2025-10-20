@@ -1,0 +1,547 @@
+using AlgoTrendy.Core.Enums;
+using AlgoTrendy.Core.Interfaces;
+using AlgoTrendy.Core.Models;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
+using System.Net.Http.Headers;
+using System.Text;
+using System.Text.Json;
+
+namespace AlgoTrendy.TradingEngine.Brokers;
+
+/// <summary>
+/// AMP Global Clearing broker implementation for futures trading
+/// Supports: Futures, Options on Futures
+/// Uses CQG or Rithmic trading platforms
+/// </summary>
+public class AMPBroker : IBroker
+{
+    private readonly HttpClient _httpClient;
+    private readonly AMPOptions _options;
+    private readonly ILogger<AMPBroker> _logger;
+    private bool _isConnected = false;
+    private string? _sessionToken;
+
+    // Rate limiting (Conservative: 10 requests/second)
+    private readonly SemaphoreSlim _rateLimiter = new(10, 10);
+    private readonly Dictionary<string, DateTime> _lastRequestTime = new();
+    private readonly object _requestTimeLock = new();
+    private const int MinRequestIntervalMs = 100;
+
+    public string BrokerName => "amp";
+
+    public AMPBroker(
+        IOptions<AMPOptions> options,
+        ILogger<AMPBroker> logger,
+        IHttpClientFactory httpClientFactory)
+    {
+        _options = options?.Value ?? throw new ArgumentNullException(nameof(options));
+        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        _httpClient = httpClientFactory.CreateClient("AMP");
+
+        // Configure base URL based on platform
+        var baseUrl = _options.Platform.ToLowerInvariant() switch
+        {
+            "cqg" => _options.UseSandbox ? "https://apitest.cqg.com" : "https://api.cqg.com",
+            "rithmic" => _options.UseSandbox ? "https://rituz01100.rithmic.com" : "https://api.rithmic.com",
+            _ => throw new ArgumentException($"Unsupported AMP platform: {_options.Platform}")
+        };
+
+        _httpClient.BaseAddress = new Uri(baseUrl);
+        _httpClient.Timeout = TimeSpan.FromSeconds(30);
+
+        _logger.LogInformation(
+            "AMP Broker initialized with {Platform} platform ({Environment})",
+            _options.Platform,
+            _options.UseSandbox ? "Sandbox" : "Live");
+    }
+
+    /// <summary>
+    /// Connects to AMP API and authenticates
+    /// </summary>
+    public async Task<bool> ConnectAsync(CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            _logger.LogInformation("Connecting to AMP ({Platform})...", _options.Platform);
+
+            // Authentication varies by platform
+            if (_options.Platform.ToLowerInvariant() == "cqg")
+            {
+                return await ConnectCQGAsync(cancellationToken);
+            }
+            else if (_options.Platform.ToLowerInvariant() == "rithmic")
+            {
+                return await ConnectRithmicAsync(cancellationToken);
+            }
+
+            return false;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to connect to AMP");
+            return false;
+        }
+    }
+
+    private async Task<bool> ConnectCQGAsync(CancellationToken cancellationToken)
+    {
+        try
+        {
+            var authRequest = new
+            {
+                userName = _options.Username,
+                password = _options.Password
+            };
+
+            var content = new StringContent(
+                JsonSerializer.Serialize(authRequest),
+                Encoding.UTF8,
+                "application/json");
+
+            var response = await _httpClient.PostAsync("/api/v1/logon", content, cancellationToken);
+            response.EnsureSuccessStatusCode();
+
+            var responseData = await response.Content.ReadAsStringAsync(cancellationToken);
+            var authResult = JsonSerializer.Deserialize<JsonElement>(responseData);
+
+            _sessionToken = authResult.GetProperty("sessionToken").GetString();
+            _httpClient.DefaultRequestHeaders.Authorization =
+                new AuthenticationHeaderValue("Bearer", _sessionToken);
+
+            _isConnected = true;
+            _logger.LogInformation("Connected to AMP via CQG successfully");
+            return true;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "CQG authentication failed");
+            return false;
+        }
+    }
+
+    private async Task<bool> ConnectRithmicAsync(CancellationToken cancellationToken)
+    {
+        try
+        {
+            var authRequest = new
+            {
+                user = _options.Username,
+                password = _options.Password,
+                app_name = "AlgoTrendy",
+                app_version = "2.6",
+                system_name = _options.UseSandbox ? "Rithmic Paper Trading" : "Rithmic"
+            };
+
+            var content = new StringContent(
+                JsonSerializer.Serialize(authRequest),
+                Encoding.UTF8,
+                "application/json");
+
+            var response = await _httpClient.PostAsync("/api/login", content, cancellationToken);
+            response.EnsureSuccessStatusCode();
+
+            var responseData = await response.Content.ReadAsStringAsync(cancellationToken);
+            var authResult = JsonSerializer.Deserialize<JsonElement>(responseData);
+
+            _sessionToken = authResult.GetProperty("token").GetString();
+            _httpClient.DefaultRequestHeaders.Add("X-Rithmic-Token", _sessionToken);
+
+            _isConnected = true;
+            _logger.LogInformation("Connected to AMP via Rithmic successfully");
+            return true;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Rithmic authentication failed");
+            return false;
+        }
+    }
+
+    /// <summary>
+    /// Gets current balance/account equity
+    /// </summary>
+    public async Task<decimal> GetBalanceAsync(string currency = "USD")
+    {
+        await EnsureConnectedAsync();
+        await RateLimitAsync("GetBalance");
+
+        try
+        {
+            var endpoint = _options.Platform.ToLowerInvariant() == "cqg"
+                ? "/api/v1/account_info"
+                : "/api/accounts";
+
+            var response = await _httpClient.GetAsync(endpoint);
+            response.EnsureSuccessStatusCode();
+
+            var responseData = await response.Content.ReadAsStringAsync();
+            var accountData = JsonSerializer.Deserialize<JsonElement>(responseData);
+
+            // Parse based on platform
+            if (_options.Platform.ToLowerInvariant() == "cqg")
+            {
+                var balance = accountData
+                    .GetProperty("accounts")[0]
+                    .GetProperty("balance")
+                    .GetDecimal();
+                return balance;
+            }
+            else
+            {
+                var balance = accountData
+                    .GetProperty("account_balance")
+                    .GetDecimal();
+                return balance;
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to get balance");
+            return 0m;
+        }
+    }
+
+    /// <summary>
+    /// Gets all current futures positions
+    /// </summary>
+    public async Task<IEnumerable<Position>> GetPositionsAsync()
+    {
+        await EnsureConnectedAsync();
+        await RateLimitAsync("GetPositions");
+
+        try
+        {
+            var endpoint = _options.Platform.ToLowerInvariant() == "cqg"
+                ? "/api/v1/positions"
+                : "/api/positions";
+
+            var response = await _httpClient.GetAsync(endpoint);
+            response.EnsureSuccessStatusCode();
+
+            var responseData = await response.Content.ReadAsStringAsync();
+            var positionsData = JsonSerializer.Deserialize<JsonElement>(responseData);
+
+            var positions = new List<Position>();
+            var positionsArray = _options.Platform.ToLowerInvariant() == "cqg"
+                ? positionsData.GetProperty("positions")
+                : positionsData.GetProperty("position_list");
+
+            foreach (var pos in positionsArray.EnumerateArray())
+            {
+                var qty = pos.GetProperty("quantity").GetDecimal();
+                if (qty == 0) continue;
+
+                positions.Add(new Position
+                {
+                    Symbol = pos.GetProperty("symbol").GetString() ?? "",
+                    Size = Math.Abs(qty),
+                    Side = qty > 0 ? "buy" : "sell",
+                    EntryPrice = pos.GetProperty("avg_price").GetDecimal(),
+                    CurrentPrice = pos.GetProperty("mark_price").GetDecimal(),
+                    UnrealizedPnl = pos.GetProperty("unrealized_pnl").GetDecimal(),
+                    RealizedPnl = pos.GetProperty("realized_pnl").GetDecimal(),
+                    Leverage = 1m, // Futures are inherently leveraged by contract spec
+                    Broker = BrokerName
+                });
+            }
+
+            return positions;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to get positions");
+            return Array.Empty<Position>();
+        }
+    }
+
+    /// <summary>
+    /// Places a futures order
+    /// </summary>
+    public async Task<Order> PlaceOrderAsync(OrderRequest request)
+    {
+        await EnsureConnectedAsync();
+        await RateLimitAsync($"PlaceOrder_{request.Symbol}");
+
+        try
+        {
+            _logger.LogInformation(
+                "Placing {OrderType} {Side} order: {Symbol} x {Quantity} contracts",
+                request.Type, request.Side, request.Symbol, request.Quantity);
+
+            var orderRequest = _options.Platform.ToLowerInvariant() == "cqg"
+                ? CreateCQGOrder(request)
+                : CreateRithmicOrder(request);
+
+            var content = new StringContent(
+                JsonSerializer.Serialize(orderRequest),
+                Encoding.UTF8,
+                "application/json");
+
+            var endpoint = _options.Platform.ToLowerInvariant() == "cqg"
+                ? "/api/v1/orders"
+                : "/api/order/place";
+
+            var response = await _httpClient.PostAsync(endpoint, content);
+            response.EnsureSuccessStatusCode();
+
+            var responseData = await response.Content.ReadAsStringAsync();
+            var orderResult = JsonSerializer.Deserialize<JsonElement>(responseData);
+
+            var orderId = _options.Platform.ToLowerInvariant() == "cqg"
+                ? orderResult.GetProperty("order_id").GetString()
+                : orderResult.GetProperty("order_num").GetString();
+
+            _logger.LogInformation("Order placed successfully: {OrderId}", orderId);
+
+            return new Order
+            {
+                OrderId = orderId ?? Guid.NewGuid().ToString(),
+                Symbol = request.Symbol,
+                Side = request.Side,
+                Type = request.Type,
+                Quantity = request.Quantity,
+                Price = request.Price,
+                Status = OrderStatus.Open,
+                FilledQuantity = 0m,
+                Timestamp = DateTime.UtcNow,
+                Broker = BrokerName
+            };
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to place order for {Symbol}", request.Symbol);
+            throw;
+        }
+    }
+
+    private object CreateCQGOrder(OrderRequest request)
+    {
+        return new
+        {
+            symbol = request.Symbol,
+            side = request.Side.ToUpperInvariant(),
+            order_type = request.Type == OrderType.Market ? "MKT" : "LMT",
+            quantity = (int)request.Quantity,
+            limit_price = request.Price,
+            time_in_force = "DAY"
+        };
+    }
+
+    private object CreateRithmicOrder(OrderRequest request)
+    {
+        return new
+        {
+            symbol = request.Symbol,
+            transaction_type = request.Side.ToUpperInvariant() == "BUY" ? "BUY" : "SELL",
+            order_type = request.Type == OrderType.Market ? "MARKET" : "LIMIT",
+            quantity = (int)request.Quantity,
+            price = request.Price,
+            duration = "DAY"
+        };
+    }
+
+    /// <summary>
+    /// Cancels an order
+    /// </summary>
+    public async Task<Order> CancelOrderAsync(string orderId, string symbol)
+    {
+        await EnsureConnectedAsync();
+        await RateLimitAsync($"CancelOrder_{symbol}");
+
+        try
+        {
+            var endpoint = _options.Platform.ToLowerInvariant() == "cqg"
+                ? $"/api/v1/orders/{orderId}"
+                : $"/api/order/cancel/{orderId}";
+
+            var response = _options.Platform.ToLowerInvariant() == "cqg"
+                ? await _httpClient.DeleteAsync(endpoint)
+                : await _httpClient.PostAsync(endpoint, null);
+
+            response.EnsureSuccessStatusCode();
+
+            _logger.LogInformation("Order {OrderId} cancelled successfully", orderId);
+
+            return new Order
+            {
+                OrderId = orderId,
+                Symbol = symbol,
+                Side = "unknown",
+                Type = OrderType.Market,
+                Quantity = 0m,
+                Status = OrderStatus.Cancelled,
+                FilledQuantity = 0m,
+                Timestamp = DateTime.UtcNow,
+                Broker = BrokerName
+            };
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to cancel order {OrderId}", orderId);
+            throw;
+        }
+    }
+
+    /// <summary>
+    /// Gets order status
+    /// </summary>
+    public async Task<Order> GetOrderStatusAsync(string orderId, string symbol)
+    {
+        await EnsureConnectedAsync();
+        await RateLimitAsync($"GetOrderStatus_{symbol}");
+
+        try
+        {
+            var endpoint = _options.Platform.ToLowerInvariant() == "cqg"
+                ? $"/api/v1/orders/{orderId}"
+                : $"/api/order/{orderId}";
+
+            var response = await _httpClient.GetAsync(endpoint);
+            response.EnsureSuccessStatusCode();
+
+            var responseData = await response.Content.ReadAsStringAsync();
+            var orderData = JsonSerializer.Deserialize<JsonElement>(responseData);
+
+            var status = _options.Platform.ToLowerInvariant() == "cqg"
+                ? orderData.GetProperty("status").GetString()
+                : orderData.GetProperty("order_status").GetString();
+
+            return new Order
+            {
+                OrderId = orderId,
+                Symbol = orderData.GetProperty("symbol").GetString() ?? symbol,
+                Side = orderData.GetProperty("side").GetString()?.ToLowerInvariant() ?? "unknown",
+                Type = OrderType.Market,
+                Quantity = orderData.GetProperty("quantity").GetDecimal(),
+                Price = orderData.GetProperty("price").GetDecimal(),
+                Status = MapOrderStatus(status ?? ""),
+                FilledQuantity = orderData.GetProperty("filled_quantity").GetDecimal(),
+                Timestamp = DateTime.UtcNow,
+                Broker = BrokerName
+            };
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to get order status for {OrderId}", orderId);
+            throw;
+        }
+    }
+
+    /// <summary>
+    /// Gets current market price
+    /// </summary>
+    public async Task<decimal> GetCurrentPriceAsync(string symbol)
+    {
+        await EnsureConnectedAsync();
+        await RateLimitAsync($"GetPrice_{symbol}");
+
+        try
+        {
+            var endpoint = _options.Platform.ToLowerInvariant() == "cqg"
+                ? $"/api/v1/market_data/{symbol}"
+                : $"/api/md/get_last_trade/{symbol}";
+
+            var response = await _httpClient.GetAsync(endpoint);
+            response.EnsureSuccessStatusCode();
+
+            var responseData = await response.Content.ReadAsStringAsync();
+            var priceData = JsonSerializer.Deserialize<JsonElement>(responseData);
+
+            return _options.Platform.ToLowerInvariant() == "cqg"
+                ? priceData.GetProperty("last_price").GetDecimal()
+                : priceData.GetProperty("trade_price").GetDecimal();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to get current price for {Symbol}", symbol);
+            return 0m;
+        }
+    }
+
+    // Helper methods
+
+    private async Task EnsureConnectedAsync()
+    {
+        if (!_isConnected)
+        {
+            await ConnectAsync();
+        }
+    }
+
+    private async Task RateLimitAsync(string operation)
+    {
+        await _rateLimiter.WaitAsync();
+        try
+        {
+            lock (_requestTimeLock)
+            {
+                if (_lastRequestTime.TryGetValue(operation, out var lastTime))
+                {
+                    var elapsed = (DateTime.UtcNow - lastTime).TotalMilliseconds;
+                    if (elapsed < MinRequestIntervalMs)
+                    {
+                        var delay = MinRequestIntervalMs - (int)elapsed;
+                        Task.Delay(delay).Wait();
+                    }
+                }
+                _lastRequestTime[operation] = DateTime.UtcNow;
+            }
+        }
+        finally
+        {
+            _rateLimiter.Release();
+        }
+    }
+
+    private OrderStatus MapOrderStatus(string status)
+    {
+        return status.ToLowerInvariant() switch
+        {
+            "working" or "open" or "pending" => OrderStatus.Open,
+            "partially_filled" or "partial" => OrderStatus.PartiallyFilled,
+            "filled" or "complete" => OrderStatus.Filled,
+            "cancelled" or "canceled" => OrderStatus.Cancelled,
+            "rejected" => OrderStatus.Rejected,
+            "expired" => OrderStatus.Expired,
+            _ => OrderStatus.Open
+        };
+    }
+
+    public void Dispose()
+    {
+        _httpClient?.Dispose();
+        _rateLimiter?.Dispose();
+    }
+}
+
+/// <summary>
+/// Configuration options for AMP broker
+/// </summary>
+public class AMPOptions
+{
+    /// <summary>
+    /// AMP username
+    /// </summary>
+    public string Username { get; set; } = string.Empty;
+
+    /// <summary>
+    /// AMP password
+    /// </summary>
+    public string Password { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Trading platform: "CQG" or "Rithmic"
+    /// </summary>
+    public string Platform { get; set; } = "CQG";
+
+    /// <summary>
+    /// Use sandbox/demo environment
+    /// </summary>
+    public bool UseSandbox { get; set; } = true;
+
+    /// <summary>
+    /// Account ID (optional, for multi-account users)
+    /// </summary>
+    public string? AccountId { get; set; }
+}

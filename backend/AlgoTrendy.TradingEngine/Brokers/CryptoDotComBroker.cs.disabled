@@ -1,0 +1,423 @@
+using AlgoTrendy.Core.Enums;
+using AlgoTrendy.Core.Interfaces;
+using AlgoTrendy.Core.Models;
+using CryptoCom.Net.Clients;
+using CryptoCom.Net.Enums;
+using CryptoCom.Net.Objects;
+using CryptoExchange.Net.Authentication;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
+
+namespace AlgoTrendy.TradingEngine.Brokers;
+
+/// <summary>
+/// Crypto.com Exchange broker implementation for cryptocurrency trading
+/// Supports: Spot trading with up to 10x leverage on margin pairs
+/// </summary>
+public class CryptoDotComBroker : IBroker
+{
+    private CryptoComRestClient? _client;
+    private readonly CryptoDotComOptions _options;
+    private readonly ILogger<CryptoDotComBroker> _logger;
+    private bool _isConnected = false;
+
+    // Rate limiting (Crypto.com: 100 requests/second)
+    private readonly SemaphoreSlim _rateLimiter = new(50, 50);
+    private readonly Dictionary<string, DateTime> _lastRequestTime = new();
+    private readonly object _requestTimeLock = new();
+    private const int MinRequestIntervalMs = 20; // ~50 requests/second (conservative)
+
+    public string BrokerName => "crypto.com";
+
+    public CryptoDotComBroker(
+        IOptions<CryptoDotComOptions> options,
+        ILogger<CryptoDotComBroker> logger)
+    {
+        _options = options?.Value ?? throw new ArgumentNullException(nameof(options));
+        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+    }
+
+    /// <summary>
+    /// Gets or initializes the Crypto.com REST client (lazy initialization)
+    /// </summary>
+    private CryptoComRestClient GetClient()
+    {
+        if (_client == null)
+        {
+            _client = new CryptoComRestClient(opts =>
+            {
+                opts.ApiCredentials = new ApiCredentials(
+                    _options.ApiKey,
+                    _options.ApiSecret);
+
+                if (_options.UseSandbox)
+                {
+                    opts.Environment = CryptoComApiEnvironment.Sandbox;
+                    _logger.LogInformation("Crypto.com client configured for SANDBOX");
+                }
+                else
+                {
+                    _logger.LogInformation("Crypto.com client configured for LIVE trading");
+                }
+            });
+        }
+        return _client;
+    }
+
+    /// <summary>
+    /// Connects to Crypto.com API and verifies credentials
+    /// </summary>
+    public async Task<bool> ConnectAsync(CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            _logger.LogInformation("Connecting to Crypto.com Exchange ({Environment})...",
+                _options.UseSandbox ? "Sandbox" : "Live");
+
+            // Test connection by getting account summary
+            var accountResult = await GetClient().SpotApi.Account.GetAccountSummaryAsync(ct: cancellationToken);
+
+            if (!accountResult.Success)
+            {
+                _logger.LogError("Failed to connect to Crypto.com: {Error}", accountResult.Error?.Message);
+                return false;
+            }
+
+            _isConnected = true;
+            _logger.LogInformation(
+                "Connected to Crypto.com successfully. Account has {AssetCount} assets",
+                accountResult.Data.Accounts?.Count() ?? 0);
+
+            return true;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to connect to Crypto.com");
+            return false;
+        }
+    }
+
+    /// <summary>
+    /// Gets current balance in the specified currency
+    /// </summary>
+    public async Task<decimal> GetBalanceAsync(string currency = "USDT")
+    {
+        await EnsureConnectedAsync();
+        await RateLimitAsync("GetBalance");
+
+        try
+        {
+            var accountResult = await GetClient().SpotApi.Account.GetAccountSummaryAsync();
+
+            if (!accountResult.Success)
+            {
+                _logger.LogWarning("Failed to get balance: {Error}", accountResult.Error?.Message);
+                return 0m;
+            }
+
+            var balance = accountResult.Data.Accounts?
+                .FirstOrDefault(a => a.Currency == currency);
+
+            return balance?.Available ?? 0m;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to get balance for {Currency}", currency);
+            return 0m;
+        }
+    }
+
+    /// <summary>
+    /// Gets all current positions
+    /// </summary>
+    public async Task<IEnumerable<Position>> GetPositionsAsync()
+    {
+        await EnsureConnectedAsync();
+        await RateLimitAsync("GetPositions");
+
+        try
+        {
+            var openOrdersResult = await GetClient().SpotApi.Trading.GetOpenOrdersAsync();
+
+            if (!openOrdersResult.Success)
+            {
+                _logger.LogWarning("Failed to get positions: {Error}", openOrdersResult.Error?.Message);
+                return Array.Empty<Position>();
+            }
+
+            var positions = new List<Position>();
+
+            foreach (var order in openOrdersResult.Data.Orders ?? Array.Empty<CryptoCom.Net.Objects.Models.Order>())
+            {
+                positions.Add(new Position
+                {
+                    Symbol = order.Symbol,
+                    Size = order.Quantity,
+                    Side = order.Side == OrderSide.Buy ? "buy" : "sell",
+                    EntryPrice = order.Price ?? 0m,
+                    CurrentPrice = order.Price ?? 0m,
+                    UnrealizedPnl = 0m, // Would need to calculate based on current price
+                    RealizedPnl = 0m,
+                    Leverage = 1m, // Leverage would be set per-order
+                    Broker = BrokerName
+                });
+            }
+
+            return positions;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to get positions");
+            return Array.Empty<Position>();
+        }
+    }
+
+    /// <summary>
+    /// Places a new order
+    /// </summary>
+    public async Task<Order> PlaceOrderAsync(OrderRequest request)
+    {
+        await EnsureConnectedAsync();
+        await RateLimitAsync($"PlaceOrder_{request.Symbol}");
+
+        try
+        {
+            _logger.LogInformation(
+                "Placing {OrderType} {Side} order: {Symbol} x {Quantity}",
+                request.Type, request.Side, request.Symbol, request.Quantity);
+
+            var side = request.Side.ToLowerInvariant() == "buy"
+                ? OrderSide.Buy
+                : OrderSide.Sell;
+
+            var orderType = request.Type == OrderType.Market
+                ? CryptoCom.Net.Enums.OrderType.Market
+                : CryptoCom.Net.Enums.OrderType.Limit;
+
+            var orderResult = await GetClient().SpotApi.Trading.PlaceOrderAsync(
+                symbol: request.Symbol,
+                side: side,
+                type: orderType,
+                quantity: request.Quantity,
+                price: request.Price);
+
+            if (!orderResult.Success)
+            {
+                _logger.LogError("Failed to place order: {Error}", orderResult.Error?.Message);
+                throw new Exception($"Order placement failed: {orderResult.Error?.Message}");
+            }
+
+            _logger.LogInformation("Order placed successfully: {OrderId}", orderResult.Data.OrderId);
+
+            return new Order
+            {
+                OrderId = orderResult.Data.OrderId.ToString(),
+                Symbol = request.Symbol,
+                Side = request.Side,
+                Type = request.Type,
+                Quantity = request.Quantity,
+                Price = request.Price,
+                Status = OrderStatus.Open,
+                FilledQuantity = 0m,
+                Timestamp = DateTime.UtcNow,
+                Broker = BrokerName
+            };
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to place order for {Symbol}", request.Symbol);
+            throw;
+        }
+    }
+
+    /// <summary>
+    /// Cancels an existing order
+    /// </summary>
+    public async Task<Order> CancelOrderAsync(string orderId, string symbol)
+    {
+        await EnsureConnectedAsync();
+        await RateLimitAsync($"CancelOrder_{symbol}");
+
+        try
+        {
+            var cancelResult = await GetClient().SpotApi.Trading.CancelOrderAsync(
+                symbol: symbol,
+                orderId: long.Parse(orderId));
+
+            if (!cancelResult.Success)
+            {
+                _logger.LogError("Failed to cancel order {OrderId}: {Error}",
+                    orderId, cancelResult.Error?.Message);
+                throw new Exception($"Order cancellation failed: {cancelResult.Error?.Message}");
+            }
+
+            _logger.LogInformation("Order {OrderId} cancelled successfully", orderId);
+
+            return new Order
+            {
+                OrderId = orderId,
+                Symbol = symbol,
+                Side = "unknown",
+                Type = OrderType.Market,
+                Quantity = 0m,
+                Status = OrderStatus.Cancelled,
+                FilledQuantity = 0m,
+                Timestamp = DateTime.UtcNow,
+                Broker = BrokerName
+            };
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to cancel order {OrderId}", orderId);
+            throw;
+        }
+    }
+
+    /// <summary>
+    /// Gets the status of an existing order
+    /// </summary>
+    public async Task<Order> GetOrderStatusAsync(string orderId, string symbol)
+    {
+        await EnsureConnectedAsync();
+        await RateLimitAsync($"GetOrderStatus_{symbol}");
+
+        try
+        {
+            var orderResult = await GetClient().SpotApi.Trading.GetOrderAsync(
+                orderId: long.Parse(orderId));
+
+            if (!orderResult.Success)
+            {
+                _logger.LogError("Failed to get order status for {OrderId}: {Error}",
+                    orderId, orderResult.Error?.Message);
+                throw new Exception($"Get order status failed: {orderResult.Error?.Message}");
+            }
+
+            var cryptoComOrder = orderResult.Data;
+
+            return new Order
+            {
+                OrderId = cryptoComOrder.OrderId.ToString(),
+                Symbol = cryptoComOrder.Symbol,
+                Side = cryptoComOrder.Side == OrderSide.Buy ? "buy" : "sell",
+                Type = MapCryptoComOrderType(cryptoComOrder.Type),
+                Quantity = cryptoComOrder.Quantity,
+                Price = cryptoComOrder.Price,
+                Status = MapCryptoComOrderStatus(cryptoComOrder.Status),
+                FilledQuantity = cryptoComOrder.QuantityFilled ?? 0m,
+                Timestamp = cryptoComOrder.CreateTime,
+                Broker = BrokerName
+            };
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to get order status for {OrderId}", orderId);
+            throw;
+        }
+    }
+
+    /// <summary>
+    /// Gets the current market price for a symbol
+    /// </summary>
+    public async Task<decimal> GetCurrentPriceAsync(string symbol)
+    {
+        await EnsureConnectedAsync();
+        await RateLimitAsync($"GetPrice_{symbol}");
+
+        try
+        {
+            var tickerResult = await GetClient().SpotApi.ExchangeData.GetTickerAsync(symbol);
+
+            if (!tickerResult.Success)
+            {
+                _logger.LogError("Failed to get price for {Symbol}: {Error}",
+                    symbol, tickerResult.Error?.Message);
+                return 0m;
+            }
+
+            return tickerResult.Data.LastPrice ?? 0m;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to get current price for {Symbol}", symbol);
+            return 0m;
+        }
+    }
+
+    // Helper methods
+
+    private async Task EnsureConnectedAsync()
+    {
+        if (!_isConnected)
+        {
+            await ConnectAsync();
+        }
+    }
+
+    private async Task RateLimitAsync(string operation)
+    {
+        await _rateLimiter.WaitAsync();
+        try
+        {
+            lock (_requestTimeLock)
+            {
+                if (_lastRequestTime.TryGetValue(operation, out var lastTime))
+                {
+                    var elapsed = (DateTime.UtcNow - lastTime).TotalMilliseconds;
+                    if (elapsed < MinRequestIntervalMs)
+                    {
+                        var delay = MinRequestIntervalMs - (int)elapsed;
+                        Task.Delay(delay).Wait();
+                    }
+                }
+                _lastRequestTime[operation] = DateTime.UtcNow;
+            }
+        }
+        finally
+        {
+            _rateLimiter.Release();
+        }
+    }
+
+    private OrderType MapCryptoComOrderType(CryptoCom.Net.Enums.OrderType cryptoComType)
+    {
+        return cryptoComType switch
+        {
+            CryptoCom.Net.Enums.OrderType.Market => OrderType.Market,
+            CryptoCom.Net.Enums.OrderType.Limit => OrderType.Limit,
+            CryptoCom.Net.Enums.OrderType.StopLoss => OrderType.StopLoss,
+            CryptoCom.Net.Enums.OrderType.StopLimit => OrderType.StopLimit,
+            CryptoCom.Net.Enums.OrderType.TakeProfit => OrderType.TakeProfit,
+            _ => OrderType.Market
+        };
+    }
+
+    private OrderStatus MapCryptoComOrderStatus(CryptoCom.Net.Enums.OrderStatus cryptoComStatus)
+    {
+        return cryptoComStatus switch
+        {
+            CryptoCom.Net.Enums.OrderStatus.Active => OrderStatus.Open,
+            CryptoCom.Net.Enums.OrderStatus.Filled => OrderStatus.Filled,
+            CryptoCom.Net.Enums.OrderStatus.Canceled => OrderStatus.Cancelled,
+            CryptoCom.Net.Enums.OrderStatus.Rejected => OrderStatus.Rejected,
+            CryptoCom.Net.Enums.OrderStatus.Expired => OrderStatus.Expired,
+            _ => OrderStatus.Open
+        };
+    }
+
+    public void Dispose()
+    {
+        _client?.Dispose();
+        _rateLimiter?.Dispose();
+    }
+}
+
+/// <summary>
+/// Configuration options for Crypto.com Exchange broker
+/// </summary>
+public class CryptoDotComOptions
+{
+    public string ApiKey { get; set; } = string.Empty;
+    public string ApiSecret { get; set; } = string.Empty;
+    public bool UseSandbox { get; set; } = true; // Default to sandbox
+}
