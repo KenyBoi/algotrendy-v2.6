@@ -1,6 +1,8 @@
 using System.Text.Json;
 using AlgoTrendy.Core.Configuration;
+using AlgoTrendy.Core.Enums;
 using AlgoTrendy.Core.Models;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Npgsql;
@@ -130,7 +132,7 @@ public class TradeSurveillanceService
                 // 3. Large sell order near peak price
                 if (priceChange > _complianceSettings.TradeSurveillance.PriceDeviationThreshold &&
                     volumeSpike > _complianceSettings.TradeSurveillance.VolumeSpikeMultiplier &&
-                    trade.Side == "SELL" &&
+                    trade.Side == OrderSide.Sell &&
                     trade.Price >= avgPrice * 1.05m) // Selling near peak
                 {
                     await CreateSurveillanceAlertAsync(
@@ -139,8 +141,8 @@ public class TradeSurveillanceService
                         trade.Symbol,
                         trade.Exchange,
                         userId,
-                        new[] { trade.OrderId },
-                        new[] { trade.TradeId },
+                        new[] { Guid.Parse(trade.OrderId) },
+                        new[] { Guid.Parse(trade.TradeId) },
                         $"Pump & Dump pattern detected: {priceChange:F2}% price increase with {volumeSpike:F2}x volume spike, followed by large sell",
                         new
                         {
@@ -201,7 +203,7 @@ public class TradeSurveillanceService
                 trade.Exchange,
                 userId,
                 null,
-                new[] { trade.TradeId },
+                new[] { Guid.Parse(trade.TradeId) },
                 $"Spoofing pattern detected: {cancelledCount} orders cancelled within 1 minute",
                 new
                 {
@@ -263,7 +265,7 @@ public class TradeSurveillanceService
                     trade.Exchange,
                     userId,
                     null,
-                    new[] { trade.TradeId },
+                    new[] { Guid.Parse(trade.TradeId) },
                     $"Wash trading pattern detected: {buyCount} buys and {sellCount} sells at similar prices",
                     new
                     {
@@ -333,7 +335,7 @@ public class TradeSurveillanceService
                 trade.Exchange,
                 userId,
                 null,
-                suspiciousTrades.Concat(new[] { trade.TradeId }).ToArray(),
+                suspiciousTrades.Concat(new[] { Guid.Parse(trade.TradeId) }).ToArray(),
                 $"Potential front running detected: Large opposite trade immediately following",
                 new
                 {

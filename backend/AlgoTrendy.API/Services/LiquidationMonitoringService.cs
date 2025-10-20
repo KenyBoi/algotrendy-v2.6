@@ -1,3 +1,4 @@
+using AlgoTrendy.Core.Enums;
 using AlgoTrendy.Core.Interfaces;
 using AlgoTrendy.Core.Models;
 
@@ -51,16 +52,16 @@ public class LiquidationMonitoringService : BackgroundService
     private async Task CheckAndManagePositionsAsync(CancellationToken cancellationToken)
     {
         using var scope = _serviceProvider.CreateScope();
-        var positionRepository = scope.ServiceProvider.GetService<IPositionRepository>();
+        var broker = scope.ServiceProvider.GetService<IBroker>();
 
-        if (positionRepository == null)
+        if (broker == null)
         {
-            _logger.LogWarning("Position repository not available, skipping liquidation check");
+            _logger.LogWarning("Broker not available, skipping liquidation check");
             return;
         }
 
         // Get all open positions
-        var openPositions = await positionRepository.GetOpenPositionsAsync(cancellationToken);
+        var openPositions = await broker.GetPositionsAsync(cancellationToken);
 
         if (!openPositions.Any())
         {
@@ -91,7 +92,7 @@ public class LiquidationMonitoringService : BackgroundService
             {
                 _logger.LogCritical(
                     "LIQUIDATION TRIGGERED: Position {PositionId} for {Symbol} at {MarginLevel:P2} margin usage",
-                    position.Id, position.Symbol, marginLevel);
+                    position.PositionId, position.Symbol, marginLevel);
 
                 await LiquidatePosition(position, serviceProvider, "Automatic liquidation due to margin threshold", cancellationToken);
             }
@@ -99,7 +100,7 @@ public class LiquidationMonitoringService : BackgroundService
             {
                 _logger.LogWarning(
                     "MARGIN CALL: Position {PositionId} for {Symbol} at {MarginLevel:P2} margin usage",
-                    position.Id, position.Symbol, marginLevel);
+                    position.PositionId, position.Symbol, marginLevel);
 
                 await SendMarginCall(position, marginLevel);
             }
@@ -107,7 +108,7 @@ public class LiquidationMonitoringService : BackgroundService
             {
                 _logger.LogInformation(
                     "Margin Warning: Position {PositionId} for {Symbol} at {MarginLevel:P2} margin usage",
-                    position.Id, position.Symbol, marginLevel);
+                    position.PositionId, position.Symbol, marginLevel);
 
                 await SendMarginWarning(position, marginLevel);
             }
@@ -151,10 +152,10 @@ public class LiquidationMonitoringService : BackgroundService
             var closeOrder = new OrderRequest
             {
                 Symbol = position.Symbol,
+                Exchange = position.Exchange,
                 Side = position.Side == OrderSide.Buy ? OrderSide.Sell : OrderSide.Buy,
                 Type = OrderType.Market,
                 Quantity = Math.Abs(position.Quantity),
-                TimeInForce = TimeInForce.GTC,
                 ClientOrderId = $"LIQUIDATION_{position.PositionId}_{DateTime.UtcNow.Ticks}"
             };
 
