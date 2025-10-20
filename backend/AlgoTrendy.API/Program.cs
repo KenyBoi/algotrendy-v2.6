@@ -146,6 +146,11 @@ builder.Services.AddScoped<IMarketDataRepository>(sp =>
 // Add HttpClient factory for REST channels
 builder.Services.AddHttpClient();
 
+// Register ML Services
+builder.Services.AddHttpClient<IMLPredictionService, MLPredictionService>();
+builder.Services.AddScoped<AlgoTrendy.TradingEngine.Services.MLFeatureService>();
+builder.Services.AddScoped<AlgoTrendy.TradingEngine.Services.IndicatorService>();
+
 // Register all market data channels as scoped services
 builder.Services.AddScoped<BinanceRestChannel>();
 builder.Services.AddScoped<OKXRestChannel>();

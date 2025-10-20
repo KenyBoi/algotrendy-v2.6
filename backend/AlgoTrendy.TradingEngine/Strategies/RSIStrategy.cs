@@ -6,7 +6,7 @@ using AlgoTrendy.TradingEngine.Services;
 using Microsoft.Extensions.Logging;
 
 /// <summary>
-/// RSI (Relative Strength Index) trading strategy
+/// RSI (Relative Strength Index) trading strategy with ML enhancement
 /// Ported from v2.5 strategy_resolver.py RSIStrategy
 ///
 /// Strategy Logic:
@@ -14,11 +14,14 @@ using Microsoft.Extensions.Logging;
 /// - Sell if RSI > overbought threshold (default: 70)
 /// - Hold if RSI is in neutral zone
 /// - Confidence based on how extreme the RSI value is
+/// - ML predictions used to enhance confidence and filter signals
 /// </summary>
 public class RSIStrategy : IStrategy
 {
     private readonly RSIStrategyConfig _config;
     private readonly IndicatorService _indicatorService;
+    private readonly IMLPredictionService? _mlService;
+    private readonly MLFeatureService? _mlFeatureService;
     private readonly ILogger<RSIStrategy> _logger;
 
     public string StrategyName => "RSI";
@@ -26,11 +29,24 @@ public class RSIStrategy : IStrategy
     public RSIStrategy(
         RSIStrategyConfig config,
         IndicatorService indicatorService,
-        ILogger<RSIStrategy> logger)
+        ILogger<RSIStrategy> logger,
+        IMLPredictionService? mlService = null,
+        MLFeatureService? mlFeatureService = null)
     {
         _config = config;
         _indicatorService = indicatorService;
         _logger = logger;
+        _mlService = mlService;
+        _mlFeatureService = mlFeatureService;
+
+        if (_mlService != null && _mlFeatureService != null)
+        {
+            _logger.LogInformation("RSI Strategy initialized with ML enhancement enabled");
+        }
+        else
+        {
+            _logger.LogInformation("RSI Strategy initialized without ML enhancement");
+        }
     }
 
     public async Task<TradingSignal> AnalyzeAsync(
@@ -85,6 +101,67 @@ public class RSIStrategy : IStrategy
                 // RSI in neutral zone
                 reason = $"RSI: {rsi:F1} (NEUTRAL)";
                 _logger.LogDebug("HOLD signal for {Symbol}: RSI in neutral zone", currentData.Symbol);
+            }
+
+            // ML Enhancement - if ML services are available
+            if (_mlService != null && _mlFeatureService != null && _config.UseMLEnhancement)
+            {
+                try
+                {
+                    _logger.LogDebug("Calculating ML features for {Symbol}", currentData.Symbol);
+                    var features = await _mlFeatureService.CalculateFeaturesAsync(
+                        currentData.Symbol,
+                        allData,
+                        cancellationToken);
+
+                    var mlPrediction = await _mlService.PredictReversalAsync(features, cancellationToken);
+
+                    if (mlPrediction != null && string.IsNullOrEmpty(mlPrediction.Error))
+                    {
+                        _logger.LogInformation(
+                            "ML Prediction for {Symbol}: IsReversal={IsReversal}, Confidence={Confidence:F3}",
+                            currentData.Symbol, mlPrediction.IsReversal, mlPrediction.Confidence);
+
+                        // Enhance confidence based on ML prediction
+                        if (mlPrediction.IsReversal)
+                        {
+                            // ML agrees with reversal - boost confidence
+                            var mlConfidence = (decimal)mlPrediction.Confidence;
+                            confidence = (confidence + mlConfidence) / 2m; // Average of RSI and ML confidence
+                            confidence = Math.Min(confidence, 0.95m); // Cap at 0.95
+                            reason += $" + ML CONFIRMED ({mlPrediction.Confidence:F2})";
+                        }
+                        else
+                        {
+                            // ML disagrees - reduce confidence
+                            confidence *= 0.6m; // Reduce confidence by 40%
+                            reason += $" - ML UNCERTAIN ({mlPrediction.Confidence:F2})";
+
+                            // If confidence drops too low, change to HOLD
+                            if (confidence < 0.3m)
+                            {
+                                action = SignalAction.Hold;
+                                reason = $"RSI: {rsi:F1} - ML OVERRIDE (low confidence)";
+                                _logger.LogWarning(
+                                    "ML override: Changed signal to HOLD for {Symbol} due to low confidence",
+                                    currentData.Symbol);
+                            }
+                        }
+                    }
+                    else
+                    {
+                        _logger.LogWarning(
+                            "ML prediction failed for {Symbol}: {Error}",
+                            currentData.Symbol, mlPrediction?.Error ?? "Unknown error");
+                        reason += " (ML unavailable)";
+                    }
+                }
+                catch (Exception mlEx)
+                {
+                    _logger.LogError(mlEx, "Error during ML enhancement for {Symbol}", currentData.Symbol);
+                    reason += " (ML error)";
+                    // Continue with RSI-only signal
+                }
             }
 
             // Calculate stop loss and take profit based on action
@@ -152,4 +229,10 @@ public class RSIStrategyConfig
     /// Default: 70
     /// </summary>
     public decimal OverboughtThreshold { get; set; } = 70m;
+
+    /// <summary>
+    /// Enable ML enhancement for signal generation
+    /// Default: true
+    /// </summary>
+    public bool UseMLEnhancement { get; set; } = true;
 }

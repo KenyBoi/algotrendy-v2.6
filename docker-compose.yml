@@ -25,6 +25,8 @@ volumes:
     driver: local
   seq_data:
     driver: local
+  ml_logs:
+    driver: local
 
 services:
   # ==========================================================================
@@ -65,6 +67,41 @@ services:
   # ==========================================================================
   # AlgoTrendy API - .NET 8 Application
   # ==========================================================================
+  # ==========================================================================
+  # ML Service - Python Flask Microservice
+  # ==========================================================================
+  ml-service:
+    build:
+      context: ./ml-service
+      dockerfile: Dockerfile
+    image: algotrendy-ml-service:v1.0
+    container_name: algotrendy-ml-service
+    restart: unless-stopped
+    networks:
+      algotrendy-network:
+        ipv4_address: 172.20.0.50
+    ports:
+      - "5003:5003"
+    volumes:
+      - ml_logs:/app/logs
+    environment:
+      - PYTHONUNBUFFERED=1
+      - FLASK_ENV=${FLASK_ENV:-production}
+    healthcheck:
+      test: ["CMD", "python", "-c", "import requests; requests.get('http://localhost:5003/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # ==========================================================================
+  # AlgoTrendy API - .NET 8 Application
+  # ==========================================================================
   api:
     build:
       context: ./backend
@@ -75,6 +112,7 @@ services:
     depends_on:
       - questdb
       - seq
+      - ml-service
     networks:
       algotrendy-network:
         ipv4_address: 172.20.0.20
@@ -105,6 +143,11 @@ services:
 
       # Market Data Settings
       - MarketData__FetchIntervalSeconds=${MARKET_DATA_FETCH_INTERVAL:-60}
+
+      # ML Service Settings
+      - MLService__Url=http://ml-service:5003
+      - MLService__TimeoutSeconds=30
+      - MLService__EnableMLEnhancement=${ML_ENHANCEMENT_ENABLED:-true}
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:5002/health"]
       interval: 30s
