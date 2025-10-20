@@ -9,7 +9,7 @@ namespace AlgoTrendy.DataChannels.Services;
 
 /// <summary>
 /// Background service that orchestrates data fetching from all market data channels
-/// Manages Binance, OKX, Coinbase, and Kraken REST channels
+/// Manages crypto (Binance, OKX, Coinbase, Kraken), stocks, and futures channels
 /// Fetches data on configurable intervals and saves to QuestDB
 /// </summary>
 public class MarketDataChannelService : BackgroundService
@@ -88,7 +88,8 @@ public class MarketDataChannelService : BackgroundService
             FetchFromChannelAsync<OKXRestChannel>(scope, "OKX", cancellationToken),
             FetchFromChannelAsync<CoinbaseRestChannel>(scope, "Coinbase", cancellationToken),
             FetchFromChannelAsync<KrakenRestChannel>(scope, "Kraken", cancellationToken),
-            FetchFromChannelAsync<StockDataChannel>(scope, "Stocks", cancellationToken)
+            FetchFromChannelAsync<StockDataChannel>(scope, "Stocks", cancellationToken),
+            FetchFromChannelAsync<FuturesDataChannel>(scope, "Futures", cancellationToken)
         };
 
         // Wait for all channels to complete
@@ -213,7 +214,8 @@ public class MarketDataChannelService : BackgroundService
             StopChannelAsync<OKXRestChannel>(scope, "OKX", cancellationToken),
             StopChannelAsync<CoinbaseRestChannel>(scope, "Coinbase", cancellationToken),
             StopChannelAsync<KrakenRestChannel>(scope, "Kraken", cancellationToken),
-            StopChannelAsync<StockDataChannel>(scope, "Stocks", cancellationToken)
+            StopChannelAsync<StockDataChannel>(scope, "Stocks", cancellationToken),
+            StopChannelAsync<FuturesDataChannel>(scope, "Futures", cancellationToken)
         };
 
         await Task.WhenAll(stopTasks);

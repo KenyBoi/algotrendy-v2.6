@@ -162,6 +162,7 @@ builder.Services.AddScoped<OKXRestChannel>();
 builder.Services.AddScoped<CoinbaseRestChannel>();
 builder.Services.AddScoped<KrakenRestChannel>();
 builder.Services.AddScoped<StockDataChannel>();
+builder.Services.AddScoped<FuturesDataChannel>();
 
 // Register backtesting services
 builder.Services.AddScoped<IBacktestEngine, CustomBacktestEngine>();
