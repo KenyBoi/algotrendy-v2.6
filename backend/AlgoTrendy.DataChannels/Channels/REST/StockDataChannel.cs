@@ -22,9 +22,13 @@ public class StockDataChannel : IMarketDataChannel
 
     private bool _isConnected = false;
     private List<string> _symbols = new();
+    private readonly List<string> _subscribedSymbols = new();
 
-    public string ChannelName => "Stocks";
+    public string ExchangeName => "stocks";
     public bool IsConnected => _isConnected;
+    public IReadOnlyList<string> SubscribedSymbols => _subscribedSymbols.AsReadOnly();
+    public DateTime? LastDataReceivedAt { get; private set; }
+    public long TotalMessagesReceived { get; private set; }
 
     public StockDataChannel(
         AlphaVantageProvider alphaVantageProvider,
@@ -113,28 +117,39 @@ public class StockDataChannel : IMarketDataChannel
         }
     }
 
-    public async Task StopAsync(CancellationToken cancellationToken = default)
+    public Task StopAsync(CancellationToken cancellationToken = default)
     {
         _logger.LogInformation("[StockDataChannel] Stopping stock data channel...");
         _isConnected = false;
-        await Task.CompletedTask;
+        _subscribedSymbols.Clear();
+        return Task.CompletedTask;
     }
 
-    public async Task<IEnumerable<MarketData>> FetchDataAsync(CancellationToken cancellationToken = default)
+    /// <summary>
+    /// Fetch latest stock market data
+    /// Note: interval and limit parameters are ignored for stock data (always real-time latest)
+    /// </summary>
+    public async Task<List<MarketData>> FetchDataAsync(
+        IEnumerable<string>? symbols = null,
+        string interval = "1m",
+        int limit = 100,
+        CancellationToken cancellationToken = default)
     {
         if (!_isConnected)
         {
             _logger.LogWarning("[StockDataChannel] Channel not connected. Call StartAsync first.");
-            return Enumerable.Empty<MarketData>();
+            return new List<MarketData>();
         }
 
+        // Use provided symbols or default to configured symbols
+        var symbolsToFetch = symbols?.ToList() ?? _symbols;
         var allData = new List<MarketData>();
         var successCount = 0;
         var failCount = 0;
 
-        _logger.LogInformation("[StockDataChannel] Fetching data for {Count} symbols...", _symbols.Count);
+        _logger.LogInformation("[StockDataChannel] Fetching data for {Count} symbols...", symbolsToFetch.Count);
 
-        foreach (var symbol in _symbols)
+        foreach (var symbol in symbolsToFetch)
         {
             try
             {
@@ -148,6 +163,10 @@ public class StockDataChannel : IMarketDataChannel
 
                     allData.Add(latestData);
                     successCount++;
+
+                    // Update statistics
+                    LastDataReceivedAt = DateTime.UtcNow;
+                    TotalMessagesReceived++;
 
                     _logger.LogDebug(
                         "[StockDataChannel] {Symbol}: ${Price} (Volume: {Volume:N0})",
@@ -251,7 +270,7 @@ public class StockDataChannel : IMarketDataChannel
     /// <summary>
     /// Get options chain for a symbol and expiration
     /// </summary>
-    public async Task<object> GetOptionsChainAsync(
+    public async Task<object?> GetOptionsChainAsync(
         string symbol,
         string expiration,
         CancellationToken cancellationToken = default)
@@ -267,26 +286,48 @@ public class StockDataChannel : IMarketDataChannel
         }
     }
 
-    /// <summary>
-    /// Get company fundamentals
-    /// </summary>
-    public async Task<object> GetFundamentalsAsync(
-        string symbol,
-        CancellationToken cancellationToken = default)
+    public Task SubscribeAsync(IEnumerable<string> symbols, CancellationToken cancellationToken = default)
     {
-        try
+        if (!_isConnected)
         {
-            return await _yfinanceProvider.GetCompanyFundamentalsAsync(symbol, cancellationToken);
+            throw new InvalidOperationException("Channel is not connected");
         }
-        catch (Exception ex)
+
+        var symbolList = symbols.ToList();
+        _logger.LogInformation("[StockDataChannel] Subscribing to {Count} symbols", symbolList.Count);
+
+        _subscribedSymbols.AddRange(symbolList);
+
+        _logger.LogInformation(
+            "[StockDataChannel] Subscribed to symbols: {Symbols}",
+            string.Join(", ", symbolList));
+
+        return Task.CompletedTask;
+    }
+
+    public Task UnsubscribeAsync(IEnumerable<string> symbols, CancellationToken cancellationToken = default)
+    {
+        if (!_isConnected)
         {
-            _logger.LogError(ex, "[StockDataChannel] Error getting fundamentals for {Symbol}", symbol);
-            return null;
+            throw new InvalidOperationException("Channel is not connected");
         }
+
+        var symbolList = symbols.ToList();
+        _logger.LogInformation("[StockDataChannel] Unsubscribing from {Count} symbols", symbolList.Count);
+
+        foreach (var symbol in symbolList)
+        {
+            _subscribedSymbols.Remove(symbol);
+        }
+
+        _logger.LogInformation("[StockDataChannel] Unsubscribed from symbols: {Symbols}", string.Join(", ", symbolList));
+
+        return Task.CompletedTask;
     }
 
     public void Dispose()
     {
         _isConnected = false;
+        _subscribedSymbols.Clear();
     }
 }

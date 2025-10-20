@@ -60,7 +60,7 @@ public class MarketData
     /// <summary>
     /// Asset type classification (Cryptocurrency, Stock, Futures, Options, ETF, Forex)
     /// </summary>
-    public AssetType AssetType { get; init; } = AssetType.Cryptocurrency;
+    public AssetType AssetType { get; set; } = AssetType.Cryptocurrency;
 
     /// <summary>
     /// Additional metadata in JSON format

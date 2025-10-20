@@ -152,11 +152,16 @@ builder.Services.AddScoped<AlgoTrendy.TradingEngine.Services.MLFeatureService>()
 builder.Services.AddScoped<AlgoTrendy.TradingEngine.Services.IndicatorService>();
 builder.Services.AddSingleton<AlgoTrendy.Core.Services.SymbolFormatterService>();
 
+// Register market data providers
+builder.Services.AddScoped<AlgoTrendy.DataChannels.Providers.AlphaVantageProvider>();
+builder.Services.AddScoped<AlgoTrendy.DataChannels.Providers.YFinanceProvider>();
+
 // Register all market data channels as scoped services
 builder.Services.AddScoped<BinanceRestChannel>();
 builder.Services.AddScoped<OKXRestChannel>();
 builder.Services.AddScoped<CoinbaseRestChannel>();
 builder.Services.AddScoped<KrakenRestChannel>();
+builder.Services.AddScoped<StockDataChannel>();
 
 // Register backtesting services
 builder.Services.AddScoped<IBacktestEngine, CustomBacktestEngine>();

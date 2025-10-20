@@ -87,7 +87,8 @@ public class MarketDataChannelService : BackgroundService
             FetchFromChannelAsync<BinanceRestChannel>(scope, "Binance", cancellationToken),
             FetchFromChannelAsync<OKXRestChannel>(scope, "OKX", cancellationToken),
             FetchFromChannelAsync<CoinbaseRestChannel>(scope, "Coinbase", cancellationToken),
-            FetchFromChannelAsync<KrakenRestChannel>(scope, "Kraken", cancellationToken)
+            FetchFromChannelAsync<KrakenRestChannel>(scope, "Kraken", cancellationToken),
+            FetchFromChannelAsync<StockDataChannel>(scope, "Stocks", cancellationToken)
         };
 
         // Wait for all channels to complete
@@ -211,7 +212,8 @@ public class MarketDataChannelService : BackgroundService
             StopChannelAsync<BinanceRestChannel>(scope, "Binance", cancellationToken),
             StopChannelAsync<OKXRestChannel>(scope, "OKX", cancellationToken),
             StopChannelAsync<CoinbaseRestChannel>(scope, "Coinbase", cancellationToken),
-            StopChannelAsync<KrakenRestChannel>(scope, "Kraken", cancellationToken)
+            StopChannelAsync<KrakenRestChannel>(scope, "Kraken", cancellationToken),
+            StopChannelAsync<StockDataChannel>(scope, "Stocks", cancellationToken)
         };
 
         await Task.WhenAll(stopTasks);
