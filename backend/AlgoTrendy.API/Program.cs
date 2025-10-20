@@ -199,9 +199,10 @@ builder.Services.AddScoped<KrakenRestChannel>();
 // builder.Services.AddScoped<FuturesDataChannel>();
 
 // Register backtesting services
-// NOTE: CustomBacktestEngine intentionally disabled - requires accuracy verification before use
-// Use QuantConnect engine for production backtesting (requires credentials)
-// builder.Services.AddScoped<IBacktestEngine, CustomBacktestEngine>();
+// NOTE: CustomBacktestEngine is registered for DI but will safely fail at runtime
+// The engine returns error message directing users to QuantConnect instead
+// See CUSTOM_ENGINE_DISABLED.md for details
+builder.Services.AddScoped<IBacktestEngine, CustomBacktestEngine>();
 builder.Services.AddScoped<IBacktestService, BacktestService>();
 
 // Configure and register QuantConnect services
