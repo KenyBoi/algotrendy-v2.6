@@ -221,3 +221,8 @@ devtools/analysis/*.sarif
 !docker-compose.example.yml
 trees/
 integrations/strategies_external/external_strategies/openalgo/
+
+# Python virtual environments
+integrations/tradingview/tradingview_venv/
+integrations/tradingview/__pycache__/
+**/__pycache__/
