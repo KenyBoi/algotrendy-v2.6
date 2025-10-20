@@ -1,6 +1,7 @@
 using System.Text.Json;
 using AlgoTrendy.Core.Configuration;
 using AlgoTrendy.Core.Models;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Npgsql;
