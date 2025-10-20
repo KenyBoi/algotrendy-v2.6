@@ -166,6 +166,53 @@ services:
       - /tmp
 
   # ==========================================================================
+  # Frontend - React Application (Production Configuration)
+  # ==========================================================================
+  frontend:
+    build:
+      context: ./docs/design/algotrendy_browser_figma
+      dockerfile: Dockerfile
+    image: algotrendy-frontend:v1.0-prod
+    container_name: algotrendy-frontend-prod
+    restart: always
+    depends_on:
+      - api
+    networks:
+      algotrendy-network:
+        ipv4_address: 172.20.0.25
+    environment:
+      - VITE_API_BASE_URL=https://app.algotrendy.com/api
+      - VITE_WS_URL=https://app.algotrendy.com/hubs/market
+      - VITE_ENVIRONMENT=production
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "5"
+        compress: "true"
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 256M
+    security_opt:
+      - no-new-privileges:true
+    read_only: true
+    tmpfs:
+      - /var/run
+      - /var/cache/nginx
+      - /tmp
+
+  # ==========================================================================
   # Nginx - Reverse Proxy with SSL Termination (Production Configuration)
   # ==========================================================================
   nginx:
@@ -174,6 +221,7 @@ services:
     restart: always
     depends_on:
       - api
+      - frontend
     networks:
       algotrendy-network:
         ipv4_address: 172.20.0.30
