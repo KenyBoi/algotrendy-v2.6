@@ -10,14 +10,10 @@ namespace AlgoTrendy.DataChannels.Channels.REST;
 /// Direct C# port of v2.5 okx.py implementation
 /// Fetches OHLCV candlestick data from OKX REST API
 /// </summary>
-public class OKXRestChannel : IMarketDataChannel
+public class OKXRestChannel : RestChannelBase
 {
-    private const string BaseUrl = "https://www.okx.com";
-    private readonly IHttpClientFactory _httpClientFactory;
-    private readonly IMarketDataRepository _marketDataRepository;
-    private readonly ILogger<OKXRestChannel> _logger;
-    private readonly List<string> _subscribedSymbols = new();
-    private bool _isConnected;
+    protected override string BaseUrl => "https://www.okx.com";
+    public override string ExchangeName => "okx";
 
     // Default symbols matching v2.5 (OKX format: BTC-USDT)
     private static readonly string[] DefaultSymbols = new[]
@@ -37,94 +33,18 @@ public class OKXRestChannel : IMarketDataChannel
         ["1d"] = "1D"
     };
 
-    public string ExchangeName => "okx";
-    public bool IsConnected => _isConnected;
-    public IReadOnlyList<string> SubscribedSymbols => _subscribedSymbols.AsReadOnly();
-    public DateTime? LastDataReceivedAt { get; private set; }
-    public long TotalMessagesReceived { get; private set; }
-
     public OKXRestChannel(
         IHttpClientFactory httpClientFactory,
         IMarketDataRepository marketDataRepository,
         ILogger<OKXRestChannel> logger)
+        : base(httpClientFactory, marketDataRepository, logger)
     {
-        _httpClientFactory = httpClientFactory ?? throw new ArgumentNullException(nameof(httpClientFactory));
-        _marketDataRepository = marketDataRepository ?? throw new ArgumentNullException(nameof(marketDataRepository));
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-    }
-
-    public async Task StartAsync(CancellationToken cancellationToken = default)
-    {
-        if (_isConnected)
-        {
-            _logger.LogWarning("OKX channel is already connected");
-            return;
-        }
-
-        _logger.LogInformation("Starting OKX REST channel");
-
-        // Test connection to OKX API
-        var connected = await TestConnectionAsync(cancellationToken);
-        if (!connected)
-        {
-            throw new InvalidOperationException("Failed to connect to OKX API");
-        }
-
-        _isConnected = true;
-        _logger.LogInformation("Connected to OKX REST API: {Url}", BaseUrl);
-    }
-
-    public Task StopAsync(CancellationToken cancellationToken = default)
-    {
-        _logger.LogInformation("Stopping OKX REST channel");
-        _isConnected = false;
-        _subscribedSymbols.Clear();
-        return Task.CompletedTask;
-    }
-
-    public Task SubscribeAsync(IEnumerable<string> symbols, CancellationToken cancellationToken = default)
-    {
-        if (!_isConnected)
-        {
-            throw new InvalidOperationException("Channel is not connected");
-        }
-
-        var symbolList = symbols.ToList();
-        _logger.LogInformation("Subscribing to {Count} symbols on OKX", symbolList.Count);
-
-        _subscribedSymbols.AddRange(symbolList);
-
-        _logger.LogInformation(
-            "Subscribed to symbols: {Symbols}",
-            string.Join(", ", symbolList));
-
-        return Task.CompletedTask;
-    }
-
-    public Task UnsubscribeAsync(IEnumerable<string> symbols, CancellationToken cancellationToken = default)
-    {
-        if (!_isConnected)
-        {
-            throw new InvalidOperationException("Channel is not connected");
-        }
-
-        var symbolList = symbols.ToList();
-        _logger.LogInformation("Unsubscribing from {Count} symbols on OKX", symbolList.Count);
-
-        foreach (var symbol in symbolList)
-        {
-            _subscribedSymbols.Remove(symbol);
-        }
-
-        _logger.LogInformation("Unsubscribed from symbols: {Symbols}", string.Join(", ", symbolList));
-
-        return Task.CompletedTask;
     }
 
     /// <summary>
     /// Test connection to OKX API
     /// </summary>
-    private async Task<bool> TestConnectionAsync(CancellationToken cancellationToken)
+    protected override async Task<bool> TestConnectionAsync(CancellationToken cancellationToken)
     {
         try
         {

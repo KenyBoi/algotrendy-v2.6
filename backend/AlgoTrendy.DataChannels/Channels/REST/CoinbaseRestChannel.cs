@@ -10,14 +10,10 @@ namespace AlgoTrendy.DataChannels.Channels.REST;
 /// Direct C# port of v2.5 coinbase.py implementation
 /// Fetches OHLCV candlestick data from Coinbase Exchange API
 /// </summary>
-public class CoinbaseRestChannel : IMarketDataChannel
+public class CoinbaseRestChannel : RestChannelBase
 {
-    private const string BaseUrl = "https://api.exchange.coinbase.com";
-    private readonly IHttpClientFactory _httpClientFactory;
-    private readonly IMarketDataRepository _marketDataRepository;
-    private readonly ILogger<CoinbaseRestChannel> _logger;
-    private readonly List<string> _subscribedSymbols = new();
-    private bool _isConnected;
+    protected override string BaseUrl => "https://api.exchange.coinbase.com";
+    public override string ExchangeName => "coinbase";
 
     // Default symbols matching v2.5 (Coinbase format: BTC-USD)
     private static readonly string[] DefaultSymbols = new[]
@@ -29,94 +25,18 @@ public class CoinbaseRestChannel : IMarketDataChannel
     // Valid granularities in seconds
     private static readonly int[] ValidGranularities = { 60, 300, 900, 3600, 21600, 86400 };
 
-    public string ExchangeName => "coinbase";
-    public bool IsConnected => _isConnected;
-    public IReadOnlyList<string> SubscribedSymbols => _subscribedSymbols.AsReadOnly();
-    public DateTime? LastDataReceivedAt { get; private set; }
-    public long TotalMessagesReceived { get; private set; }
-
     public CoinbaseRestChannel(
         IHttpClientFactory httpClientFactory,
         IMarketDataRepository marketDataRepository,
         ILogger<CoinbaseRestChannel> logger)
+        : base(httpClientFactory, marketDataRepository, logger)
     {
-        _httpClientFactory = httpClientFactory ?? throw new ArgumentNullException(nameof(httpClientFactory));
-        _marketDataRepository = marketDataRepository ?? throw new ArgumentNullException(nameof(marketDataRepository));
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-    }
-
-    public async Task StartAsync(CancellationToken cancellationToken = default)
-    {
-        if (_isConnected)
-        {
-            _logger.LogWarning("Coinbase channel is already connected");
-            return;
-        }
-
-        _logger.LogInformation("Starting Coinbase REST channel");
-
-        // Test connection to Coinbase API
-        var connected = await TestConnectionAsync(cancellationToken);
-        if (!connected)
-        {
-            throw new InvalidOperationException("Failed to connect to Coinbase API");
-        }
-
-        _isConnected = true;
-        _logger.LogInformation("Connected to Coinbase REST API: {Url}", BaseUrl);
-    }
-
-    public Task StopAsync(CancellationToken cancellationToken = default)
-    {
-        _logger.LogInformation("Stopping Coinbase REST channel");
-        _isConnected = false;
-        _subscribedSymbols.Clear();
-        return Task.CompletedTask;
-    }
-
-    public Task SubscribeAsync(IEnumerable<string> symbols, CancellationToken cancellationToken = default)
-    {
-        if (!_isConnected)
-        {
-            throw new InvalidOperationException("Channel is not connected");
-        }
-
-        var symbolList = symbols.ToList();
-        _logger.LogInformation("Subscribing to {Count} symbols on Coinbase", symbolList.Count);
-
-        _subscribedSymbols.AddRange(symbolList);
-
-        _logger.LogInformation(
-            "Subscribed to symbols: {Symbols}",
-            string.Join(", ", symbolList));
-
-        return Task.CompletedTask;
-    }
-
-    public Task UnsubscribeAsync(IEnumerable<string> symbols, CancellationToken cancellationToken = default)
-    {
-        if (!_isConnected)
-        {
-            throw new InvalidOperationException("Channel is not connected");
-        }
-
-        var symbolList = symbols.ToList();
-        _logger.LogInformation("Unsubscribing from {Count} symbols on Coinbase", symbolList.Count);
-
-        foreach (var symbol in symbolList)
-        {
-            _subscribedSymbols.Remove(symbol);
-        }
-
-        _logger.LogInformation("Unsubscribed from symbols: {Symbols}", string.Join(", ", symbolList));
-
-        return Task.CompletedTask;
     }
 
     /// <summary>
     /// Test connection to Coinbase API
     /// </summary>
-    private async Task<bool> TestConnectionAsync(CancellationToken cancellationToken)
+    protected override async Task<bool> TestConnectionAsync(CancellationToken cancellationToken)
     {
         try
         {

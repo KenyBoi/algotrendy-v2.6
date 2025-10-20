@@ -163,24 +163,59 @@ builder.Services.AddSingleton<AlgoTrendy.Core.Services.TotpService>(sp =>
 builder.Services.AddScoped<AlgoTrendy.Core.Services.MfaService>();
 
 // Portfolio Optimization and Risk Analytics Services
-builder.Services.AddScoped<IPortfolioOptimizationService, AlgoTrendy.TradingEngine.Services.PortfolioOptimizationService>();
-builder.Services.AddScoped<IRiskAnalyticsService, AlgoTrendy.TradingEngine.Services.RiskAnalyticsService>();
+// NOTE: Temporarily commented out - missing IMarketDataProvider registration
+// builder.Services.AddScoped<IPortfolioOptimizationService, AlgoTrendy.TradingEngine.Services.PortfolioOptimizationService>();
+// builder.Services.AddScoped<IRiskAnalyticsService, AlgoTrendy.TradingEngine.Services.RiskAnalyticsService>();
 
-// Register market data providers
-builder.Services.AddScoped<AlgoTrendy.DataChannels.Providers.AlphaVantageProvider>();
-builder.Services.AddScoped<AlgoTrendy.DataChannels.Providers.YFinanceProvider>();
+// Register market data providers with factory functions
+builder.Services.AddScoped<AlgoTrendy.DataChannels.Providers.AlphaVantageProvider>(sp =>
+{
+    var httpClient = sp.GetRequiredService<IHttpClientFactory>().CreateClient();
+    var logger = sp.GetRequiredService<ILogger<AlgoTrendy.DataChannels.Providers.AlphaVantageProvider>>();
+    var apiKey = builder.Configuration["DataProviders:AlphaVantage:ApiKey"] ?? "";
+    return new AlgoTrendy.DataChannels.Providers.AlphaVantageProvider(httpClient, logger, apiKey);
+});
+
+builder.Services.AddScoped<AlgoTrendy.DataChannels.Providers.YFinanceProvider>(sp =>
+{
+    var httpClient = sp.GetRequiredService<IHttpClientFactory>().CreateClient();
+    var logger = sp.GetRequiredService<ILogger<AlgoTrendy.DataChannels.Providers.YFinanceProvider>>();
+    var serviceUrl = builder.Configuration["DataProviders:YFinance:ServiceUrl"] ?? "http://localhost:5001";
+    return new AlgoTrendy.DataChannels.Providers.YFinanceProvider(httpClient, logger, serviceUrl);
+});
 
 // Register all market data channels as scoped services
 builder.Services.AddScoped<BinanceRestChannel>();
 builder.Services.AddScoped<OKXRestChannel>();
 builder.Services.AddScoped<CoinbaseRestChannel>();
 builder.Services.AddScoped<KrakenRestChannel>();
-builder.Services.AddScoped<StockDataChannel>();
-builder.Services.AddScoped<FuturesDataChannel>();
+
+// NOTE: Temporarily commented out - depend on AlphaVantageProvider
+// builder.Services.AddScoped<StockDataChannel>();
+// builder.Services.AddScoped<FuturesDataChannel>();
 
 // Register backtesting services
 builder.Services.AddScoped<IBacktestEngine, CustomBacktestEngine>();
 builder.Services.AddScoped<IBacktestService, BacktestService>();
+
+// Configure and register QuantConnect services
+builder.Services.Configure<AlgoTrendy.Backtesting.Services.QuantConnectConfig>(options =>
+{
+    options.UserId = builder.Configuration["QuantConnect:UserId"]
+        ?? Environment.GetEnvironmentVariable("QUANTCONNECT_USER_ID")
+        ?? "";
+    options.ApiToken = builder.Configuration["QuantConnect:ApiToken"]
+        ?? Environment.GetEnvironmentVariable("QUANTCONNECT_API_TOKEN")
+        ?? "";
+    options.BaseUrl = builder.Configuration["QuantConnect:BaseUrl"]
+        ?? "https://www.quantconnect.com/api/v2";
+    options.DefaultProjectId = builder.Configuration.GetValue<int?>("QuantConnect:DefaultProjectId");
+    options.TimeoutSeconds = builder.Configuration.GetValue<int>("QuantConnect:TimeoutSeconds", 300);
+});
+
+builder.Services.AddHttpClient<IQuantConnectApiClient, QuantConnectApiClient>();
+builder.Services.AddScoped<QuantConnectBacktestEngine>();
+builder.Services.AddScoped<IMEMIntegrationService, MEMIntegrationService>();
 
 // Configure and register Finnhub service for cryptocurrency market data
 builder.Services.Configure<FinnhubSettings>(options =>
@@ -262,6 +297,14 @@ builder.Services.Configure<AlgoTrendy.TradingEngine.Brokers.CoinbaseOptions>(opt
     options.ApiSecret = builder.Configuration["Coinbase__ApiSecret"] ?? Environment.GetEnvironmentVariable("COINBASE_API_SECRET") ?? "";
 });
 
+// Configure MEXC broker options (DISABLED - API compatibility work in progress)
+// builder.Services.Configure<AlgoTrendy.TradingEngine.Brokers.MEXCOptions>(options =>
+// {
+//     options.ApiKey = builder.Configuration["MEXC__ApiKey"] ?? Environment.GetEnvironmentVariable("MEXC_API_KEY") ?? "";
+//     options.ApiSecret = builder.Configuration["MEXC__ApiSecret"] ?? Environment.GetEnvironmentVariable("MEXC_API_SECRET") ?? "";
+//     options.UseTestnet = builder.Configuration.GetValue<bool>("MEXC__UseTestnet", true);
+// });
+
 // Register all brokers as named services
 builder.Services.AddScoped<AlgoTrendy.TradingEngine.Brokers.BinanceBroker>();
 builder.Services.AddScoped<AlgoTrendy.TradingEngine.Brokers.BybitBroker>();
@@ -270,6 +313,7 @@ builder.Services.AddScoped<AlgoTrendy.TradingEngine.Brokers.NinjaTraderBroker>()
 builder.Services.AddScoped<AlgoTrendy.TradingEngine.Brokers.InteractiveBrokersBroker>();
 // builder.Services.AddScoped<AlgoTrendy.TradingEngine.Brokers.KrakenBroker>(); // DISABLED - Package API mismatch
 builder.Services.AddScoped<AlgoTrendy.TradingEngine.Brokers.CoinbaseBroker>(); // ✅ ACTIVE
+// builder.Services.AddScoped<AlgoTrendy.TradingEngine.Brokers.MEXCBroker>(); // 🚧 WIP - API compatibility in progress
 
 // Register default broker (can be configured via environment variable)
 builder.Services.AddScoped<IBroker>(sp =>
@@ -285,6 +329,7 @@ builder.Services.AddScoped<IBroker>(sp =>
         "interactivebrokers" or "ibkr" => sp.GetRequiredService<AlgoTrendy.TradingEngine.Brokers.InteractiveBrokersBroker>(),
         // "kraken" => sp.GetRequiredService<AlgoTrendy.TradingEngine.Brokers.KrakenBroker>(), // DISABLED - Package API mismatch
         "coinbase" => sp.GetRequiredService<AlgoTrendy.TradingEngine.Brokers.CoinbaseBroker>(), // ✅ ACTIVE
+        // "mexc" => sp.GetRequiredService<AlgoTrendy.TradingEngine.Brokers.MEXCBroker>(), // 🚧 WIP - API compatibility in progress
         _ => sp.GetRequiredService<AlgoTrendy.TradingEngine.Brokers.BybitBroker>() // Default to Bybit
     };
 });

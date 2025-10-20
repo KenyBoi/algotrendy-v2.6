@@ -485,7 +485,7 @@ public class BacktestConfigOptions
     /// </summary>
     public List<OptionItem> BacktestingEngines { get; set; } = new()
     {
-        new OptionItem { Value = "custom", Label = "Custom Engine", Status = "available" },
+        new OptionItem { Value = "custom", Label = "Custom Engine", Status = "disabled" },
         new OptionItem { Value = "quantconnect", Label = "QuantConnect", Status = "available" },
         new OptionItem { Value = "backtester", Label = "Backtester.com", Status = "available" }
     };

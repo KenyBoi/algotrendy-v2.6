@@ -10,14 +10,10 @@ namespace AlgoTrendy.DataChannels.Channels.REST;
 /// Direct C# port of v2.5 binance.py implementation
 /// Fetches OHLCV data from Binance REST API
 /// </summary>
-public class BinanceRestChannel : IMarketDataChannel
+public class BinanceRestChannel : RestChannelBase
 {
-    private const string BaseUrl = "https://api.binance.com";
-    private readonly IHttpClientFactory _httpClientFactory;
-    private readonly IMarketDataRepository _marketDataRepository;
-    private readonly ILogger<BinanceRestChannel> _logger;
-    private readonly List<string> _subscribedSymbols = new();
-    private bool _isConnected;
+    protected override string BaseUrl => "https://api.binance.com";
+    public override string ExchangeName => "binance";
 
     // Default symbols matching v2.5
     private static readonly string[] DefaultSymbols = new[]
@@ -26,94 +22,18 @@ public class BinanceRestChannel : IMarketDataChannel
         "XRPUSDT", "DOGEUSDT", "DOTUSDT", "MATICUSDT", "AVAXUSDT"
     };
 
-    public string ExchangeName => "binance";
-    public bool IsConnected => _isConnected;
-    public IReadOnlyList<string> SubscribedSymbols => _subscribedSymbols.AsReadOnly();
-    public DateTime? LastDataReceivedAt { get; private set; }
-    public long TotalMessagesReceived { get; private set; }
-
     public BinanceRestChannel(
         IHttpClientFactory httpClientFactory,
         IMarketDataRepository marketDataRepository,
         ILogger<BinanceRestChannel> logger)
+        : base(httpClientFactory, marketDataRepository, logger)
     {
-        _httpClientFactory = httpClientFactory ?? throw new ArgumentNullException(nameof(httpClientFactory));
-        _marketDataRepository = marketDataRepository ?? throw new ArgumentNullException(nameof(marketDataRepository));
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-    }
-
-    public async Task StartAsync(CancellationToken cancellationToken = default)
-    {
-        if (_isConnected)
-        {
-            _logger.LogWarning("Binance channel is already connected");
-            return;
-        }
-
-        _logger.LogInformation("Starting Binance REST channel");
-
-        // Test connection to Binance API
-        var connected = await TestConnectionAsync(cancellationToken);
-        if (!connected)
-        {
-            throw new InvalidOperationException("Failed to connect to Binance API");
-        }
-
-        _isConnected = true;
-        _logger.LogInformation("Connected to Binance REST API: {Url}", BaseUrl);
-    }
-
-    public Task StopAsync(CancellationToken cancellationToken = default)
-    {
-        _logger.LogInformation("Stopping Binance REST channel");
-        _isConnected = false;
-        _subscribedSymbols.Clear();
-        return Task.CompletedTask;
-    }
-
-    public Task SubscribeAsync(IEnumerable<string> symbols, CancellationToken cancellationToken = default)
-    {
-        if (!_isConnected)
-        {
-            throw new InvalidOperationException("Channel is not connected");
-        }
-
-        var symbolList = symbols.ToList();
-        _logger.LogInformation("Subscribing to {Count} symbols on Binance", symbolList.Count);
-
-        _subscribedSymbols.AddRange(symbolList);
-
-        _logger.LogInformation(
-            "Subscribed to symbols: {Symbols}",
-            string.Join(", ", symbolList));
-
-        return Task.CompletedTask;
-    }
-
-    public Task UnsubscribeAsync(IEnumerable<string> symbols, CancellationToken cancellationToken = default)
-    {
-        if (!_isConnected)
-        {
-            throw new InvalidOperationException("Channel is not connected");
-        }
-
-        var symbolList = symbols.ToList();
-        _logger.LogInformation("Unsubscribing from {Count} symbols on Binance", symbolList.Count);
-
-        foreach (var symbol in symbolList)
-        {
-            _subscribedSymbols.Remove(symbol);
-        }
-
-        _logger.LogInformation("Unsubscribed from symbols: {Symbols}", string.Join(", ", symbolList));
-
-        return Task.CompletedTask;
     }
 
     /// <summary>
     /// Test connection to Binance API
     /// </summary>
-    private async Task<bool> TestConnectionAsync(CancellationToken cancellationToken)
+    protected override async Task<bool> TestConnectionAsync(CancellationToken cancellationToken)
     {
         try
         {

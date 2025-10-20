@@ -36,22 +36,30 @@ public class CustomBacktestEngine : IBacktestEngine
     /// <inheritdoc/>
     public (bool IsValid, string? ErrorMessage) ValidateConfig(BacktestConfig config)
     {
-        if (string.IsNullOrEmpty(config.Symbol))
-            return (false, "Symbol is required");
-
-        if (config.InitialCapital <= 0)
-            return (false, "Initial capital must be greater than 0");
-
-        if (config.EndDate <= config.StartDate)
-            return (false, "End date must be after start date");
-
-        return (true, null);
+        // DISABLED: Custom engine is currently disabled pending accuracy verification
+        // DO NOT USE until full validation against QuantConnect is complete
+        return (false, "Custom Engine is currently disabled. Please use QuantConnect engine instead. The Custom engine requires accuracy verification before use.");
     }
 
     /// <inheritdoc/>
-    public async Task<BacktestResults> RunAsync(BacktestConfig config, CancellationToken cancellationToken = default)
+    public Task<BacktestResults> RunAsync(BacktestConfig config, CancellationToken cancellationToken = default)
     {
         var startedAt = DateTime.UtcNow;
+
+        // DISABLED: Block execution at runtime
+        _logger.LogError("Attempted to run Custom Engine which is currently disabled");
+        return Task.FromResult(new BacktestResults
+        {
+            BacktestId = Guid.NewGuid().ToString(),
+            Status = BacktestStatus.Failed,
+            Config = config,
+            StartedAt = startedAt,
+            CompletedAt = DateTime.UtcNow,
+            ErrorMessage = "Custom Engine is currently disabled. Please use QuantConnect engine instead. The Custom engine requires accuracy verification before use."
+        });
+
+        // Original implementation commented out - DO NOT USE until verified
+        /*
         var backtestResults = new BacktestResults
         {
             BacktestId = Guid.NewGuid().ToString(),
@@ -147,6 +155,7 @@ public class CustomBacktestEngine : IBacktestEngine
                 }
             };
         }
+        */
     }
 
     /// <summary>

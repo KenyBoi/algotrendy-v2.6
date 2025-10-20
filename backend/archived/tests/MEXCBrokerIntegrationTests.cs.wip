@@ -1,0 +1,244 @@
+using AlgoTrendy.Core.Enums;
+using AlgoTrendy.Core.Models;
+using AlgoTrendy.TradingEngine.Brokers;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
+using Xunit;
+using Xunit.Abstractions;
+
+namespace AlgoTrendy.Tests.Integration.Brokers;
+
+/// <summary>
+/// Integration tests for MEXC broker
+/// These tests connect to MEXC testnet (requires API credentials)
+/// </summary>
+[Trait("Category", "Integration")]
+[Trait("Broker", "MEXC")]
+public class MEXCBrokerIntegrationTests : IDisposable
+{
+    private readonly MEXCBroker? _broker;
+    private readonly ITestOutputHelper _output;
+    private readonly bool _credentialsAvailable;
+
+    public MEXCBrokerIntegrationTests(ITestOutputHelper output)
+    {
+        _output = output;
+
+        // Get credentials from environment variables
+        var apiKey = Environment.GetEnvironmentVariable("MEXC_API_KEY");
+        var apiSecret = Environment.GetEnvironmentVariable("MEXC_API_SECRET");
+        var useTestnet = Environment.GetEnvironmentVariable("MEXC_TESTNET")?.ToLower() != "false";
+
+        _credentialsAvailable = !string.IsNullOrEmpty(apiKey) && !string.IsNullOrEmpty(apiSecret);
+
+        if (_credentialsAvailable)
+        {
+            var options = Options.Create(new MEXCOptions
+            {
+                ApiKey = apiKey!,
+                ApiSecret = apiSecret!,
+                UseTestnet = useTestnet
+            });
+
+            var loggerFactory = LoggerFactory.Create(builder =>
+            {
+                builder.AddConsole();
+                builder.SetMinimumLevel(LogLevel.Debug);
+            });
+
+            var logger = loggerFactory.CreateLogger<MEXCBroker>();
+
+            _broker = new MEXCBroker(options, logger);
+
+            _output.WriteLine($"Testing MEXC broker on {(useTestnet ? "TESTNET" : "PRODUCTION")}");
+        }
+    }
+
+    /// <summary>
+    /// Ensures credentials are available, skips test if not
+    /// </summary>
+    private void RequireCredentials()
+    {
+        if (!_credentialsAvailable)
+        {
+            throw new Xunit.SkipException("MEXC API credentials not configured. Set MEXC_API_KEY and MEXC_API_SECRET environment variables.");
+        }
+    }
+
+    [SkippableFact]
+    public async Task Connect_WithValidCredentials_Succeeds()
+    {
+        RequireCredentials();
+
+        // Act
+        var result = await _broker!.ConnectAsync();
+
+        // Assert
+        Assert.True(result, "Failed to connect to MEXC");
+        _output.WriteLine("✅ Successfully connected to MEXC");
+    }
+
+    [SkippableFact]
+    public async Task GetBalance_AfterConnection_ReturnsBalance()
+    {
+        RequireCredentials();
+
+        // Arrange
+        await _broker!.ConnectAsync();
+
+        // Act
+        var balance = await _broker.GetBalanceAsync("USDT");
+
+        // Assert
+        Assert.True(balance >= 0, "Balance should be >= 0");
+        _output.WriteLine($"✅ Balance: {balance} USDT");
+    }
+
+    [SkippableFact]
+    public async Task GetPositions_AfterConnection_ReturnsPositions()
+    {
+        RequireCredentials();
+
+        // Arrange
+        await _broker!.ConnectAsync();
+
+        // Act
+        var positions = await _broker.GetPositionsAsync();
+
+        // Assert
+        Assert.NotNull(positions);
+        _output.WriteLine($"✅ Retrieved {positions.Count()} position(s)");
+    }
+
+    [SkippableFact]
+    public async Task GetCurrentPrice_ForBTCUSDT_ReturnsValidPrice()
+    {
+        RequireCredentials();
+
+        // Arrange
+        await _broker!.ConnectAsync();
+        var symbol = "BTCUSDT";
+
+        // Act
+        var price = await _broker.GetCurrentPriceAsync(symbol);
+
+        // Assert
+        Assert.True(price > 0, $"Price for {symbol} should be > 0");
+        _output.WriteLine($"✅ Current price for {symbol}: ${price}");
+    }
+
+    [SkippableFact]
+    public async Task PlaceOrder_LimitOrder_CreatesOrder()
+    {
+        RequireCredentials();
+
+        // Arrange
+        await _broker!.ConnectAsync();
+
+        var request = new OrderRequest
+        {
+            Symbol = "BTCUSDT",
+            Exchange = "mexc",
+            Side = OrderSide.Buy,
+            Type = OrderType.Limit,
+            Quantity = 0.001m, // Small test amount
+            Price = 10000, // Far below market to avoid execution
+            ClientOrderId = $"test_{Guid.NewGuid()}"
+        };
+
+        // Act
+        var order = await _broker.PlaceOrderAsync(request);
+
+        // Assert
+        Assert.NotNull(order);
+        Assert.NotNull(order.OrderId);
+        Assert.Equal(OrderSide.Buy, order.Side);
+        _output.WriteLine($"✅ Order placed: {order.OrderId}");
+
+        // Cleanup: Cancel the order
+        try
+        {
+            await _broker.CancelOrderAsync(order.ExchangeOrderId, request.Symbol);
+            _output.WriteLine($"✅ Order cancelled: {order.OrderId}");
+        }
+        catch (Exception ex)
+        {
+            _output.WriteLine($"⚠️ Failed to cancel order: {ex.Message}");
+        }
+    }
+
+    [SkippableFact]
+    public async Task SetLeverage_ForSymbol_ReturnsNotSupported()
+    {
+        RequireCredentials();
+
+        // Arrange
+        await _broker!.ConnectAsync();
+        var symbol = "BTCUSDT";
+        var leverage = 1m; // Only 1x supported for spot trading
+
+        // Act
+        var result = await _broker.SetLeverageAsync(symbol, leverage, MarginType.Cross);
+
+        // Assert
+        Assert.True(result, "Failed to set leverage");
+        _output.WriteLine($"✅ Leverage set to {leverage}x for {symbol} (spot trading)");
+    }
+
+    [SkippableFact]
+    public async Task SetLeverage_WithNonDefaultLeverage_ThrowsNotSupported()
+    {
+        RequireCredentials();
+
+        // Arrange
+        await _broker!.ConnectAsync();
+        var symbol = "BTCUSDT";
+        var leverage = 5m; // Not supported for spot trading
+
+        // Act & Assert
+        await Assert.ThrowsAsync<NotSupportedException>(async () =>
+        {
+            await _broker.SetLeverageAsync(symbol, leverage, MarginType.Cross);
+        });
+        _output.WriteLine($"✅ Correctly rejected leverage {leverage}x for spot trading");
+    }
+
+    [SkippableFact]
+    public async Task GetLeverageInfo_ForSymbol_ReturnsInfo()
+    {
+        RequireCredentials();
+
+        // Arrange
+        await _broker!.ConnectAsync();
+        var symbol = "BTCUSDT";
+
+        // Act
+        var leverageInfo = await _broker.GetLeverageInfoAsync(symbol);
+
+        // Assert
+        Assert.NotNull(leverageInfo);
+        Assert.Equal(1.0m, leverageInfo.CurrentLeverage);
+        _output.WriteLine($"✅ Leverage info: {leverageInfo.CurrentLeverage}x (max: {leverageInfo.MaxLeverage}x)");
+    }
+
+    [SkippableFact]
+    public async Task GetMarginHealthRatio_AfterConnection_ReturnsRatio()
+    {
+        RequireCredentials();
+
+        // Arrange
+        await _broker!.ConnectAsync();
+
+        // Act
+        var healthRatio = await _broker.GetMarginHealthRatioAsync();
+
+        // Assert
+        Assert.True(healthRatio >= 0 && healthRatio <= 1.5m, "Health ratio should be between 0 and 1.5");
+        _output.WriteLine($"✅ Margin health ratio: {healthRatio:P2}");
+    }
+
+    public void Dispose()
+    {
+        // Cleanup if needed
+    }
+}
