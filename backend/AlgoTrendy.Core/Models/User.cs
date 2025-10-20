@@ -140,6 +140,11 @@ public class User
     /// Additional metadata (JSON)
     /// </summary>
     public string? Metadata { get; set; }
+
+    /// <summary>
+    /// Multi-factor authentication settings for this user
+    /// </summary>
+    public UserMfaSettings? MfaSettings { get; set; }
 }
 
 /// <summary>

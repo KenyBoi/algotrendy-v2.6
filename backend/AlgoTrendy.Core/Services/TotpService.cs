@@ -100,7 +100,7 @@ public class TotpService
 
     /// <summary>
     /// Generate QR code URI for authenticator apps
-    /// Format: otpauth://totp/Issuer:user@example.com?secret=BASE32SECRET&issuer=Issuer
+    /// Format: otpauth://totp/Issuer:user@example.com?secret=BASE32SECRET&amp;issuer=Issuer
     /// </summary>
     /// <param name="userEmail">User's email address</param>
     /// <param name="secret">Base32-encoded secret key</param>
