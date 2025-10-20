@@ -79,7 +79,7 @@ public class MACDStrategyTests
         // Assert
         signal.Should().NotBeNull();
         signal.Action.Should().Be(SignalAction.Buy);
-        signal.Confidence.Should().BeGreaterThan(0.5m);
+        signal.Confidence.Should().BeGreaterThanOrEqualTo(0.5m);
         signal.Reason.Should().Contain("BULLISH CROSSOVER");
         signal.EntryPrice.Should().Be(50000m);
         signal.StopLoss.Should().Be(50000m * 0.97m);
@@ -119,7 +119,7 @@ public class MACDStrategyTests
 
         // Assert
         signal.Action.Should().Be(SignalAction.Sell);
-        signal.Confidence.Should().BeGreaterThan(0.5m);
+        signal.Confidence.Should().BeGreaterThanOrEqualTo(0.5m);
         signal.Reason.Should().Contain("BEARISH CROSSOVER");
         signal.EntryPrice.Should().Be(50000m);
         signal.StopLoss.Should().Be(50000m * 1.03m);

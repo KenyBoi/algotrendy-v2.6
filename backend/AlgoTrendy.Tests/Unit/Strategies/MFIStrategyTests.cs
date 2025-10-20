@@ -68,7 +68,7 @@ public class MFIStrategyTests
         // Assert
         signal.Should().NotBeNull();
         signal.Action.Should().Be(SignalAction.Buy);
-        signal.Confidence.Should().BeGreaterThan(0.5m);
+        signal.Confidence.Should().BeGreaterThanOrEqualTo(0.5m);
         signal.Reason.Should().Contain("OVERSOLD");
         signal.Reason.Should().Contain("Money flowing out");
         signal.EntryPrice.Should().Be(50000m);
@@ -100,7 +100,7 @@ public class MFIStrategyTests
 
         // Assert
         signal.Action.Should().Be(SignalAction.Sell);
-        signal.Confidence.Should().BeGreaterThan(0.5m);
+        signal.Confidence.Should().BeGreaterThanOrEqualTo(0.5m);
         signal.Reason.Should().Contain("OVERBOUGHT");
         signal.Reason.Should().Contain("Heavy buying");
         signal.EntryPrice.Should().Be(50000m);

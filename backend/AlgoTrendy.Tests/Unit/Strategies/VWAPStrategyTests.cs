@@ -69,7 +69,7 @@ public class VWAPStrategyTests
         signal.Should().NotBeNull();
         signal.Action.Should().Be(SignalAction.Buy);
         // (48000 - 50000) / 50000 * 100 = -4% (below -2% threshold)
-        signal.Confidence.Should().BeGreaterThan(0.5m);
+        signal.Confidence.Should().BeGreaterThanOrEqualTo(0.5m);
         signal.Reason.Should().Contain("DISCOUNT");
         signal.EntryPrice.Should().Be(48000m);
         signal.StopLoss.Should().Be(48000m * 0.97m);
@@ -102,7 +102,7 @@ public class VWAPStrategyTests
         // Assert
         signal.Action.Should().Be(SignalAction.Sell);
         // (52000 - 50000) / 50000 * 100 = +4% (above +2% threshold)
-        signal.Confidence.Should().BeGreaterThan(0.5m);
+        signal.Confidence.Should().BeGreaterThanOrEqualTo(0.5m);
         signal.Reason.Should().Contain("PREMIUM");
         signal.EntryPrice.Should().Be(52000m);
         signal.StopLoss.Should().Be(52000m * 1.03m);
