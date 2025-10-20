@@ -1,0 +1,333 @@
+<?xml version="1.1" encoding="UTF-8" standalone="no"?>
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+                   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                   xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+                   http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <!-- Users table with KYC/AML information -->
+    <changeSet author="claude-code" id="compliance-1-users-table">
+        <createTable tableName="users">
+            <column name="user_id" type="UUID">
+                <constraints nullable="false" primaryKey="true" primaryKeyName="users_pkey"/>
+            </column>
+            <column name="username" type="VARCHAR(50)">
+                <constraints nullable="false" unique="true"/>
+            </column>
+            <column name="email" type="VARCHAR(255)">
+                <constraints nullable="false" unique="true"/>
+            </column>
+            <column name="full_name" type="VARCHAR(100)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="date_of_birth" type="DATE"/>
+            <column name="address" type="VARCHAR(200)"/>
+            <column name="city" type="VARCHAR(100)"/>
+            <column name="state" type="VARCHAR(50)"/>
+            <column name="postal_code" type="VARCHAR(20)"/>
+            <column name="country" type="VARCHAR(2)"/>
+            <column name="phone_number" type="VARCHAR(20)"/>
+            <column name="tax_id" type="VARCHAR(50)"/>
+            <column name="kyc_status" type="VARCHAR(20)" defaultValue="Pending">
+                <constraints nullable="false"/>
+            </column>
+            <column name="kyc_completed_at" type="TIMESTAMP WITH TIME ZONE"/>
+            <column name="aml_status" type="VARCHAR(20)" defaultValue="Clean">
+                <constraints nullable="false"/>
+            </column>
+            <column name="last_aml_check" type="TIMESTAMP WITH TIME ZONE"/>
+            <column name="sanctions_screened" type="BOOLEAN" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+            <column name="last_sanctions_check" type="TIMESTAMP WITH TIME ZONE"/>
+            <column name="is_sanctioned" type="BOOLEAN" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+            <column name="risk_level" type="VARCHAR(20)" defaultValue="Low">
+                <constraints nullable="false"/>
+            </column>
+            <column name="is_active" type="BOOLEAN" defaultValueBoolean="true">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="TIMESTAMP WITH TIME ZONE" defaultValueComputed="now()">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="TIMESTAMP WITH TIME ZONE" defaultValueComputed="now()">
+                <constraints nullable="false"/>
+            </column>
+            <column name="metadata" type="JSONB"/>
+        </createTable>
+
+        <createIndex indexName="idx_users_email" tableName="users">
+            <column name="email"/>
+        </createIndex>
+        <createIndex indexName="idx_users_username" tableName="users">
+            <column name="username"/>
+        </createIndex>
+        <createIndex indexName="idx_users_kyc_status" tableName="users">
+            <column name="kyc_status"/>
+        </createIndex>
+        <createIndex indexName="idx_users_aml_status" tableName="users">
+            <column name="aml_status"/>
+        </createIndex>
+        <createIndex indexName="idx_users_risk_level" tableName="users">
+            <column name="risk_level"/>
+        </createIndex>
+    </changeSet>
+
+    <!-- Compliance events table for audit trail -->
+    <changeSet author="claude-code" id="compliance-2-events-table">
+        <createTable tableName="compliance_events">
+            <column name="event_id" type="UUID">
+                <constraints nullable="false" primaryKey="true" primaryKeyName="compliance_events_pkey"/>
+            </column>
+            <column name="event_type" type="VARCHAR(50)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="severity" type="VARCHAR(20)" defaultValue="Info">
+                <constraints nullable="false"/>
+            </column>
+            <column name="user_id" type="UUID"/>
+            <column name="order_id" type="UUID"/>
+            <column name="trade_id" type="UUID"/>
+            <column name="title" type="VARCHAR(200)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="description" type="VARCHAR(2000)"/>
+            <column name="event_data" type="JSONB"/>
+            <column name="source" type="VARCHAR(100)"/>
+            <column name="reviewed_by" type="UUID"/>
+            <column name="review_status" type="VARCHAR(20)" defaultValue="Pending">
+                <constraints nullable="false"/>
+            </column>
+            <column name="review_notes" type="VARCHAR(1000)"/>
+            <column name="reviewed_at" type="TIMESTAMP WITH TIME ZONE"/>
+            <column name="requires_action" type="BOOLEAN" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+            <column name="action_taken" type="VARCHAR(500)"/>
+            <column name="created_at" type="TIMESTAMP WITH TIME ZONE" defaultValueComputed="now()">
+                <constraints nullable="false"/>
+            </column>
+            <column name="correlation_id" type="VARCHAR(100)"/>
+        </createTable>
+
+        <createIndex indexName="idx_compliance_events_type" tableName="compliance_events">
+            <column name="event_type"/>
+        </createIndex>
+        <createIndex indexName="idx_compliance_events_severity" tableName="compliance_events">
+            <column name="severity"/>
+        </createIndex>
+        <createIndex indexName="idx_compliance_events_user" tableName="compliance_events">
+            <column name="user_id"/>
+        </createIndex>
+        <createIndex indexName="idx_compliance_events_created" tableName="compliance_events">
+            <column name="created_at"/>
+        </createIndex>
+        <createIndex indexName="idx_compliance_events_review_status" tableName="compliance_events">
+            <column name="review_status"/>
+        </createIndex>
+        <createIndex indexName="idx_compliance_events_correlation" tableName="compliance_events">
+            <column name="correlation_id"/>
+        </createIndex>
+    </changeSet>
+
+    <!-- Regulatory reports table -->
+    <changeSet author="claude-code" id="compliance-3-regulatory-reports-table">
+        <createTable tableName="regulatory_reports">
+            <column name="report_id" type="UUID">
+                <constraints nullable="false" primaryKey="true" primaryKeyName="regulatory_reports_pkey"/>
+            </column>
+            <column name="report_type" type="VARCHAR(50)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="period_start" type="TIMESTAMP WITH TIME ZONE">
+                <constraints nullable="false"/>
+            </column>
+            <column name="period_end" type="TIMESTAMP WITH TIME ZONE">
+                <constraints nullable="false"/>
+            </column>
+            <column name="status" type="VARCHAR(20)" defaultValue="Draft">
+                <constraints nullable="false"/>
+            </column>
+            <column name="file_path" type="VARCHAR(500)"/>
+            <column name="format" type="VARCHAR(20)" defaultValue="XML">
+                <constraints nullable="false"/>
+            </column>
+            <column name="content" type="TEXT"/>
+            <column name="file_hash" type="VARCHAR(64)"/>
+            <column name="generated_by" type="UUID"/>
+            <column name="generated_at" type="TIMESTAMP WITH TIME ZONE" defaultValueComputed="now()">
+                <constraints nullable="false"/>
+            </column>
+            <column name="approved_by" type="UUID"/>
+            <column name="approved_at" type="TIMESTAMP WITH TIME ZONE"/>
+            <column name="submitted_at" type="TIMESTAMP WITH TIME ZONE"/>
+            <column name="confirmation_number" type="VARCHAR(100)"/>
+            <column name="submission_response" type="TEXT"/>
+            <column name="error_message" type="TEXT"/>
+            <column name="metadata" type="JSONB"/>
+        </createTable>
+
+        <createIndex indexName="idx_regulatory_reports_type" tableName="regulatory_reports">
+            <column name="report_type"/>
+        </createIndex>
+        <createIndex indexName="idx_regulatory_reports_status" tableName="regulatory_reports">
+            <column name="status"/>
+        </createIndex>
+        <createIndex indexName="idx_regulatory_reports_period" tableName="regulatory_reports">
+            <column name="period_start"/>
+            <column name="period_end"/>
+        </createIndex>
+        <createIndex indexName="idx_regulatory_reports_generated" tableName="regulatory_reports">
+            <column name="generated_at"/>
+        </createIndex>
+    </changeSet>
+
+    <!-- OFAC sanctions screening cache -->
+    <changeSet author="claude-code" id="compliance-4-ofac-cache-table">
+        <createTable tableName="ofac_sanctions_list">
+            <column name="entry_id" type="BIGSERIAL">
+                <constraints nullable="false" primaryKey="true" primaryKeyName="ofac_sanctions_list_pkey"/>
+            </column>
+            <column name="entity_number" type="VARCHAR(50)"/>
+            <column name="sdn_type" type="VARCHAR(20)"/>
+            <column name="program" type="VARCHAR(100)"/>
+            <column name="full_name" type="VARCHAR(350)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="aliases" type="TEXT"/>
+            <column name="address" type="TEXT"/>
+            <column name="citizenship" type="VARCHAR(100)"/>
+            <column name="nationality" type="VARCHAR(100)"/>
+            <column name="date_of_birth" type="DATE"/>
+            <column name="place_of_birth" type="VARCHAR(200)"/>
+            <column name="id_number" type="VARCHAR(100)"/>
+            <column name="remarks" type="TEXT"/>
+            <column name="list_source" type="VARCHAR(50)"/>
+            <column name="last_updated" type="TIMESTAMP WITH TIME ZONE" defaultValueComputed="now()">
+                <constraints nullable="false"/>
+            </column>
+            <column name="metadata" type="JSONB"/>
+        </createTable>
+
+        <createIndex indexName="idx_ofac_full_name" tableName="ofac_sanctions_list">
+            <column name="full_name"/>
+        </createIndex>
+        <createIndex indexName="idx_ofac_entity_number" tableName="ofac_sanctions_list">
+            <column name="entity_number"/>
+        </createIndex>
+        <createIndex indexName="idx_ofac_program" tableName="ofac_sanctions_list">
+            <column name="program"/>
+        </createIndex>
+    </changeSet>
+
+    <!-- Trade surveillance alerts -->
+    <changeSet author="claude-code" id="compliance-5-surveillance-alerts-table">
+        <createTable tableName="surveillance_alerts">
+            <column name="alert_id" type="UUID">
+                <constraints nullable="false" primaryKey="true" primaryKeyName="surveillance_alerts_pkey"/>
+            </column>
+            <column name="alert_type" type="VARCHAR(50)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="severity" type="VARCHAR(20)" defaultValue="Medium">
+                <constraints nullable="false"/>
+            </column>
+            <column name="symbol" type="VARCHAR(20)"/>
+            <column name="exchange" type="VARCHAR(50)"/>
+            <column name="user_id" type="UUID"/>
+            <column name="order_ids" type="JSONB"/>
+            <column name="trade_ids" type="JSONB"/>
+            <column name="detection_time" type="TIMESTAMP WITH TIME ZONE" defaultValueComputed="now()">
+                <constraints nullable="false"/>
+            </column>
+            <column name="pattern_data" type="JSONB"/>
+            <column name="description" type="VARCHAR(1000)"/>
+            <column name="confidence_score" type="NUMERIC(5,2)"/>
+            <column name="status" type="VARCHAR(20)" defaultValue="Active">
+                <constraints nullable="false"/>
+            </column>
+            <column name="investigated_by" type="UUID"/>
+            <column name="investigation_notes" type="TEXT"/>
+            <column name="resolved_at" type="TIMESTAMP WITH TIME ZONE"/>
+            <column name="action_taken" type="VARCHAR(500)"/>
+        </createTable>
+
+        <createIndex indexName="idx_surveillance_alerts_type" tableName="surveillance_alerts">
+            <column name="alert_type"/>
+        </createIndex>
+        <createIndex indexName="idx_surveillance_alerts_severity" tableName="surveillance_alerts">
+            <column name="severity"/>
+        </createIndex>
+        <createIndex indexName="idx_surveillance_alerts_symbol" tableName="surveillance_alerts">
+            <column name="symbol"/>
+        </createIndex>
+        <createIndex indexName="idx_surveillance_alerts_user" tableName="surveillance_alerts">
+            <column name="user_id"/>
+        </createIndex>
+        <createIndex indexName="idx_surveillance_alerts_detection_time" tableName="surveillance_alerts">
+            <column name="detection_time"/>
+        </createIndex>
+        <createIndex indexName="idx_surveillance_alerts_status" tableName="surveillance_alerts">
+            <column name="status"/>
+        </createIndex>
+    </changeSet>
+
+    <!-- Data retention tracking -->
+    <changeSet author="claude-code" id="compliance-6-data-retention-log-table">
+        <createTable tableName="data_retention_log">
+            <column name="log_id" type="UUID">
+                <constraints nullable="false" primaryKey="true" primaryKeyName="data_retention_log_pkey"/>
+            </column>
+            <column name="table_name" type="VARCHAR(100)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="operation" type="VARCHAR(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="records_affected" type="INTEGER"/>
+            <column name="retention_period_years" type="INTEGER"/>
+            <column name="archive_path" type="VARCHAR(500)"/>
+            <column name="file_hash" type="VARCHAR(64)"/>
+            <column name="performed_by" type="UUID"/>
+            <column name="performed_at" type="TIMESTAMP WITH TIME ZONE" defaultValueComputed="now()">
+                <constraints nullable="false"/>
+            </column>
+            <column name="status" type="VARCHAR(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="error_message" type="TEXT"/>
+            <column name="metadata" type="JSONB"/>
+        </createTable>
+
+        <createIndex indexName="idx_retention_log_table" tableName="data_retention_log">
+            <column name="table_name"/>
+        </createIndex>
+        <createIndex indexName="idx_retention_log_operation" tableName="data_retention_log">
+            <column name="operation"/>
+        </createIndex>
+        <createIndex indexName="idx_retention_log_performed_at" tableName="data_retention_log">
+            <column name="performed_at"/>
+        </createIndex>
+    </changeSet>
+
+    <!-- Add foreign key constraints -->
+    <changeSet author="claude-code" id="compliance-7-foreign-keys">
+        <addForeignKeyConstraint
+            baseTableName="compliance_events"
+            baseColumnNames="user_id"
+            constraintName="fk_compliance_events_user"
+            referencedTableName="users"
+            referencedColumnNames="user_id"
+            onDelete="SET NULL"/>
+
+        <addForeignKeyConstraint
+            baseTableName="surveillance_alerts"
+            baseColumnNames="user_id"
+            constraintName="fk_surveillance_alerts_user"
+            referencedTableName="users"
+            referencedColumnNames="user_id"
+            onDelete="SET NULL"/>
+    </changeSet>
+
+</databaseChangeLog>

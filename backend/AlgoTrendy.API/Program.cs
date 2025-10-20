@@ -152,6 +152,10 @@ builder.Services.AddScoped<AlgoTrendy.TradingEngine.Services.MLFeatureService>()
 builder.Services.AddScoped<AlgoTrendy.TradingEngine.Services.IndicatorService>();
 builder.Services.AddSingleton<AlgoTrendy.Core.Services.SymbolFormatterService>();
 
+// Portfolio Optimization and Risk Analytics Services
+builder.Services.AddScoped<IPortfolioOptimizationService, AlgoTrendy.TradingEngine.Services.PortfolioOptimizationService>();
+builder.Services.AddScoped<IRiskAnalyticsService, AlgoTrendy.TradingEngine.Services.RiskAnalyticsService>();
+
 // Register market data providers
 builder.Services.AddScoped<AlgoTrendy.DataChannels.Providers.AlphaVantageProvider>();
 builder.Services.AddScoped<AlgoTrendy.DataChannels.Providers.YFinanceProvider>();
@@ -234,14 +238,14 @@ builder.Services.Configure<AlgoTrendy.TradingEngine.Brokers.InteractiveBrokersOp
     options.UsePaperTrading = builder.Configuration.GetValue<bool>("IBKR_USE_PAPER", true);
 });
 
-// Configure Kraken broker options (DISABLED - WIP)
+// Configure Kraken broker options (DISABLED - Package API mismatch, needs REST API implementation)
 // builder.Services.Configure<AlgoTrendy.TradingEngine.Brokers.KrakenOptions>(options =>
 // {
 //     options.ApiKey = builder.Configuration["Kraken__ApiKey"] ?? Environment.GetEnvironmentVariable("KRAKEN_API_KEY") ?? "";
 //     options.ApiSecret = builder.Configuration["Kraken__ApiSecret"] ?? Environment.GetEnvironmentVariable("KRAKEN_API_SECRET") ?? "";
 // });
 
-// Configure Coinbase broker options (DISABLED - WIP)
+// Configure Coinbase broker options (DISABLED - Needs model mapping fixes, 98% complete, 1-2 hours)
 // builder.Services.Configure<AlgoTrendy.TradingEngine.Brokers.CoinbaseOptions>(options =>
 // {
 //     options.ApiKey = builder.Configuration["Coinbase__ApiKey"] ?? Environment.GetEnvironmentVariable("COINBASE_API_KEY") ?? "";
@@ -254,8 +258,8 @@ builder.Services.AddScoped<AlgoTrendy.TradingEngine.Brokers.BybitBroker>();
 builder.Services.AddScoped<AlgoTrendy.TradingEngine.Brokers.TradeStationBroker>();
 builder.Services.AddScoped<AlgoTrendy.TradingEngine.Brokers.NinjaTraderBroker>();
 builder.Services.AddScoped<AlgoTrendy.TradingEngine.Brokers.InteractiveBrokersBroker>();
-// builder.Services.AddScoped<AlgoTrendy.TradingEngine.Brokers.KrakenBroker>(); // DISABLED - WIP
-// builder.Services.AddScoped<AlgoTrendy.TradingEngine.Brokers.CoinbaseBroker>(); // DISABLED - WIP
+// builder.Services.AddScoped<AlgoTrendy.TradingEngine.Brokers.KrakenBroker>(); // DISABLED - Package API mismatch
+// builder.Services.AddScoped<AlgoTrendy.TradingEngine.Brokers.CoinbaseBroker>(); // DISABLED - Model mapping fixes needed
 
 // Register default broker (can be configured via environment variable)
 builder.Services.AddScoped<IBroker>(sp =>
@@ -269,8 +273,8 @@ builder.Services.AddScoped<IBroker>(sp =>
         "tradestation" => sp.GetRequiredService<AlgoTrendy.TradingEngine.Brokers.TradeStationBroker>(),
         "ninjatrader" => sp.GetRequiredService<AlgoTrendy.TradingEngine.Brokers.NinjaTraderBroker>(),
         "interactivebrokers" or "ibkr" => sp.GetRequiredService<AlgoTrendy.TradingEngine.Brokers.InteractiveBrokersBroker>(),
-        // "kraken" => sp.GetRequiredService<AlgoTrendy.TradingEngine.Brokers.KrakenBroker>(), // DISABLED - WIP
-        // "coinbase" => sp.GetRequiredService<AlgoTrendy.TradingEngine.Brokers.CoinbaseBroker>(), // DISABLED - WIP
+        // "kraken" => sp.GetRequiredService<AlgoTrendy.TradingEngine.Brokers.KrakenBroker>(), // DISABLED - Package API mismatch
+        // "coinbase" => sp.GetRequiredService<AlgoTrendy.TradingEngine.Brokers.CoinbaseBroker>(), // DISABLED - Model mapping fixes needed
         _ => sp.GetRequiredService<AlgoTrendy.TradingEngine.Brokers.BybitBroker>() // Default to Bybit
     };
 });
