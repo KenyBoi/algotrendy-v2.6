@@ -496,16 +496,22 @@ public class SetLeverageRequest
     /// <summary>
     /// Trading symbol (e.g., "BTCUSDT")
     /// </summary>
+    [System.ComponentModel.DataAnnotations.Required(ErrorMessage = "Symbol is required")]
+    [System.ComponentModel.DataAnnotations.StringLength(20, MinimumLength = 3, ErrorMessage = "Symbol must be between 3 and 20 characters")]
+    [System.ComponentModel.DataAnnotations.RegularExpression(@"^[A-Z0-9-_/]+$", ErrorMessage = "Symbol must contain only uppercase letters, numbers, hyphens, underscores, or forward slashes")]
     public required string Symbol { get; set; }
 
     /// <summary>
     /// Leverage multiplier (e.g., 3.0 for 3x leverage)
     /// </summary>
+    [System.ComponentModel.DataAnnotations.Required(ErrorMessage = "Leverage is required")]
+    [System.ComponentModel.DataAnnotations.Range(1.0, 10.0, ErrorMessage = "Leverage must be between 1x and 10x (maximum safe limit)")]
     public required decimal Leverage { get; set; }
 
     /// <summary>
     /// Margin type (Cross or Isolated)
     /// </summary>
+    [System.ComponentModel.DataAnnotations.Required(ErrorMessage = "Margin type is required")]
     public MarginType MarginType { get; set; } = MarginType.Cross;
 }
 
@@ -517,11 +523,16 @@ public class ValidateLeverageRequest
     /// <summary>
     /// Trading symbol (e.g., "BTCUSDT")
     /// </summary>
+    [System.ComponentModel.DataAnnotations.Required(ErrorMessage = "Symbol is required")]
+    [System.ComponentModel.DataAnnotations.StringLength(20, MinimumLength = 3, ErrorMessage = "Symbol must be between 3 and 20 characters")]
+    [System.ComponentModel.DataAnnotations.RegularExpression(@"^[A-Z0-9-_/]+$", ErrorMessage = "Symbol must contain only uppercase letters, numbers, hyphens, underscores, or forward slashes")]
     public required string Symbol { get; set; }
 
     /// <summary>
     /// Proposed leverage multiplier to validate
     /// </summary>
+    [System.ComponentModel.DataAnnotations.Required(ErrorMessage = "ProposedLeverage is required")]
+    [System.ComponentModel.DataAnnotations.Range(1.0, 100.0, ErrorMessage = "ProposedLeverage must be between 1x and 100x for validation purposes")]
     public required decimal ProposedLeverage { get; set; }
 }
 
@@ -601,6 +612,9 @@ public class ClosePositionRequest
     /// <summary>
     /// Reason for closing position (e.g., "Manual", "Margin Call", "Liquidation")
     /// </summary>
+    [System.ComponentModel.DataAnnotations.Required(ErrorMessage = "Reason is required")]
+    [System.ComponentModel.DataAnnotations.StringLength(500, MinimumLength = 3, ErrorMessage = "Reason must be between 3 and 500 characters")]
+    [System.ComponentModel.DataAnnotations.RegularExpression(@"^[a-zA-Z0-9\s,.\-_()]+$", ErrorMessage = "Reason contains invalid characters")]
     public required string Reason { get; set; }
 }
 

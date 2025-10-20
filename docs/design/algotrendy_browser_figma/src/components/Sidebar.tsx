@@ -82,17 +82,8 @@ export function Sidebar({ activeView, onViewChange }: SidebarProps) {
           setStatus(response.data);
         }
       } catch (error) {
-        // Use mock data if backend not available
-        setStatus({
-          status: 'Active',
-          uptime: 86400,
-          lastActivity: new Date().toISOString(),
-          activeStrategies: 3,
-          openPositions: 5,
-          todayPnL: 847.50,
-          isTrading: true,
-          healthScore: 94
-        });
+        console.error('Failed to fetch MEM status:', error);
+        setStatus(null);
       }
     };
 
@@ -110,19 +101,8 @@ export function Sidebar({ activeView, onViewChange }: SidebarProps) {
           setRecentActivity(response.data);
         }
       } catch (error) {
-        // Mock activity
-        setRecentActivity([
-          {
-            id: '1',
-            timestamp: new Date(Date.now() - 120000).toISOString(),
-            type: 'Trade',
-            title: 'Position opened',
-            description: 'BTCUSDT @ $50,250',
-            confidence: 'High',
-            impact: 'Medium',
-            symbol: 'BTCUSDT'
-          }
-        ]);
+        console.error('Failed to fetch MEM activity:', error);
+        setRecentActivity([]);
       }
     };
 

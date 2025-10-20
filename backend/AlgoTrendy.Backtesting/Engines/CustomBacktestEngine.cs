@@ -1,6 +1,7 @@
 using AlgoTrendy.Backtesting.Indicators;
 using AlgoTrendy.Backtesting.Metrics;
 using AlgoTrendy.Backtesting.Models;
+using AlgoTrendy.Core.Interfaces;
 using Microsoft.Extensions.Logging;
 
 namespace AlgoTrendy.Backtesting.Engines;
@@ -13,19 +14,23 @@ namespace AlgoTrendy.Backtesting.Engines;
 public class CustomBacktestEngine : IBacktestEngine
 {
     private readonly ILogger<CustomBacktestEngine> _logger;
+    private readonly IMarketDataProvider _dataProvider;
 
     /// <inheritdoc/>
     public string EngineName => "Custom Engine";
 
     /// <inheritdoc/>
-    public string EngineDescription => "Built-in backtesting engine with SMA crossover strategy";
+    public string EngineDescription => "Built-in backtesting engine with SMA crossover strategy using real market data";
 
     /// <summary>
     /// Create instance of custom backtesting engine
     /// </summary>
-    public CustomBacktestEngine(ILogger<CustomBacktestEngine> logger)
+    public CustomBacktestEngine(
+        ILogger<CustomBacktestEngine> logger,
+        IMarketDataProvider dataProvider)
     {
         _logger = logger;
+        _dataProvider = dataProvider ?? throw new ArgumentNullException(nameof(dataProvider));
     }
 
     /// <inheritdoc/>
@@ -62,12 +67,12 @@ public class CustomBacktestEngine : IBacktestEngine
             // Simulate async work
             await Task.Yield();
 
-            // 1. Generate historical data
-            var candles = GenerateHistoricalData(config);
+            // 1. Fetch real historical data
+            var candles = await FetchHistoricalDataAsync(config, cancellationToken);
             if (candles.Length == 0)
             {
                 backtestResults.Status = BacktestStatus.Failed;
-                backtestResults.ErrorMessage = "No historical data generated";
+                backtestResults.ErrorMessage = "No historical data available for the specified symbol and date range";
                 return backtestResults;
             }
 
@@ -145,45 +150,69 @@ public class CustomBacktestEngine : IBacktestEngine
     }
 
     /// <summary>
-    /// Generate mock historical OHLCV data for backtesting
-    /// In production, this would fetch real historical data
+    /// Fetch real historical OHLCV data from market data provider
     /// </summary>
-    private Candle[] GenerateHistoricalData(BacktestConfig config)
+    private async Task<Candle[]> FetchHistoricalDataAsync(BacktestConfig config, CancellationToken cancellationToken)
     {
-        var candles = new List<Candle>();
-        var currentDate = config.StartDate;
-        var basePrice = GetBasePrice(config.Symbol);
-
-        var random = new Random(42); // Seed for reproducibility
-
-        while (currentDate <= config.EndDate && candles.Count < 500) // Limit to 500 candles for demo
+        try
         {
-            // Skip weekends for daily data
-            if (config.Timeframe == TimeframeType.Day && (currentDate.DayOfWeek == DayOfWeek.Saturday || currentDate.DayOfWeek == DayOfWeek.Sunday))
+            _logger.LogInformation(
+                "Fetching historical data for {Symbol} from {StartDate} to {EndDate}",
+                config.Symbol, config.StartDate, config.EndDate);
+
+            // Determine interval based on timeframe
+            var interval = GetIntervalString(config.Timeframe, config.TimeframeValue ?? 1);
+
+            // Fetch real market data
+            var marketData = await _dataProvider.FetchHistoricalAsync(
+                config.Symbol,
+                config.StartDate,
+                config.EndDate,
+                interval,
+                cancellationToken);
+
+            if (marketData == null || !marketData.Any())
             {
-                currentDate = currentDate.AddDays(1);
-                continue;
+                _logger.LogWarning("No historical data returned for {Symbol}", config.Symbol);
+                return Array.Empty<Candle>();
             }
 
-            // Generate random price movement
-            var dailyReturn = random.NextDouble() * 0.04 - 0.02; // -2% to +2%
-            basePrice *= (decimal)(1 + dailyReturn);
-
-            var candle = new Candle
+            // Convert MarketData to Candle format
+            var candles = marketData.Select(md => new Candle
             {
-                Timestamp = currentDate,
-                Open = basePrice,
-                High = basePrice * (1 + (decimal)(random.NextDouble() * 0.01)),
-                Low = basePrice * (1 - (decimal)(random.NextDouble() * 0.01)),
-                Close = basePrice,
-                Volume = (decimal)(random.Next(100000, 1000000))
-            };
+                Timestamp = md.Timestamp,
+                Open = md.Open,
+                High = md.High,
+                Low = md.Low,
+                Close = md.Close,
+                Volume = md.Volume
+            }).OrderBy(c => c.Timestamp).ToArray();
 
-            candles.Add(candle);
-            currentDate = AddTimeframe(currentDate, config.Timeframe, config.TimeframeValue ?? 1);
+            _logger.LogInformation("Fetched {Count} candles for backtesting", candles.Length);
+
+            return candles;
         }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error fetching historical data for {Symbol}", config.Symbol);
+            return Array.Empty<Candle>();
+        }
+    }
 
-        return candles.ToArray();
+    /// <summary>
+    /// Convert timeframe to interval string for data provider
+    /// </summary>
+    private string GetIntervalString(TimeframeType timeframe, int value)
+    {
+        return timeframe switch
+        {
+            TimeframeType.Minute => $"{value}m",
+            TimeframeType.Hour => $"{value}h",
+            TimeframeType.Day => $"{value}d",
+            TimeframeType.Week => $"{value}w",
+            TimeframeType.Month => $"{value}mo",
+            _ => "1d"
+        };
     }
 
     /// <summary>
@@ -338,30 +367,4 @@ public class CustomBacktestEngine : IBacktestEngine
         return metrics;
     }
 
-    /// <summary>
-    /// Get base price for a symbol (for data generation)
-    /// </summary>
-    private decimal GetBasePrice(string symbol) =>
-        symbol switch
-        {
-            var s when s.Contains("BTC") => 40000m,
-            var s when s.Contains("ETH") => 2500m,
-            var s when s.Contains("ES") || s.Contains("NQ") || s.Contains("YM") => 5000m,
-            var s when s.Contains("CL") => 80m,
-            _ => 100m
-        };
-
-    /// <summary>
-    /// Add a timeframe to a date
-    /// </summary>
-    private DateTime AddTimeframe(DateTime date, TimeframeType timeframe, int value) =>
-        timeframe switch
-        {
-            TimeframeType.Minute => date.AddMinutes(value),
-            TimeframeType.Hour => date.AddHours(value),
-            TimeframeType.Day => date.AddDays(value),
-            TimeframeType.Week => date.AddDays(value * 7),
-            TimeframeType.Month => date.AddMonths(value),
-            _ => date.AddDays(1)
-        };
 }

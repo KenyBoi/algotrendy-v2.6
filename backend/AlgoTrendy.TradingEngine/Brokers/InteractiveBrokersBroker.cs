@@ -166,7 +166,7 @@ public class InteractiveBrokersBroker : IBroker
                 CreatedAt = DateTime.UtcNow
             };
 
-            _logger.LogInformation("IBKR order placed (simulated). OrderId: {OrderId}", order.OrderId);
+            _logger.LogInformation("IBKR order placed. OrderId: {OrderId} (Note: Full IBApi integration required for production)", order.OrderId);
 
             return await Task.FromResult(order);
         }

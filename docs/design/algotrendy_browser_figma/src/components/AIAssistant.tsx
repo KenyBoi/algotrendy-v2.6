@@ -78,47 +78,19 @@ export function AIAssistant({ isOpen, onClose, isMinimized, onToggleMinimize }: 
         };
         setMessages(prev => [...prev, assistantMessage]);
       } else {
-        // Fallback to mock response if API fails
-        const assistantMessage: Message = {
-          id: (Date.now() + 1).toString(),
-          role: 'assistant',
-          content: generateMockResponse(input),
-          timestamp: new Date()
-        };
-        setMessages(prev => [...prev, assistantMessage]);
+        throw new Error('AI service returned unsuccessful response');
       }
     } catch (error) {
       console.error('AI API error:', error);
-      // Fallback to mock response on error
-      const assistantMessage: Message = {
+      const errorMessage: Message = {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
-        content: generateMockResponse(input),
+        content: 'Sorry, I\'m having trouble connecting to the AI service right now. Please ensure the backend API is running and try again.',
         timestamp: new Date()
       };
-      setMessages(prev => [...prev, assistantMessage]);
+      setMessages(prev => [...prev, errorMessage]);
     } finally {
       setIsLoading(false);
-    }
-  };
-
-  const generateMockResponse = (query: string): string => {
-    const lowerQuery = query.toLowerCase();
-    
-    if (lowerQuery.includes('strategy') || lowerQuery.includes('backtest')) {
-      return 'Ooh, strategy testing! 🎯 I\'m thinking a longer MA period might work better here. Just ran some numbers - 50-day SMAs are crushing it in these market conditions. Want me to run a quick comparison backtest to see the difference?';
-    } else if (lowerQuery.includes('nvda') || lowerQuery.includes('nvidia')) {
-      return 'NVDA is looking spicy! 🚀 Data Center revenue up 93% YoY - those AI chips are printing money. Trading at $135.91, P/E of 53.67x. The AI infrastructure boom is real. Want me to dig deeper into the numbers?';
-    } else if (lowerQuery.includes('optimize') || lowerQuery.includes('parameter')) {
-      return 'Let\'s optimize this! 🔧 I\'ve been analyzing your last 1000 trades. What if we tighten that stop loss from 5% to 3.5%? My backtests show your Sharpe ratio could jump from 2.34 to about 2.89. Pretty solid improvement!';
-    } else if (lowerQuery.includes('risk') || lowerQuery.includes('exposure')) {
-      return 'Good call checking risk! 🛡️ Your max drawdown is sitting at 12.45%. Not terrible, but we could smooth that out by adding 3-4 uncorrelated assets. Keep the returns, reduce the roller coaster. Sound good?';
-    } else if (lowerQuery.includes('hello') || lowerQuery.includes('hi') || lowerQuery.includes('hey')) {
-      return 'Hey! 😊 What\'re we exploring today? Got some interesting patterns I\'ve been watching if you want to check them out!';
-    } else if (lowerQuery.includes('help')) {
-      return 'I\'m here to geek out about markets with you! I can:\n\n• Analyze any stock/crypto data\n• Help build and optimize strategies\n• Run backtests on wild ideas\n• Explain patterns I\'m seeing\n• Query our datasets together\n\nWhat sounds fun?';
-    } else {
-      return 'Interesting question about "' + query + '"! 🤔 I can help analyze data, test strategies, and explore patterns together. Want to dig into this more? Maybe share what you\'re thinking and we can workshop it?';
     }
   };
 

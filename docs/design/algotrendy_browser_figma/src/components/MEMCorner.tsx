@@ -27,17 +27,8 @@ export function MEMCorner({ onOpenChat, isExpanded = false, onToggleExpand }: ME
           setIsLoading(false);
         }
       } catch (error) {
-        // Use mock data if backend not available
-        setStatus({
-          status: 'Active',
-          uptime: 86400,
-          lastActivity: new Date().toISOString(),
-          activeStrategies: 3,
-          openPositions: 5,
-          todayPnL: 847.50,
-          isTrading: true,
-          healthScore: 94
-        });
+        console.error('Failed to fetch MEM status:', error);
+        setStatus(null);
         setIsLoading(false);
       }
     };
@@ -56,29 +47,8 @@ export function MEMCorner({ onOpenChat, isExpanded = false, onToggleExpand }: ME
           setRecentActivity(response.data);
         }
       } catch (error) {
-        // Mock activity
-        setRecentActivity([
-          {
-            id: '1',
-            timestamp: new Date(Date.now() - 120000).toISOString(),
-            type: 'Trade',
-            title: 'Position opened',
-            description: 'BTCUSDT @ $50,250',
-            confidence: 'High',
-            impact: 'Medium',
-            symbol: 'BTCUSDT'
-          },
-          {
-            id: '2',
-            timestamp: new Date(Date.now() - 300000).toISOString(),
-            type: 'Analysis',
-            title: 'Pattern detected',
-            description: 'Strong momentum signal',
-            confidence: 'Very High',
-            impact: 'High',
-            symbol: 'ETHUSDT'
-          }
-        ]);
+        console.error('Failed to fetch MEM activity:', error);
+        setRecentActivity([]);
       }
     };
 

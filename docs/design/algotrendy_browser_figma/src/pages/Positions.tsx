@@ -27,21 +27,7 @@ export default function Positions() {
       setPositions(response.data);
     } catch (error) {
       console.error('Error fetching positions:', error);
-      // Mock data
-      setPositions([
-        {
-          id: '1',
-          symbol: 'BTC-USD',
-          side: 'Long',
-          quantity: 0.5,
-          entryPrice: 42000,
-          currentPrice: 45250,
-          unrealizedPnl: 1625,
-          realizedPnl: 0,
-          leverage: 2,
-          openedAt: new Date().toISOString(),
-        },
-      ]);
+      setPositions([]);
     } finally {
       setLoading(false);
     }

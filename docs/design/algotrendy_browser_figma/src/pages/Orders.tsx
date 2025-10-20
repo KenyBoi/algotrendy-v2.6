@@ -36,21 +36,7 @@ export default function Orders() {
       setOrders(response.data);
     } catch (error) {
       console.error('Error fetching orders:', error);
-      // Mock data for development
-      setOrders([
-        {
-          id: '1',
-          symbol: 'BTC-USD',
-          side: 'Buy',
-          type: 'Market',
-          quantity: 0.1,
-          status: 'Filled',
-          filledQuantity: 0.1,
-          averagePrice: 45250,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        },
-      ]);
+      setOrders([]);
     } finally {
       setLoading(false);
     }

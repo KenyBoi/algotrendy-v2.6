@@ -11,9 +11,9 @@ namespace AlgoTrendy.TradingEngine.Brokers;
 /// <summary>
 /// Coinbase Advanced Trade broker implementation for cryptocurrency trading
 /// Supports: Spot trading only (no margin/leverage)
-/// Note: Coinbase does not support leverage trading
+/// Uses: Coinbase.AdvancedTrade v1.4.0 package
 /// </summary>
-public class CoinbaseBroker : IBroker
+public class CoinbaseBroker : IBroker, IDisposable
 {
     private CoinbaseClient? _client;
     private readonly CoinbaseOptions _options;
@@ -22,8 +22,6 @@ public class CoinbaseBroker : IBroker
 
     // Rate limiting (Coinbase: 10 requests/second public, 15 requests/second private)
     private readonly SemaphoreSlim _rateLimiter = new(10, 10);
-    private readonly Dictionary<string, DateTime> _lastRequestTime = new();
-    private readonly object _requestTimeLock = new();
     private const int MinRequestIntervalMs = 100; // ~10 requests/second
 
     public string BrokerName => "coinbase";
@@ -64,20 +62,20 @@ public class CoinbaseBroker : IBroker
         {
             _logger.LogInformation("Connecting to Coinbase Advanced Trade...");
 
-            // Test connection by getting accounts
-            var accountsResult = await GetClient().Account.GetAccountsAsync(ct: cancellationToken);
+            // Test connection by listing accounts
+            var accounts = await GetClient().Accounts.ListAccountsAsync(limit: 10, cursor: null);
 
-            if (!accountsResult.Success)
+            if (accounts != null && accounts.Any())
             {
-                _logger.LogError("Failed to connect to Coinbase: {Error}", accountsResult.Error?.Message);
-                return false;
+                _isConnected = true;
+                _logger.LogInformation(
+                    "Connected to Coinbase successfully. Found {AccountCount} accounts",
+                    accounts.Count());
+                return true;
             }
 
-            _isConnected = true;
-            _logger.LogInformation(
-                "Connected to Coinbase successfully. Account has {AssetCount} assets",
-                accountsResult.Data.Accounts?.Count() ?? 0);
-
+            _logger.LogWarning("Connected to Coinbase but no accounts found");
+            _isConnected = true; // Still consider it connected
             return true;
         }
         catch (Exception ex)
@@ -92,23 +90,29 @@ public class CoinbaseBroker : IBroker
     /// </summary>
     public async Task<decimal> GetBalanceAsync(string currency = "USD", CancellationToken cancellationToken = default)
     {
-        await EnsureConnectedAsync();
-        await RateLimitAsync("GetBalance");
+        await EnsureConnectedAsync(cancellationToken);
+        await RateLimitAsync();
 
         try
         {
-            var accountsResult = await GetClient().Account.GetAccountsAsync(ct: cancellationToken);
+            var accounts = await GetClient().Accounts.ListAccountsAsync(limit: 250, cursor: null);
 
-            if (!accountsResult.Success)
+            if (accounts == null || !accounts.Any())
             {
-                _logger.LogWarning("Failed to get balance: {Error}", accountsResult.Error?.Message);
+                _logger.LogWarning("No accounts found");
                 return 0m;
             }
 
-            var account = accountsResult.Data.Accounts?
-                .FirstOrDefault(a => a.Currency == currency);
+            var account = accounts.FirstOrDefault(a =>
+                a.Currency != null && a.Currency.Equals(currency, StringComparison.OrdinalIgnoreCase));
 
-            return account?.AvailableBalance?.Value ?? 0m;
+            if (account?.AvailableBalance?.Value != null &&
+                decimal.TryParse(account.AvailableBalance.Value, out var balance))
+            {
+                return balance;
+            }
+
+            return 0m;
         }
         catch (Exception ex)
         {
@@ -119,45 +123,42 @@ public class CoinbaseBroker : IBroker
 
     /// <summary>
     /// Gets all current positions
-    /// Note: Coinbase doesn't have traditional "positions" - it has balances
-    /// We treat non-zero balances as positions
+    /// Note: Coinbase doesn't have traditional "positions" - we track non-zero balances
     /// </summary>
     public async Task<IEnumerable<Position>> GetPositionsAsync(CancellationToken cancellationToken = default)
     {
-        await EnsureConnectedAsync();
-        await RateLimitAsync("GetPositions");
+        await EnsureConnectedAsync(cancellationToken);
+        await RateLimitAsync();
 
         try
         {
-            var accountsResult = await GetClient().Account.GetAccountsAsync(ct: cancellationToken);
+            var accounts = await GetClient().Accounts.ListAccountsAsync(limit: 250, cursor: null);
 
-            if (!accountsResult.Success)
+            if (accounts == null || !accounts.Any())
             {
-                _logger.LogWarning("Failed to get positions: {Error}", accountsResult.Error?.Message);
                 return Array.Empty<Position>();
             }
 
             var positions = new List<Position>();
 
-            foreach (var account in accountsResult.Data.Accounts ?? Array.Empty<CoinbaseAdvanced.Net.Objects.Models.Account>())
+            foreach (var account in accounts)
             {
-                if (account.AvailableBalance?.Value > 0)
+                if (account.AvailableBalance?.Value != null &&
+                    decimal.TryParse(account.AvailableBalance.Value, out var balance) &&
+                    balance > 0)
                 {
-                    // Get current price for this asset
-                    var symbol = $"{account.Currency}-USD";
-                    var price = await GetCurrentPriceAsync(symbol);
-
                     positions.Add(new Position
                     {
-                        Symbol = symbol,
-                        Size = account.AvailableBalance.Value,
-                        Side = "buy", // All holdings are "long" positions
-                        EntryPrice = 0m, // Coinbase doesn't track this
-                        CurrentPrice = price,
-                        UnrealizedPnl = 0m, // Would need historical data to calculate
-                        RealizedPnl = 0m,
-                        Leverage = 1m, // Coinbase doesn't support leverage
-                        Broker = BrokerName
+                        PositionId = account.Uuid ?? Guid.NewGuid().ToString(),
+                        Symbol = account.Currency ?? "UNKNOWN",
+                        Exchange = "coinbase",
+                        Side = AlgoTrendy.Core.Enums.OrderSide.Buy, // Holding balance = long position
+                        Quantity = balance,
+                        EntryPrice = 0, // Not available from balance data
+                        CurrentPrice = 0, // Would need separate price fetch
+                        UnrealizedPnL = 0,
+                        RealizedPnL = 0,
+                        OpenedAt = DateTime.UtcNow // Not available, use current time
                     });
                 }
             }
@@ -176,8 +177,8 @@ public class CoinbaseBroker : IBroker
     /// </summary>
     public async Task<Order> PlaceOrderAsync(OrderRequest request, CancellationToken cancellationToken = default)
     {
-        await EnsureConnectedAsync();
-        await RateLimitAsync($"PlaceOrder_{request.Symbol}");
+        await EnsureConnectedAsync(cancellationToken);
+        await RateLimitAsync();
 
         try
         {
@@ -186,68 +187,61 @@ public class CoinbaseBroker : IBroker
                 request.Type, request.Side, request.Symbol, request.Quantity);
 
             var side = request.Side.ToLowerInvariant() == "buy"
-                ? CoinbaseAdvanced.Net.Enums.OrderSide.Buy
-                : CoinbaseAdvanced.Net.Enums.OrderSide.Sell;
+                ? Coinbase.AdvancedTrade.Enums.OrderSide.Buy
+                : Coinbase.AdvancedTrade.Enums.OrderSide.Sell;
 
-            CoinbaseAdvanced.Net.Objects.Models.Order coinbaseOrder;
+            string? orderId;
 
-            if (request.Type == OrderType.Market)
+            if (request.Type == AlgoTrendy.Core.Enums.OrderType.Market)
             {
-                var orderResult = await GetClient().Trading.PlaceMarketOrderAsync(
-                    productId: request.Symbol,
-                    side: side,
-                    quantity: request.Quantity,
-                    ct: cancellationToken);
-
-                if (!orderResult.Success)
-                {
-                    _logger.LogError("Failed to place order: {Error}", orderResult.Error?.Message);
-                    throw new Exception($"Order placement failed: {orderResult.Error?.Message}");
-                }
-
-                coinbaseOrder = orderResult.Data;
+                // Market order: CreateMarketOrderAsync(productId, side, quantity)
+                orderId = await GetClient().Orders.CreateMarketOrderAsync(
+                    request.Symbol,
+                    side,
+                    request.Quantity.ToString());
             }
-            else if (request.Type == OrderType.Limit && request.Price.HasValue)
+            else if (request.Type == AlgoTrendy.Core.Enums.OrderType.Limit && request.Price.HasValue)
             {
-                var orderResult = await GetClient().Trading.PlaceLimitOrderAsync(
-                    productId: request.Symbol,
-                    side: side,
-                    quantity: request.Quantity,
-                    limitPrice: request.Price.Value,
-                    ct: cancellationToken);
-
-                if (!orderResult.Success)
-                {
-                    _logger.LogError("Failed to place order: {Error}", orderResult.Error?.Message);
-                    throw new Exception($"Order placement failed: {orderResult.Error?.Message}");
-                }
-
-                coinbaseOrder = orderResult.Data;
+                // Limit order: CreateLimitOrderGTCAsync(productId, side, baseSize, limitPrice, postOnly)
+                orderId = await GetClient().Orders.CreateLimitOrderGTCAsync(
+                    request.Symbol,
+                    side,
+                    request.Quantity.ToString(),
+                    request.Price.Value.ToString(),
+                    postOnly: false);
             }
             else
             {
-                throw new ArgumentException($"Unsupported order type: {request.Type}");
+                throw new ArgumentException("Invalid order type or missing price for limit order");
             }
 
-            _logger.LogInformation("Order placed successfully: {OrderId}", coinbaseOrder.OrderId);
+            if (string.IsNullOrEmpty(orderId))
+            {
+                throw new Exception("Order creation failed - no order ID returned");
+            }
 
+            _logger.LogInformation("Order placed successfully. Order ID: {OrderId}", orderId);
+
+            // Return order with basic info
             return new Order
             {
-                OrderId = coinbaseOrder.OrderId,
+                OrderId = orderId,
+                ClientOrderId = request.ClientOrderId,
                 Symbol = request.Symbol,
-                Side = request.Side,
+                Exchange = "coinbase",
+                Side = request.Side.ToLowerInvariant() == "buy"
+                    ? AlgoTrendy.Core.Enums.OrderSide.Buy
+                    : AlgoTrendy.Core.Enums.OrderSide.Sell,
                 Type = request.Type,
                 Quantity = request.Quantity,
                 Price = request.Price,
-                Status = OrderStatus.Open,
-                FilledQuantity = 0m,
-                Timestamp = DateTime.UtcNow,
-                Broker = BrokerName
+                Status = AlgoTrendy.Core.Enums.OrderStatus.Open,
+                CreatedAt = DateTime.UtcNow
             };
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to place order for {Symbol}", request.Symbol);
+            _logger.LogError(ex, "Failed to place order");
             throw;
         }
     }
@@ -257,33 +251,23 @@ public class CoinbaseBroker : IBroker
     /// </summary>
     public async Task<Order> CancelOrderAsync(string orderId, string symbol, CancellationToken cancellationToken = default)
     {
-        await EnsureConnectedAsync();
-        await RateLimitAsync($"CancelOrder_{symbol}");
+        await EnsureConnectedAsync(cancellationToken);
+        await RateLimitAsync();
 
         try
         {
-            var cancelResult = await GetClient().Trading.CancelOrderAsync(orderId, ct: cancellationToken);
+            // CancelOrdersAsync takes array of order IDs
+            var result = await GetClient().Orders.CancelOrdersAsync(new[] { orderId });
 
-            if (!cancelResult.Success)
-            {
-                _logger.LogError("Failed to cancel order {OrderId}: {Error}",
-                    orderId, cancelResult.Error?.Message);
-                throw new Exception($"Order cancellation failed: {cancelResult.Error?.Message}");
-            }
-
-            _logger.LogInformation("Order {OrderId} cancelled successfully", orderId);
+            _logger.LogInformation("Order {OrderId} cancelled", orderId);
 
             return new Order
             {
                 OrderId = orderId,
                 Symbol = symbol,
-                Side = "unknown",
-                Type = OrderType.Market,
-                Quantity = 0m,
-                Status = OrderStatus.Cancelled,
-                FilledQuantity = 0m,
-                Timestamp = DateTime.UtcNow,
-                Broker = BrokerName
+                Exchange = "coinbase",
+                Status = AlgoTrendy.Core.Enums.OrderStatus.Cancelled,
+                UpdatedAt = DateTime.UtcNow
             };
         }
         catch (Exception ex)
@@ -298,34 +282,33 @@ public class CoinbaseBroker : IBroker
     /// </summary>
     public async Task<Order> GetOrderStatusAsync(string orderId, string symbol, CancellationToken cancellationToken = default)
     {
-        await EnsureConnectedAsync();
-        await RateLimitAsync($"GetOrderStatus_{symbol}");
+        await EnsureConnectedAsync(cancellationToken);
+        await RateLimitAsync();
 
         try
         {
-            var orderResult = await GetClient().Trading.GetOrderAsync(orderId, ct: cancellationToken);
+            var coinbaseOrder = await GetClient().Orders.GetOrderAsync(orderId);
 
-            if (!orderResult.Success)
+            if (coinbaseOrder == null)
             {
-                _logger.LogError("Failed to get order status for {OrderId}: {Error}",
-                    orderId, orderResult.Error?.Message);
-                throw new Exception($"Get order status failed: {orderResult.Error?.Message}");
+                throw new Exception($"Order {orderId} not found");
             }
-
-            var coinbaseOrder = orderResult.Data;
 
             return new Order
             {
-                OrderId = coinbaseOrder.OrderId,
-                Symbol = coinbaseOrder.ProductId,
-                Side = coinbaseOrder.Side == CoinbaseAdvanced.Net.Enums.OrderSide.Buy ? "buy" : "sell",
+                OrderId = coinbaseOrder.OrderId ?? orderId,
+                ClientOrderId = coinbaseOrder.ClientOrderId ?? "",
+                Symbol = coinbaseOrder.ProductId ?? symbol,
+                Exchange = "coinbase",
+                Side = coinbaseOrder.Side == Coinbase.AdvancedTrade.Enums.OrderSide.Buy
+                    ? AlgoTrendy.Core.Enums.OrderSide.Buy
+                    : AlgoTrendy.Core.Enums.OrderSide.Sell,
                 Type = MapCoinbaseOrderType(coinbaseOrder.OrderType),
-                Quantity = decimal.Parse(coinbaseOrder.OrderConfiguration.BaseSize ?? "0"),
-                Price = decimal.Parse(coinbaseOrder.OrderConfiguration.LimitPrice ?? "0"),
+                Quantity = 0m, // OrderConfiguration structure varies, would need specific parsing
+                Price = null, // Not always available
                 Status = MapCoinbaseOrderStatus(coinbaseOrder.Status),
-                FilledQuantity = decimal.Parse(coinbaseOrder.FilledSize ?? "0"),
-                Timestamp = coinbaseOrder.CreatedTime,
-                Broker = BrokerName
+                CreatedAt = coinbaseOrder.CreatedTime ?? DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow
             };
         }
         catch (Exception ex)
@@ -340,95 +323,31 @@ public class CoinbaseBroker : IBroker
     /// </summary>
     public async Task<decimal> GetCurrentPriceAsync(string symbol, CancellationToken cancellationToken = default)
     {
-        await EnsureConnectedAsync();
-        await RateLimitAsync($"GetPrice_{symbol}");
+        await EnsureConnectedAsync(cancellationToken);
+        await RateLimitAsync();
 
         try
         {
-            var tickerResult = await GetClient().ExchangeData.GetProductAsync(symbol, ct: cancellationToken);
+            var product = await GetClient().Products.GetProductAsync(symbol);
 
-            if (!tickerResult.Success)
+            if (product?.Price != null && decimal.TryParse(product.Price, out var price))
             {
-                _logger.LogError("Failed to get price for {Symbol}: {Error}",
-                    symbol, tickerResult.Error?.Message);
-                return 0m;
+                return price;
             }
 
-            return decimal.Parse(tickerResult.Data.Price ?? "0");
+            _logger.LogWarning("Price not available for {Symbol}", symbol);
+            return 0m;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to get current price for {Symbol}", symbol);
+            _logger.LogError(ex, "Failed to get price for {Symbol}", symbol);
             return 0m;
         }
-    }
-
-    // Helper methods
-
-    private async Task EnsureConnectedAsync()
-    {
-        if (!_isConnected)
-        {
-            await ConnectAsync();
-        }
-    }
-
-    private async Task RateLimitAsync(string operation)
-    {
-        await _rateLimiter.WaitAsync();
-        try
-        {
-            lock (_requestTimeLock)
-            {
-                if (_lastRequestTime.TryGetValue(operation, out var lastTime))
-                {
-                    var elapsed = (DateTime.UtcNow - lastTime).TotalMilliseconds;
-                    if (elapsed < MinRequestIntervalMs)
-                    {
-                        var delay = MinRequestIntervalMs - (int)elapsed;
-                        Task.Delay(delay).Wait();
-                    }
-                }
-                _lastRequestTime[operation] = DateTime.UtcNow;
-            }
-        }
-        finally
-        {
-            _rateLimiter.Release();
-        }
-    }
-
-    private AlgoTrendy.Core.Enums.OrderType MapCoinbaseOrderType(string coinbaseType)
-    {
-        return coinbaseType.ToLowerInvariant() switch
-        {
-            "market" => AlgoTrendy.Core.Enums.OrderType.Market,
-            "limit" => AlgoTrendy.Core.Enums.OrderType.Limit,
-            "stop" => AlgoTrendy.Core.Enums.OrderType.StopLoss,
-            "stop_limit" => AlgoTrendy.Core.Enums.OrderType.StopLimit,
-            _ => AlgoTrendy.Core.Enums.OrderType.Market
-        };
-    }
-
-    private AlgoTrendy.Core.Enums.OrderStatus MapCoinbaseOrderStatus(string coinbaseStatus)
-    {
-        return coinbaseStatus.ToLowerInvariant() switch
-        {
-            "open" => AlgoTrendy.Core.Enums.OrderStatus.Open,
-            "pending" => AlgoTrendy.Core.Enums.OrderStatus.Open,
-            "active" => AlgoTrendy.Core.Enums.OrderStatus.Open,
-            "filled" => AlgoTrendy.Core.Enums.OrderStatus.Filled,
-            "cancelled" => AlgoTrendy.Core.Enums.OrderStatus.Cancelled,
-            "expired" => AlgoTrendy.Core.Enums.OrderStatus.Expired,
-            "failed" => AlgoTrendy.Core.Enums.OrderStatus.Rejected,
-            _ => AlgoTrendy.Core.Enums.OrderStatus.Open
-        };
     }
 
     /// <summary>
     /// Sets leverage for a symbol
     /// Note: Coinbase Advanced Trade does NOT support leverage/margin trading
-    /// This is spot trading only
     /// </summary>
     public async Task<bool> SetLeverageAsync(
         string symbol,
@@ -436,7 +355,7 @@ public class CoinbaseBroker : IBroker
         AlgoTrendy.Core.Enums.MarginType marginType = AlgoTrendy.Core.Enums.MarginType.Cross,
         CancellationToken cancellationToken = default)
     {
-        // Coinbase Advanced Trade is spot trading only - no leverage support
+        // Coinbase Advanced Trade is spot trading only
         if (leverage != 1m)
         {
             _logger.LogWarning(
@@ -444,10 +363,6 @@ public class CoinbaseBroker : IBroker
                 symbol, leverage);
             return false;
         }
-
-        _logger.LogInformation(
-            "Coinbase spot trading confirmed for {Symbol} (1x leverage only)",
-            symbol);
 
         await Task.CompletedTask; // Suppress async warning
         return true;
@@ -461,13 +376,13 @@ public class CoinbaseBroker : IBroker
     {
         await Task.CompletedTask; // Suppress async warning
 
-        // Coinbase is spot trading only
         return new LeverageInfo
         {
-            Symbol = symbol,
             CurrentLeverage = 1m,
             MaxLeverage = 1m,
-            MarginMode = "spot"
+            MarginType = AlgoTrendy.Core.Enums.MarginType.Cross,
+            CollateralAmount = 0m,
+            BorrowedAmount = 0m
         };
     }
 
@@ -478,16 +393,67 @@ public class CoinbaseBroker : IBroker
     public async Task<decimal> GetMarginHealthRatioAsync(CancellationToken cancellationToken = default)
     {
         await Task.CompletedTask; // Suppress async warning
+        return 1.0m; // Fully healthy (no leverage risk)
+    }
 
-        // Coinbase spot trading has no margin
-        // Return 1.0 (fully healthy) since there's no leverage risk
-        return 1.0m;
+    private async Task EnsureConnectedAsync(CancellationToken cancellationToken = default)
+    {
+        if (!_isConnected)
+        {
+            await ConnectAsync(cancellationToken);
+        }
+    }
+
+    private async Task RateLimitAsync()
+    {
+        await _rateLimiter.WaitAsync();
+        try
+        {
+            await Task.Delay(MinRequestIntervalMs);
+        }
+        finally
+        {
+            _rateLimiter.Release();
+        }
+    }
+
+    private AlgoTrendy.Core.Enums.OrderType MapCoinbaseOrderType(string? coinbaseType)
+    {
+        if (string.IsNullOrEmpty(coinbaseType))
+            return AlgoTrendy.Core.Enums.OrderType.Market;
+
+        return coinbaseType.ToLowerInvariant() switch
+        {
+            "market" => AlgoTrendy.Core.Enums.OrderType.Market,
+            "limit" => AlgoTrendy.Core.Enums.OrderType.Limit,
+            "stop" => AlgoTrendy.Core.Enums.OrderType.StopLoss,
+            "stop_limit" => AlgoTrendy.Core.Enums.OrderType.StopLimit,
+            _ => AlgoTrendy.Core.Enums.OrderType.Market
+        };
+    }
+
+    private AlgoTrendy.Core.Enums.OrderStatus MapCoinbaseOrderStatus(string? coinbaseStatus)
+    {
+        if (string.IsNullOrEmpty(coinbaseStatus))
+            return AlgoTrendy.Core.Enums.OrderStatus.Open;
+
+        return coinbaseStatus.ToLowerInvariant() switch
+        {
+            "open" => AlgoTrendy.Core.Enums.OrderStatus.Open,
+            "pending" => AlgoTrendy.Core.Enums.OrderStatus.Open,
+            "active" => AlgoTrendy.Core.Enums.OrderStatus.Open,
+            "filled" => AlgoTrendy.Core.Enums.OrderStatus.Filled,
+            "cancelled" => AlgoTrendy.Core.Enums.OrderStatus.Cancelled,
+            "expired" => AlgoTrendy.Core.Enums.OrderStatus.Expired,
+            "failed" => AlgoTrendy.Core.Enums.OrderStatus.Rejected,
+            _ => AlgoTrendy.Core.Enums.OrderStatus.Open
+        };
     }
 
     public void Dispose()
     {
-        _client?.Dispose();
-        _rateLimiter?.Dispose();
+        _client = null; // CoinbaseClient doesn't implement IDisposable
+        _rateLimiter.Dispose();
     }
 }
 

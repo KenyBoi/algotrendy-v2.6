@@ -36,30 +36,11 @@ export default function Strategies() {
       toast({ title: 'Backtest Complete', description: 'Results are ready' });
     } catch (error) {
       console.error('Backtest error:', error);
-      // Mock result
-      setResult({
-        id: '1',
-        strategyName: formData.strategyName,
-        symbol: formData.symbol,
-        startDate: formData.startDate,
-        endDate: formData.endDate,
-        initialCapital: formData.initialCapital,
-        finalCapital: 12500,
-        totalReturn: 2500,
-        totalReturnPercent: 25,
-        sharpeRatio: 1.8,
-        maxDrawdown: -8.5,
-        winRate: 65,
-        totalTrades: 150,
-        profitableTrades: 98,
-        losingTrades: 52,
-        averageWin: 85.5,
-        averageLoss: -42.3,
-        largestWin: 450,
-        largestLoss: -180,
-        trades: [],
+      toast({
+        title: 'Backtest Failed',
+        description: 'Failed to run backtest. Please ensure the backend API is running.',
+        variant: 'destructive'
       });
-      toast({ title: 'Backtest Complete', description: 'Using mock data' });
     } finally {
       setLoading(false);
     }
