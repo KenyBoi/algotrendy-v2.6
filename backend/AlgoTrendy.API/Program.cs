@@ -278,8 +278,9 @@ builder.Services.AddScoped<IBroker>(sp =>
 // Add background services
 builder.Services.AddHostedService<MarketDataBroadcastService>();
 builder.Services.AddHostedService<MarketDataChannelService>();
+builder.Services.AddHostedService<LiquidationMonitoringService>();
 
-// Configure CORS
+// Configure CORS with strict security policy
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowFrontend", policy =>
@@ -306,10 +307,21 @@ builder.Services.AddCors(options =>
         // Add any configured origins
         allowedOrigins.AddRange(configuredOrigins);
 
+        // Strict CORS policy - only allow specific methods and headers
         policy.WithOrigins(allowedOrigins.ToArray())
-            .AllowAnyMethod()
-            .AllowAnyHeader()
-            .AllowCredentials();
+            .WithMethods("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS")
+            .WithHeaders(
+                "Authorization",
+                "Content-Type",
+                "Accept",
+                "Origin",
+                "X-Requested-With",
+                "X-API-Key",
+                "X-Correlation-ID",
+                "X-ClientId")
+            .AllowCredentials()
+            .SetIsOriginAllowedToAllowWildcardSubdomains()
+            .WithExposedHeaders("X-Correlation-ID", "X-API-Version");
     });
 });
 
@@ -341,10 +353,16 @@ if (builder.Configuration.GetValue<bool>("EnableHttpsRedirection", false))
     app.UseHttpsRedirection();
 }
 
+// Add security headers (must be early in pipeline)
+app.UseSecurityHeaders();
+
 app.UseCors("AllowFrontend");
 
 // Add correlation ID middleware for request tracing
 app.UseCorrelationId();
+
+// Add JWT authentication middleware (before authorization)
+app.UseJwtAuthentication();
 
 // Add request logging with Serilog
 app.UseSerilogRequestLogging(options =>

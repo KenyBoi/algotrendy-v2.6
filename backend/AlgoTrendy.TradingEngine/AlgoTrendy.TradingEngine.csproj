@@ -6,6 +6,7 @@
 
   <ItemGroup>
     <PackageReference Include="Binance.Net" Version="10.1.0" />
+    <PackageReference Include="Coinbase.AdvancedTrade" Version="1.4.0" />
     <PackageReference Include="CryptoExchange.Net" Version="9.10.0" />
     <PackageReference Include="Bybit.Net" Version="5.10.1" />
     <PackageReference Include="Kraken.Net" Version="4.5.0.30" />

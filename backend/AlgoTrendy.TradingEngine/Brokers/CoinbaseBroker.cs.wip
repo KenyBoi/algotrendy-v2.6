@@ -1,10 +1,8 @@
 using AlgoTrendy.Core.Enums;
 using AlgoTrendy.Core.Interfaces;
 using AlgoTrendy.Core.Models;
-using CoinbaseAdvanced.Net.Clients;
-using CoinbaseAdvanced.Net.Enums;
-using CoinbaseAdvanced.Net.Objects;
-using CryptoExchange.Net.Authentication;
+using Coinbase.AdvancedTrade;
+using Coinbase.AdvancedTrade.Enums;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
@@ -17,7 +15,7 @@ namespace AlgoTrendy.TradingEngine.Brokers;
 /// </summary>
 public class CoinbaseBroker : IBroker
 {
-    private CoinbaseAdvancedRestClient? _client;
+    private CoinbaseClient? _client;
     private readonly CoinbaseOptions _options;
     private readonly ILogger<CoinbaseBroker> _logger;
     private bool _isConnected = false;
@@ -41,16 +39,16 @@ public class CoinbaseBroker : IBroker
     /// <summary>
     /// Gets or initializes the Coinbase Advanced Trade REST client (lazy initialization)
     /// </summary>
-    private CoinbaseAdvancedRestClient GetClient()
+    private CoinbaseClient GetClient()
     {
         if (_client == null)
         {
-            _client = new CoinbaseAdvancedRestClient(opts =>
-            {
-                opts.ApiCredentials = new ApiCredentials(
-                    _options.ApiKey,
-                    _options.ApiSecret);
-            });
+            _client = new CoinbaseClient(
+                _options.ApiKey,
+                _options.ApiSecret,
+                websocketBufferSize: 5 * 1024 * 1024, // 5 MB default
+                apiKeyType: ApiKeyType.Legacy // Change to CoinbaseDeveloperPlatform if using CDP keys
+            );
 
             _logger.LogInformation("Coinbase Advanced Trade client initialized");
         }
@@ -400,30 +398,30 @@ public class CoinbaseBroker : IBroker
         }
     }
 
-    private OrderType MapCoinbaseOrderType(string coinbaseType)
+    private AlgoTrendy.Core.Enums.OrderType MapCoinbaseOrderType(string coinbaseType)
     {
         return coinbaseType.ToLowerInvariant() switch
         {
-            "market" => OrderType.Market,
-            "limit" => OrderType.Limit,
-            "stop" => OrderType.StopLoss,
-            "stop_limit" => OrderType.StopLimit,
-            _ => OrderType.Market
+            "market" => AlgoTrendy.Core.Enums.OrderType.Market,
+            "limit" => AlgoTrendy.Core.Enums.OrderType.Limit,
+            "stop" => AlgoTrendy.Core.Enums.OrderType.StopLoss,
+            "stop_limit" => AlgoTrendy.Core.Enums.OrderType.StopLimit,
+            _ => AlgoTrendy.Core.Enums.OrderType.Market
         };
     }
 
-    private OrderStatus MapCoinbaseOrderStatus(string coinbaseStatus)
+    private AlgoTrendy.Core.Enums.OrderStatus MapCoinbaseOrderStatus(string coinbaseStatus)
     {
         return coinbaseStatus.ToLowerInvariant() switch
         {
-            "open" => OrderStatus.Open,
-            "pending" => OrderStatus.Open,
-            "active" => OrderStatus.Open,
-            "filled" => OrderStatus.Filled,
-            "cancelled" => OrderStatus.Cancelled,
-            "expired" => OrderStatus.Expired,
-            "failed" => OrderStatus.Rejected,
-            _ => OrderStatus.Open
+            "open" => AlgoTrendy.Core.Enums.OrderStatus.Open,
+            "pending" => AlgoTrendy.Core.Enums.OrderStatus.Open,
+            "active" => AlgoTrendy.Core.Enums.OrderStatus.Open,
+            "filled" => AlgoTrendy.Core.Enums.OrderStatus.Filled,
+            "cancelled" => AlgoTrendy.Core.Enums.OrderStatus.Cancelled,
+            "expired" => AlgoTrendy.Core.Enums.OrderStatus.Expired,
+            "failed" => AlgoTrendy.Core.Enums.OrderStatus.Rejected,
+            _ => AlgoTrendy.Core.Enums.OrderStatus.Open
         };
     }
 

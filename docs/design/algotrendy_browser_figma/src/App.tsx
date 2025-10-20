@@ -1,86 +1,57 @@
-import { useState } from 'react';
-import { Sidebar } from './components/Sidebar';
-import { Dashboard } from './components/Dashboard';
-import { DatasetBrowser } from './components/DatasetBrowser';
-import { DatasetBrowserConnected } from './components/DatasetBrowserConnected';
-import { StrategyBuilder } from './components/StrategyBuilder';
-import { QueryBuilder } from './components/QueryBuilder';
-import { AIAssistant } from './components/AIAssistant';
-import { MEMCorner } from './components/MEMCorner';
-import { Login } from './components/Login';
+/**
+ * AlgoTrendy Main Application
+ * React + TypeScript Trading Platform
+ */
 
-export default function App() {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [activeView, setActiveView] = useState('dashboard');
-  const [isAIOpen, setIsAIOpen] = useState(false);
-  const [isAIMinimized, setIsAIMinimized] = useState(false);
-  const [isMEMExpanded, setIsMEMExpanded] = useState(false);
-  const [useBackend, setUseBackend] = useState(false); // Default to mock data
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { useEffect } from 'react';
+import Dashboard from './pages/Dashboard';
+import Orders from './pages/Orders';
+import Positions from './pages/Positions';
+import Strategies from './pages/Strategies';
+import Login from './pages/Login';
+import NotFound from './pages/NotFound';
+import Layout from './components/Layout';
+import { signalRClient } from './lib/signalr-client';
 
-  // Show login page if not authenticated
-  if (!isAuthenticated) {
-    return <Login onLogin={() => setIsAuthenticated(true)} />;
-  }
+function App() {
+  useEffect(() => {
+    // Connect to SignalR on app mount
+    const connectSignalR = async () => {
+      try {
+        await signalRClient.connect();
+        console.log('SignalR connected successfully');
+      } catch (error) {
+        console.error('Failed to connect SignalR:', error);
+      }
+    };
+
+    connectSignalR();
+
+    // Cleanup on unmount
+    return () => {
+      signalRClient.disconnect();
+    };
+  }, []);
 
   return (
-    <div className="flex h-screen bg-slate-950">
-      <Sidebar activeView={activeView} onViewChange={setActiveView} />
-      
-      <main className="flex-1 overflow-auto">
-        <div className="p-8">
-          {/* Toggle between connected and mock data */}
-          <div className="mb-4 flex items-center justify-end gap-4 p-2.5 bg-slate-900 border border-slate-800 rounded-lg">
-            <span className="text-xs text-gray-400">Brokers:</span>
-            <div className="flex items-center gap-2 px-2.5 py-1 bg-slate-800/50 rounded border border-slate-700">
-              <div className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse" />
-              <span className="text-xs text-gray-300 font-numeric">Interactive Brokers</span>
-            </div>
-            <div className="flex items-center gap-2 px-2.5 py-1 bg-slate-800/50 rounded border border-slate-700">
-              <div className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse" />
-              <span className="text-xs text-gray-300 font-numeric">Alpaca</span>
-            </div>
-            <div className="flex items-center gap-2 px-2.5 py-1 bg-slate-800/50 rounded border border-slate-700">
-              <div className="w-1.5 h-1.5 bg-yellow-400 rounded-full" />
-              <span className="text-xs text-gray-300 font-numeric">TD Ameritrade</span>
-            </div>
-          </div>
-          
-          {activeView === 'dashboard' && <Dashboard />}
-          {activeView === 'datasets' && (
-            useBackend ? <DatasetBrowserConnected /> : <DatasetBrowser />
-          )}
-          {activeView === 'strategy' && <StrategyBuilder />}
-          {activeView === 'query' && <QueryBuilder />}
-          {activeView === 'analytics' && (
-            <div className="flex items-center justify-center h-96">
-              <div className="text-center">
-                <h2 className="mb-2 text-gray-100">Metrics & Reports</h2>
-                <p className="text-gray-400">Analytics and reporting dashboard coming soon</p>
-              </div>
-            </div>
-          )}
-        </div>
-      </main>
+    <Router>
+      <Routes>
+        {/* Public routes */}
+        <Route path="/login" element={<Login />} />
 
-      {/* MEM's Corner - Always visible */}
-      {activeView !== 'datasets' && (
-        <MEMCorner
-          onOpenChat={() => {
-            setIsAIOpen(true);
-            setIsMEMExpanded(false);
-          }}
-          isExpanded={isMEMExpanded && !isAIOpen}
-          onToggleExpand={() => setIsMEMExpanded(!isMEMExpanded)}
-        />
-      )}
-
-      {/* MEM Chat (Full conversation interface) */}
-      <AIAssistant
-        isOpen={isAIOpen}
-        onClose={() => setIsAIOpen(false)}
-        isMinimized={isAIMinimized}
-        onToggleMinimize={() => setIsAIMinimized(!isAIMinimized)}
-      />
-    </div>
+        {/* Protected routes with layout */}
+        <Route path="/" element={<Layout />}>
+          <Route index element={<Navigate to="/dashboard" replace />} />
+          <Route path="dashboard" element={<Dashboard />} />
+          <Route path="orders" element={<Orders />} />
+          <Route path="positions" element={<Positions />} />
+          <Route path="strategies" element={<Strategies />} />
+          <Route path="*" element={<NotFound />} />
+        </Route>
+      </Routes>
+    </Router>
   );
 }
+
+export default App;
