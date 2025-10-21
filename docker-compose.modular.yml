@@ -1,0 +1,163 @@
+version: '3.8'
+
+# AlgoTrendy v3.0 - Modular Microservices Architecture
+# This docker-compose file orchestrates independent services
+
+networks:
+  algotrendy-network:
+    driver: bridge
+
+volumes:
+  questdb-data:
+  redis-data:
+
+services:
+  # API Gateway - Main entry point (Port 5000)
+  api-gateway:
+    build:
+      context: .
+      dockerfile: services/api-gateway/Dockerfile
+    container_name: algotrendy-api-gateway
+    ports:
+      - "5000:5000"
+      - "5001:5001"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=http://+:5000;https://+:5001
+      - ConnectionStrings__QuestDB=host=questdb;port=8812;database=algotrendy;username=admin;password=quest
+      - TRADING_SERVICE_URL=http://trading-service:5001
+      - DATA_SERVICE_URL=http://data-service:5002
+      - BACKTESTING_SERVICE_URL=http://backtesting-service:5003
+      - REDIS_CONNECTION=redis:6379
+    depends_on:
+      - questdb
+      - redis
+      - trading-service
+      - data-service
+      - backtesting-service
+    networks:
+      - algotrendy-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 40s
+
+  # Trading Service - Order execution and broker management (Port 5001)
+  trading-service:
+    build:
+      context: .
+      dockerfile: services/trading-service/Dockerfile
+    container_name: algotrendy-trading-service
+    expose:
+      - "5001"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ConnectionStrings__QuestDB=host=questdb;port=8812;database=algotrendy;username=admin;password=quest
+      - REDIS_CONNECTION=redis:6379
+    depends_on:
+      - questdb
+      - redis
+    networks:
+      - algotrendy-network
+    restart: unless-stopped
+
+  # Data Service - Market data providers and channels (Port 5002)
+  data-service:
+    build:
+      context: .
+      dockerfile: services/data-service/Dockerfile
+    container_name: algotrendy-data-service
+    expose:
+      - "5002"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ConnectionStrings__QuestDB=host=questdb;port=8812;database=algotrendy;username=admin;password=quest
+      - REDIS_CONNECTION=redis:6379
+    depends_on:
+      - questdb
+      - redis
+    networks:
+      - algotrendy-network
+    restart: unless-stopped
+
+  # Backtesting Service - Strategy testing and optimization (Port 5003)
+  backtesting-service:
+    build:
+      context: .
+      dockerfile: services/backtesting-service/Dockerfile
+    container_name: algotrendy-backtesting-service
+    expose:
+      - "5003"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ConnectionStrings__QuestDB=host=questdb;port=8812;database=algotrendy;username=admin;password=quest
+      - BACKTESTING_PY_URL=http://backtesting-py:8000
+    depends_on:
+      - questdb
+      - backtesting-py
+    networks:
+      - algotrendy-network
+    restart: unless-stopped
+
+  # QuestDB - Time-series database
+  questdb:
+    image: questdb/questdb:7.3.10
+    container_name: algotrendy-questdb
+    ports:
+      - "9000:9000"   # Web console
+      - "8812:8812"   # PostgreSQL wire protocol
+      - "9009:9009"   # InfluxDB line protocol
+    volumes:
+      - questdb-data:/root/.questdb
+    networks:
+      - algotrendy-network
+    restart: unless-stopped
+    environment:
+      - QDB_TELEMETRY_ENABLED=false
+
+  # Redis - Caching and pub/sub
+  redis:
+    image: redis:7-alpine
+    container_name: algotrendy-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    networks:
+      - algotrendy-network
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+
+  # Python Backtesting Service
+  backtesting-py:
+    build:
+      context: ./backtesting-py-service
+      dockerfile: Dockerfile
+    container_name: algotrendy-backtesting-py
+    expose:
+      - "8000"
+    environment:
+      - PYTHONUNBUFFERED=1
+    networks:
+      - algotrendy-network
+    restart: unless-stopped
+
+  # ML Training Service (Python)
+  ml-service:
+    build:
+      context: ./ml-service
+      dockerfile: Dockerfile
+    container_name: algotrendy-ml-service
+    expose:
+      - "8001"
+    volumes:
+      - ./ml_models:/app/ml_models
+      - ./data:/app/data
+    environment:
+      - PYTHONUNBUFFERED=1
+    networks:
+      - algotrendy-network
+    restart: unless-stopped
