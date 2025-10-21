@@ -1,4 +1,4 @@
-# AlgoTrendy v2.6
+# AlgoTrendy v3.0
 
 <div align="center">
 
@@ -32,7 +32,7 @@
 | **Data Infrastructure** | ✅ Operational | $0/month, 300K+ symbols |
 | **Security Scan** | ✅ Clean | 0 critical issues (Gitleaks + Semgrep) |
 
-**Last Updated:** October 21, 2025 | **Version:** 2.6.0
+**Last Updated:** October 21, 2025 | **Version:** 3.0.0
 
 ---
 
@@ -374,7 +374,8 @@ AlgoTrendy offers **two deployment architectures**:
 | **🏛️ Monolith** | Most users, development, <500 users | `main` | `docker-compose up -d` |
 | **🔧 Microservices** | High scale, >1000 users, multi-region | `modular` | `docker-compose -f docker-compose.modular.yml up -d` |
 
-**📖 Comparison Guide:** See [MODULAR_VS_MONOLITH.md](MODULAR_VS_MONOLITH.md) for full comparison
+**📖 Comprehensive Guide:** See [DUAL_DEPLOYMENT_GUIDE.md](DUAL_DEPLOYMENT_GUIDE.md) for complete optimization guide
+**📊 Architecture Comparison:** See [MODULAR_VS_MONOLITH.md](MODULAR_VS_MONOLITH.md) for detailed comparison
 
 **Recommendation:** Start with monolith (simpler), migrate to microservices when needed.
 
