@@ -1,5 +1,5 @@
 import { BrowserRouter as Router, Routes, Route, Link, useLocation } from 'react-router-dom'
-import { Home, TrendingUp, Briefcase, BarChart3, FileText, Activity, Brain, Cpu, TestTube, LineChart } from 'lucide-react'
+import { Home, TrendingUp, Briefcase, BarChart3, FileText, Activity, Brain, Cpu, TestTube, LineChart, Server } from 'lucide-react'
 import MLTrainingDashboard from './app/MLTrainingDashboard'
 import TradingDashboard from './pages/TradingDashboard'
 import PortfolioPage from './pages/PortfolioPage'
@@ -8,6 +8,7 @@ import OrdersPage from './pages/OrdersPage'
 import StrategyBuilderPage from './pages/StrategyBuilderPage'
 import ModelTestingPanel from './components/testing/ModelTestingPanel'
 import AdvancedIndicatorsPage from './pages/AdvancedIndicators'
+import SystemHealthDashboard from './pages/SystemHealthDashboard'
 import './styles/App.css'
 
 function Navigation() {
@@ -22,6 +23,7 @@ function Navigation() {
     { path: '/backtesting', label: 'Backtesting', icon: BarChart3 },
     { path: '/testing', label: 'Model Testing', icon: TestTube },
     { path: '/ml', label: 'AI/ML', icon: Brain },
+    { path: '/system-health', label: 'System Health', icon: Server },
     { path: '/performance', label: 'Performance', icon: Activity },
   ]
 
@@ -72,6 +74,7 @@ function App() {
             <Route path="/backtesting" element={<BacktestingPage />} />
             <Route path="/testing" element={<ModelTestingPanel />} />
             <Route path="/ml" element={<MLTrainingDashboard />} />
+            <Route path="/system-health" element={<SystemHealthDashboard />} />
             <Route path="/performance" element={
               <div style={{ textAlign: 'center', padding: '4rem' }}>
                 <h2>Performance Analytics</h2>
