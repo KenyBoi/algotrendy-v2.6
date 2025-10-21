@@ -46,6 +46,14 @@ Deployment, operations, and infrastructure documentation:
 - [Credentials Setup Guide](deployment/credentials-setup-guide.md) - Setting up API credentials
 - [Security Updates](deployment/security-updates.md) - Security configuration and updates
 
+### `/security/` ⭐ NEW
+Security documentation, scanning tools, and policies:
+- **[SECURITY.md](../SECURITY.md)** - Complete security policy
+- **[Security Scan Report](../file_mgmt_code/SECURITY_SCAN_REPORT.md)** - Latest scan findings
+- **[Fixes Applied](../file_mgmt_code/FIXES_APPLIED.md)** - Security improvements
+- **[Quick Reference](../file_mgmt_code/QUICK_REFERENCE.md)** - Security command reference
+- Security tools in `../file_mgmt_code/`
+
 ### `/architecture/`
 System architecture, design decisions, and technical specifications.
 
@@ -63,16 +71,31 @@ Historical documentation, summaries, and reports from previous development phase
 Essential documentation files remain at project root:
 - `../README.md` - Main project README
 - `../CONTRIBUTING.md` - Contribution guidelines
+- `../DOCKER_SETUP.md` - **NEW!** Docker deployment guide (one-command setup)
 - `../REORGANIZATION_PLAN.md` - Project reorganization plan (this cleanup effort)
+
+## Quick Start Guides
+
+### For New Users
+1. **[Docker Setup Guide](../DOCKER_SETUP.md)** - 🐳 Get started in one command
+2. **[API Usage Examples](API_USAGE_EXAMPLES.md)** - 💻 Integration examples in 4 languages
+3. **[Development Setup Script](../scripts/dev-setup.sh)** - 🛠️ Automated development environment
+
+### For Contributors
+1. **[Contributing Guide](../CONTRIBUTING.md)** - Development workflow and standards
+2. **[Developer TODO Tree](developer/todo-tree.md)** - Project roadmap and tasks
+3. **[Architecture Overview](ARCHITECTURE.md)** - System design
 
 ## Finding Documentation
 
 ### By Topic
-- **Getting Started**: See root `../README.md`
-- **API Integration**: Check `/integration/data-providers/`
-- **ML/AI Features**: Check `/integration/ml/`
-- **Deployment**: Check `/deployment/`
-- **Development**: Check `/developer/`
+- **Getting Started**: `../README.md` and `../DOCKER_SETUP.md`
+- **Security** ⭐: `../SECURITY.md` and `../file_mgmt_code/`
+- **API Integration**: `API_USAGE_EXAMPLES.md` and `/integration/data-providers/`
+- **Docker/Deployment**: `../DOCKER_SETUP.md` and `/deployment/`
+- **ML/AI Features**: `/integration/ml/` and `../MEM/`
+- **Development**: `../CONTRIBUTING.md`, `../scripts/dev-setup.sh`, and `/developer/`
+- **Architecture**: `ARCHITECTURE.md`
 
 ### By Date
 Historical documentation in `/historical/` includes dates or phase numbers for chronological reference.

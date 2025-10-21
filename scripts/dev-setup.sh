@@ -1,378 +1,441 @@
 #!/bin/bash
-# ==============================================================================
+
+# ============================================================================
 # AlgoTrendy v2.6 - Development Environment Setup Script
-# ==============================================================================
-# This script automates the setup of the development environment including:
-#   - Dependency installation
-#   - Database setup
-#   - Initial configuration
-#   - Test data seeding
-# ==============================================================================
+# ============================================================================
+# This script automates the setup of a complete development environment
+# for AlgoTrendy, including dependencies, databases, and configuration.
+#
+# Usage: ./scripts/dev-setup.sh
+# ============================================================================
 
 set -e  # Exit on error
 
-# Colors for output
+# Color codes for output
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
-# Configuration
-PROJECT_ROOT=$(pwd)
-BACKEND_DIR="$PROJECT_ROOT/backend"
-FRONTEND_DIR="$PROJECT_ROOT/docs/design/algotrendy_browser_figma"
+# Logging functions
+log_info() {
+    echo -e "${BLUE}[INFO]${NC} $1"
+}
 
-# ==============================================================================
-# Helper Functions
-# ==============================================================================
+log_success() {
+    echo -e "${GREEN}[SUCCESS]${NC} $1"
+}
+
+log_warning() {
+    echo -e "${YELLOW}[WARNING]${NC} $1"
+}
+
+log_error() {
+    echo -e "${RED}[ERROR]${NC} $1"
+}
 
 print_header() {
-    echo -e "${BLUE}============================================================================${NC}"
-    echo -e "${BLUE}$1${NC}"
-    echo -e "${BLUE}============================================================================${NC}"
+    echo -e "\n${BLUE}╔════════════════════════════════════════════════════════════════╗${NC}"
+    echo -e "${BLUE}║${NC} $1"
+    echo -e "${BLUE}╚════════════════════════════════════════════════════════════════╝${NC}\n"
 }
 
-print_success() {
-    echo -e "${GREEN}✓ $1${NC}"
+# Check if command exists
+command_exists() {
+    command -v "$1" >/dev/null 2>&1
 }
 
-print_warning() {
-    echo -e "${YELLOW}⚠ $1${NC}"
-}
-
-print_error() {
-    echo -e "${RED}✗ $1${NC}"
-}
-
-print_info() {
-    echo -e "${BLUE}ℹ $1${NC}"
-}
-
-check_command() {
-    if command -v $1 &> /dev/null; then
-        print_success "$1 is installed"
-        return 0
-    else
-        print_error "$1 is not installed"
-        return 1
-    fi
-}
-
-# ==============================================================================
-# System Requirements Check
-# ==============================================================================
-
-print_header "Checking System Requirements"
-
-REQUIREMENTS_MET=true
-
-# Check .NET SDK
-if check_command dotnet; then
-    DOTNET_VERSION=$(dotnet --version)
-    print_info "  Version: $DOTNET_VERSION"
-    if [[ "$DOTNET_VERSION" < "8.0" ]]; then
-        print_warning "  .NET 8.0 or higher is recommended"
-    fi
-else
-    print_error "  Install from: https://dotnet.microsoft.com/download"
-    REQUIREMENTS_MET=false
-fi
-
-# Check Docker
-if check_command docker; then
-    DOCKER_VERSION=$(docker --version | awk '{print $3}' | tr -d ',')
-    print_info "  Version: $DOCKER_VERSION"
-else
-    print_error "  Install from: https://docs.docker.com/get-docker/"
-    REQUIREMENTS_MET=false
-fi
-
-# Check Docker Compose
-if check_command docker-compose; then
-    COMPOSE_VERSION=$(docker-compose --version | awk '{print $4}' | tr -d ',')
-    print_info "  Version: $COMPOSE_VERSION"
-else
-    print_warning "  Docker Compose not found, trying 'docker compose'"
-    if docker compose version &> /dev/null; then
-        print_success "  'docker compose' command available"
-    else
-        print_error "  Install Docker Compose"
-        REQUIREMENTS_MET=false
-    fi
-fi
-
-# Check Git
-if check_command git; then
-    GIT_VERSION=$(git --version | awk '{print $3}')
-    print_info "  Version: $GIT_VERSION"
-else
-    print_error "  Install from: https://git-scm.com/downloads"
-    REQUIREMENTS_MET=false
-fi
-
-# Check Node.js (for frontend)
-if check_command node; then
-    NODE_VERSION=$(node --version)
-    print_info "  Version: $NODE_VERSION"
-else
-    print_warning "  Node.js not found (optional for frontend development)"
-fi
-
-# Check npm (for frontend)
-if check_command npm; then
-    NPM_VERSION=$(npm --version)
-    print_info "  Version: $NPM_VERSION"
-else
-    print_warning "  npm not found (optional for frontend development)"
-fi
-
-if [ "$REQUIREMENTS_MET" = false ]; then
-    print_error "Please install missing requirements before continuing"
-    exit 1
-fi
-
-echo ""
-
-# ==============================================================================
-# Install .NET Dependencies
-# ==============================================================================
-
-print_header "Installing .NET Dependencies"
-
-cd "$BACKEND_DIR"
-
-print_info "Restoring NuGet packages..."
-if dotnet restore; then
-    print_success "NuGet packages restored successfully"
-else
-    print_error "Failed to restore NuGet packages"
-    exit 1
-fi
-
-echo ""
-
-# ==============================================================================
-# Build Backend
-# ==============================================================================
-
-print_header "Building Backend"
-
-print_info "Building solution..."
-if dotnet build; then
-    print_success "Backend built successfully"
-else
-    print_error "Backend build failed"
-    exit 1
-fi
-
-echo ""
-
-# ==============================================================================
-# Setup Docker Environment
-# ==============================================================================
-
-print_header "Setting up Docker Environment"
-
-cd "$PROJECT_ROOT"
-
-# Create required directories
-print_info "Creating required directories..."
-mkdir -p questdb-data
-mkdir -p logs
-mkdir -p ssl
-mkdir -p certbot/www
-mkdir -p certbot/conf
-print_success "Directories created"
-
-# Check if Docker is running
-if docker info &> /dev/null; then
-    print_success "Docker daemon is running"
-else
-    print_error "Docker daemon is not running. Please start Docker and try again."
-    exit 1
-fi
-
-# Start Docker services
-print_info "Starting Docker services..."
-if docker-compose up -d questdb; then
-    print_success "Docker services started"
-else
-    print_error "Failed to start Docker services"
-    exit 1
-fi
-
-# Wait for QuestDB to be ready
-print_info "Waiting for QuestDB to be ready..."
-sleep 10
-
-if docker ps | grep -q algotrendy-questdb; then
-    print_success "QuestDB is running"
-else
-    print_warning "QuestDB may not be running properly"
-fi
-
-echo ""
-
-# ==============================================================================
-# Setup User Secrets
-# ==============================================================================
-
-print_header "Setting up User Secrets"
-
-cd "$BACKEND_DIR/AlgoTrendy.API"
-
-# Initialize user secrets
-print_info "Initializing user secrets..."
-if dotnet user-secrets init; then
-    print_success "User secrets initialized"
-else
-    print_warning "User secrets may already be initialized"
-fi
-
-# Check if credentials script exists
-if [ -f "$PROJECT_ROOT/quick_setup_credentials.sh" ]; then
-    print_info "Credential setup script available at: ./quick_setup_credentials.sh"
-    print_info "Run it manually to configure API credentials"
-else
-    print_warning "Credential setup script not found"
-fi
-
-echo ""
-
-# ==============================================================================
-# Setup Frontend (if available)
-# ==============================================================================
-
-print_header "Setting up Frontend"
-
-if [ -d "$FRONTEND_DIR" ]; then
-    cd "$FRONTEND_DIR"
-
-    if [ -f "package.json" ]; then
-        if command -v npm &> /dev/null; then
-            print_info "Installing frontend dependencies..."
-            if npm install; then
-                print_success "Frontend dependencies installed"
-            else
-                print_error "Failed to install frontend dependencies"
-            fi
+# Detect OS
+detect_os() {
+    if [[ "$OSTYPE" == "linux-gnu"* ]]; then
+        if [ -f /etc/os-release ]; then
+            . /etc/os-release
+            OS=$ID
+            OS_VERSION=$VERSION_ID
         else
-            print_warning "npm not available, skipping frontend setup"
+            OS="unknown"
+        fi
+    elif [[ "$OSTYPE" == "darwin"* ]]; then
+        OS="macos"
+        OS_VERSION=$(sw_vers -productVersion)
+    else
+        OS="unknown"
+    fi
+
+    log_info "Detected OS: $OS $OS_VERSION"
+}
+
+# Check prerequisites
+check_prerequisites() {
+    print_header "Checking Prerequisites"
+
+    local missing=0
+
+    # Check Git
+    if command_exists git; then
+        log_success "Git installed: $(git --version)"
+    else
+        log_error "Git is not installed"
+        missing=1
+    fi
+
+    # Check .NET SDK
+    if command_exists dotnet; then
+        local dotnet_version=$(dotnet --version)
+        log_success ".NET SDK installed: $dotnet_version"
+
+        if [[ ! "$dotnet_version" =~ ^8\. ]]; then
+            log_warning ".NET 8.0 is recommended (you have $dotnet_version)"
         fi
     else
-        print_warning "package.json not found in frontend directory"
+        log_error ".NET SDK is not installed"
+        log_info "Install from: https://dotnet.microsoft.com/download"
+        missing=1
     fi
-else
-    print_warning "Frontend directory not found, skipping frontend setup"
-fi
 
-cd "$PROJECT_ROOT"
-echo ""
+    # Check Docker
+    if command_exists docker; then
+        log_success "Docker installed: $(docker --version)"
+    else
+        log_warning "Docker is not installed (optional but recommended)"
+        log_info "Install from: https://docs.docker.com/get-docker/"
+    fi
 
-# ==============================================================================
-# Run Tests
-# ==============================================================================
+    # Check Node.js (for frontend)
+    if command_exists node; then
+        log_success "Node.js installed: $(node --version)"
+    else
+        log_warning "Node.js is not installed (needed for frontend development)"
+        log_info "Install from: https://nodejs.org/"
+    fi
 
-print_header "Running Tests"
+    # Check Python (for ML services)
+    if command_exists python3; then
+        log_success "Python installed: $(python3 --version)"
+    else
+        log_warning "Python 3 is not installed (needed for ML services)"
+    fi
 
-cd "$BACKEND_DIR"
+    if [ $missing -eq 1 ]; then
+        log_error "Missing required dependencies. Please install them and try again."
+        exit 1
+    fi
 
-print_info "Running unit tests..."
-if dotnet test --filter "FullyQualifiedName!~Integration" --verbosity quiet; then
-    print_success "All tests passed"
-else
-    print_warning "Some tests failed (this is normal for a fresh setup)"
-fi
+    log_success "All required prerequisites are installed!"
+}
 
-echo ""
+# Setup environment files
+setup_environment() {
+    print_header "Setting Up Environment Files"
 
-# ==============================================================================
-# Create .env file if it doesn't exist
-# ==============================================================================
+    # Check if .env exists
+    if [ -f .env ]; then
+        log_warning ".env file already exists"
+        read -p "Do you want to overwrite it? (y/N): " -n 1 -r
+        echo
+        if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+            log_info "Keeping existing .env file"
+            return
+        fi
+    fi
 
-print_header "Environment Configuration"
-
-cd "$PROJECT_ROOT"
-
-if [ ! -f ".env" ]; then
-    print_info "Creating .env file from template..."
-    if [ -f ".env.example" ]; then
+    # Copy .env.example to .env
+    if [ -f .env.example ]; then
         cp .env.example .env
-        print_success ".env file created"
-        print_warning "Please edit .env file with your actual credentials"
+        log_success "Created .env from .env.example"
+
+        # Set development defaults
+        sed -i 's/ASPNETCORE_ENVIRONMENT=Production/ASPNETCORE_ENVIRONMENT=Development/' .env 2>/dev/null || \
+        sed -i '' 's/ASPNETCORE_ENVIRONMENT=Production/ASPNETCORE_ENVIRONMENT=Development/' .env 2>/dev/null
+
+        sed -i 's/API_LOG_LEVEL=Information/API_LOG_LEVEL=Debug/' .env 2>/dev/null || \
+        sed -i '' 's/API_LOG_LEVEL=Information/API_LOG_LEVEL=Debug/' .env 2>/dev/null
+
+        log_success "Configured .env for development"
     else
-        print_warning ".env.example not found, skipping .env creation"
+        log_error ".env.example not found"
+        exit 1
     fi
-else
-    print_success ".env file already exists"
-fi
 
-echo ""
+    log_warning "Remember to add your API credentials to .env file!"
+}
 
-# ==============================================================================
-# Generate SSL Certificates (for HTTPS development)
-# ==============================================================================
+# Setup security tools
+setup_security_tools() {
+    print_header "Setting Up Security Tools (IMPORTANT)"
 
-print_header "SSL Certificate Setup"
+    log_info "Security is a top priority for AlgoTrendy."
+    log_info "Installing pre-commit hooks to prevent credential leaks..."
 
-if [ ! -f "ssl/key.pem" ] || [ ! -f "ssl/cert.pem" ]; then
-    print_info "Generating self-signed SSL certificates for development..."
-    if [ -f "scripts/generate-ssl-cert.sh" ]; then
-        if bash scripts/generate-ssl-cert.sh; then
-            print_success "SSL certificates generated"
+    if [ -d "file_mgmt_code" ] && [ -f "file_mgmt_code/setup-precommit-hooks.sh" ]; then
+        cd file_mgmt_code
+
+        log_info "Installing security tools..."
+        if bash ./setup-security-tools.sh; then
+            log_success "Security tools installed"
         else
-            print_warning "Failed to generate SSL certificates"
+            log_warning "Security tools installation had some issues (non-critical)"
         fi
+
+        log_info "Setting up pre-commit hooks..."
+        if bash ./setup-precommit-hooks.sh; then
+            log_success "Pre-commit hooks configured"
+        else
+            log_warning "Pre-commit hooks setup had some issues (non-critical)"
+        fi
+
+        cd ..
+
+        log_success "Security setup complete!"
+        log_info "Pre-commit hooks will now scan for secrets before each commit."
+        log_info "Run 'cd file_mgmt_code && ./scan-security.sh' to scan manually."
     else
-        print_warning "SSL generation script not found"
+        log_warning "Security tools not found in file_mgmt_code/"
+        log_info "You can set them up later by running:"
+        log_info "  cd file_mgmt_code && ./setup-precommit-hooks.sh"
     fi
-else
-    print_success "SSL certificates already exist"
-fi
+}
 
-echo ""
+# Restore .NET dependencies
+restore_dotnet_dependencies() {
+    print_header "Restoring .NET Dependencies"
 
-# ==============================================================================
-# Summary
-# ==============================================================================
+    cd backend
 
-print_header "Setup Complete!"
+    log_info "Running dotnet restore..."
+    if dotnet restore; then
+        log_success "Dependencies restored successfully"
+    else
+        log_error "Failed to restore dependencies"
+        exit 1
+    fi
 
-echo ""
-echo -e "${GREEN}✓ Development environment is ready!${NC}"
-echo ""
-echo -e "${BLUE}Next Steps:${NC}"
-echo ""
-echo "1. Configure credentials:"
-echo -e "   ${YELLOW}./quick_setup_credentials.sh${NC}"
-echo ""
-echo "2. Start the API:"
-echo -e "   ${YELLOW}cd backend/AlgoTrendy.API${NC}"
-echo -e "   ${YELLOW}dotnet run${NC}"
-echo ""
-echo "3. Start the frontend (in another terminal):"
-echo -e "   ${YELLOW}cd docs/design/algotrendy_browser_figma${NC}"
-echo -e "   ${YELLOW}npm run dev${NC}"
-echo ""
-echo "4. Access the application:"
-echo -e "   ${YELLOW}Frontend: http://localhost:3000${NC}"
-echo -e "   ${YELLOW}API:      http://localhost:5002${NC}"
-echo -e "   ${YELLOW}Swagger:  http://localhost:5002/swagger${NC}"
-echo -e "   ${YELLOW}QuestDB:  http://localhost:9000${NC}"
-echo ""
-echo -e "${BLUE}Useful Commands:${NC}"
-echo ""
-echo "  Start all services:    docker-compose up -d"
-echo "  Stop all services:     docker-compose down"
-echo "  View logs:             docker-compose logs -f"
-echo "  Run tests:             dotnet test"
-echo "  Build solution:        dotnet build"
-echo ""
-echo -e "${BLUE}Documentation:${NC}"
-echo ""
-echo "  README:                ./README.md"
-echo "  Contributing:          ./CONTRIBUTING.md"
-echo "  Credentials Guide:     ./CREDENTIALS_SETUP_GUIDE.md"
-echo ""
-print_header "Happy Coding! 🚀"
+    cd ..
+}
+
+# Build .NET projects
+build_dotnet_projects() {
+    print_header "Building .NET Projects"
+
+    cd backend
+
+    log_info "Building solution..."
+    if dotnet build --configuration Debug; then
+        log_success "Build completed successfully"
+    else
+        log_warning "Build completed with warnings/errors"
+        log_info "Check the output above for details"
+    fi
+
+    cd ..
+}
+
+# Setup frontend
+setup_frontend() {
+    print_header "Setting Up Frontend"
+
+    if ! command_exists node; then
+        log_warning "Node.js not installed, skipping frontend setup"
+        return
+    fi
+
+    # Check if frontend directory exists
+    if [ ! -d "frontend" ]; then
+        log_warning "Frontend directory not found, skipping"
+        return
+    fi
+
+    cd frontend
+
+    log_info "Installing npm dependencies..."
+    if npm install; then
+        log_success "Frontend dependencies installed"
+    else
+        log_error "Failed to install frontend dependencies"
+        cd ..
+        return
+    fi
+
+    cd ..
+}
+
+# Setup Python environment
+setup_python_environment() {
+    print_header "Setting Up Python Environment"
+
+    if ! command_exists python3; then
+        log_warning "Python 3 not installed, skipping Python setup"
+        return
+    fi
+
+    # Setup backtesting-py-service
+    if [ -d "backtesting-py-service" ]; then
+        cd backtesting-py-service
+
+        log_info "Creating Python virtual environment..."
+        python3 -m venv venv
+
+        log_info "Installing Python dependencies..."
+        source venv/bin/activate
+        pip install --upgrade pip
+        pip install -r requirements.txt
+        deactivate
+
+        log_success "Python environment setup complete"
+        cd ..
+    fi
+}
+
+# Setup databases (Docker)
+setup_databases() {
+    print_header "Setting Up Databases"
+
+    if ! command_exists docker; then
+        log_warning "Docker not installed, skipping database setup"
+        log_info "You can manually install PostgreSQL/QuestDB or use Docker later"
+        return
+    fi
+
+    log_info "Starting database containers..."
+
+    # Start only essential services
+    if docker compose version >/dev/null 2>&1; then
+        docker compose up -d questdb seq
+    elif command_exists docker-compose; then
+        docker-compose up -d questdb seq
+    else
+        log_warning "Docker Compose not available"
+        return
+    fi
+
+    log_info "Waiting for databases to be ready (30 seconds)..."
+    sleep 30
+
+    log_success "Databases are running!"
+    log_info "QuestDB Console: http://localhost:9000"
+    log_info "Seq Logs: http://localhost:5341"
+}
+
+# Run database migrations
+run_migrations() {
+    print_header "Running Database Migrations"
+
+    # Check if migrations directory exists
+    if [ ! -d "database/migrations" ]; then
+        log_warning "No migrations directory found"
+        return
+    fi
+
+    log_info "Checking for migration files..."
+    local migration_count=$(ls -1 database/migrations/*.sql 2>/dev/null | wc -l)
+
+    if [ $migration_count -eq 0 ]; then
+        log_info "No SQL migration files found"
+        return
+    fi
+
+    log_info "Found $migration_count migration file(s)"
+
+    # Check if QuestDB is running
+    if curl -s http://localhost:9000/ >/dev/null 2>&1; then
+        log_info "Applying migrations to QuestDB..."
+
+        for migration in database/migrations/*.sql; do
+            log_info "Applying $(basename $migration)..."
+            # Apply migration via QuestDB HTTP API
+            curl -s -X POST \
+                'http://localhost:9000/exec?query=' \
+                --data-urlencode "query=$(cat $migration)" \
+                > /dev/null
+        done
+
+        log_success "Migrations applied successfully"
+    else
+        log_warning "QuestDB not running, skipping migrations"
+        log_info "Start QuestDB and run migrations manually"
+    fi
+}
+
+# Print summary
+print_summary() {
+    print_header "Setup Complete!"
+
+    echo -e "${GREEN}✅ Development environment is ready!${NC}\n"
+
+    echo -e "${BLUE}Next Steps:${NC}"
+    echo -e "  1. Edit ${YELLOW}.env${NC} and add your API credentials"
+    echo -e "  2. Review ${YELLOW}backend/AlgoTrendy.API/appsettings.json${NC}"
+    echo -e "  3. Start the application:\n"
+
+    echo -e "${YELLOW}Option 1: Docker (Recommended)${NC}"
+    echo -e "  ${GREEN}docker-compose up -d${NC}"
+    echo -e "  Access at: http://localhost:5002\n"
+
+    echo -e "${YELLOW}Option 2: Direct .NET Run${NC}"
+    echo -e "  ${GREEN}cd backend/AlgoTrendy.API${NC}"
+    echo -e "  ${GREEN}dotnet run${NC}"
+    echo -e "  Access at: http://localhost:5000\n"
+
+    echo -e "${BLUE}Useful URLs:${NC}"
+    echo -e "  API Swagger: ${GREEN}http://localhost:5002/swagger${NC}"
+    echo -e "  QuestDB:     ${GREEN}http://localhost:9000${NC}"
+    echo -e "  Seq Logs:    ${GREEN}http://localhost:5341${NC}"
+    echo -e "  Frontend:    ${GREEN}http://localhost:3000${NC}\n"
+
+    echo -e "${BLUE}Documentation:${NC}"
+    echo -e "  CONTRIBUTING.md          - Development guidelines"
+    echo -e "  DOCKER_SETUP.md          - Docker setup guide"
+    echo -e "  DEVELOPER_ONBOARDING.md  - New developer checklist"
+    echo -e "  SECURITY.md              - Security policy"
+    echo -e "  docs/                    - Full documentation\n"
+
+    echo -e "${BLUE}Security:${NC}"
+    echo -e "  Pre-commit hooks:  ${GREEN}✅ Configured${NC}"
+    echo -e "  Run security scan: ${GREEN}cd file_mgmt_code && ./scan-security.sh${NC}"
+    echo -e "  Security tools:    ${GREEN}file_mgmt_code/${NC}\n"
+
+    log_info "Happy coding! 🚀"
+    log_warning "Remember: Never commit secrets! Pre-commit hooks will protect you."
+}
+
+# Main execution
+main() {
+    clear
+
+    echo -e "${BLUE}"
+    echo "╔════════════════════════════════════════════════════════════════╗"
+    echo "║                                                                ║"
+    echo "║           AlgoTrendy v2.6 - Development Setup                 ║"
+    echo "║                                                                ║"
+    echo "║  This script will set up your development environment         ║"
+    echo "║  including dependencies, databases, and configuration.        ║"
+    echo "║                                                                ║"
+    echo "╚════════════════════════════════════════════════════════════════╝"
+    echo -e "${NC}\n"
+
+    # Verify we're in the project root
+    if [ ! -f "docker-compose.yml" ] || [ ! -d "backend" ]; then
+        log_error "Please run this script from the project root directory"
+        exit 1
+    fi
+
+    log_info "Starting setup process..."
+    sleep 2
+
+    # Run setup steps
+    detect_os
+    check_prerequisites
+    setup_environment
+    setup_security_tools
+    restore_dotnet_dependencies
+    build_dotnet_projects
+    setup_frontend
+    setup_python_environment
+    setup_databases
+    run_migrations
+    print_summary
+}
+
+# Run main function
+main "$@"

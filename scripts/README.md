@@ -4,13 +4,40 @@
 
 This directory contains all utility scripts organized by purpose following software engineering best practices.
 
+## Quick Start
+
+### New to AlgoTrendy? Start here:
+
+```bash
+# Run automated development setup (RECOMMENDED)
+./scripts/dev-setup.sh
+```
+
+This single script will:
+- ✅ Check all prerequisites (.NET, Docker, Node.js, Python)
+- ✅ Restore dependencies and build projects
+- ✅ Setup databases (QuestDB, Seq)
+- ✅ Configure environment files
+- ✅ **Setup security tools (Gitleaks + Semgrep)** ⭐ NEW
+- ✅ **Install pre-commit hooks** ⭐ NEW
+- ✅ Run database migrations
+- ✅ Setup user secrets
+- ✅ Provide next steps
+
+**Estimated time**: 5-10 minutes
+
 ## Scripts Structure
+
+### Root Level (Quick Access)
+- **`dev-setup.sh`** - 🛠️ **NEW!** Automated development environment setup (USE THIS!)
+- `compare_models.py` - ML model comparison utility
+- `schedule_model_retraining.sh` - Schedule ML model retraining
 
 ### `/setup/`
 Setup and installation scripts:
-- `quick_setup_credentials.sh` - Quick credential setup utility
+- `quick_setup_credentials.sh` - Interactive credential setup utility
 - `check-dns.sh` - DNS configuration checker
-- `use_local_lean.sh` - Local LEAN engine setup
+- `USE_LOCAL_LEAN.sh` - Local LEAN engine setup
 
 ### `/ml/`
 Machine Learning scripts:
@@ -37,6 +64,15 @@ Database management scripts:
 ### `/utilities/`
 General utility scripts:
 - `code_migration_analyzer.py` - Code migration analysis tool
+
+### `../file_mgmt_code/` ⭐ NEW
+Security tools and scanning scripts:
+- **`setup-security-tools.sh`** - Install Gitleaks & Semgrep
+- **`scan-security.sh`** - Run automated security scans
+- **`setup-precommit-hooks.sh`** - Install pre-commit hooks
+- `SECURITY_SCAN_REPORT.md` - Latest scan findings
+- `FIXES_APPLIED.md` - Security improvements log
+- `QUICK_REFERENCE.md` - Security command reference
 
 ## Usage
 
@@ -68,6 +104,22 @@ python3 scripts/ml/run_pattern_analysis.py
 ```bash
 # Test data providers
 ./scripts/testing/test_providers.sh
+```
+
+### Security Scripts ⭐ NEW
+```bash
+# Set up security tools (one-time setup)
+cd file_mgmt_code
+./setup-security-tools.sh
+
+# Install pre-commit hooks (required for all developers)
+./setup-precommit-hooks.sh
+
+# Run security scan manually
+./scan-security.sh
+
+# View latest security report
+cat SECURITY_SCAN_REPORT.md
 ```
 
 ## Script Standards
