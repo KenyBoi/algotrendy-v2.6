@@ -37,12 +37,14 @@ public class CoinbaseBroker : BrokerBase, IDisposable
     {
         if (_client == null)
         {
+            #pragma warning disable CS0618 // Suppress obsolete warning for Legacy API key type
             _client = new CoinbaseClient(
                 _options.ApiKey,
                 _options.ApiSecret,
                 websocketBufferSize: 5 * 1024 * 1024, // 5 MB default
-                apiKeyType: ApiKeyType.Legacy // Change to CoinbaseDeveloperPlatform if using CDP keys
+                apiKeyType: ApiKeyType.Legacy // Using Legacy for backward compatibility
             );
+            #pragma warning restore CS0618
 
             _logger.LogInformation("Coinbase Advanced Trade client initialized");
         }
