@@ -8,6 +8,8 @@
 ![Build](https://img.shields.io/badge/build-passing-success)
 ![Coverage](https://img.shields.io/badge/coverage-75%25-yellow)
 ![Security](https://img.shields.io/badge/security-98.5%2F100-brightgreen)
+![Docs](https://img.shields.io/badge/docs-automated-blue)
+![API](https://img.shields.io/badge/postman-collection-orange)
 
 **Multi-Asset Algorithmic Trading Platform with AI Integration**
 

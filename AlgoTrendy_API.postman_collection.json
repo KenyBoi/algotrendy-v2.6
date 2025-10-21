@@ -1,0 +1,450 @@
+{
+	"info": {
+		"_postman_id": "algotrendy-v26-collection",
+		"name": "AlgoTrendy v2.6 API",
+		"description": "Complete API collection for AlgoTrendy v2.6 - Multi-Asset Algorithmic Trading Platform\n\n## Quick Start\n1. Import this collection into Postman\n2. Set the `baseUrl` variable to your API endpoint (default: http://localhost:5002)\n3. Configure authentication if required\n4. Start testing!\n\n## Documentation\n- Full API Docs: http://localhost:5002/swagger\n- Usage Examples: See docs/API_USAGE_EXAMPLES.md\n- GitHub: https://github.com/KenyBoi/algotrendy-v2.6",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"variable": [
+		{
+			"key": "baseUrl",
+			"value": "http://localhost:5002",
+			"type": "string"
+		},
+		{
+			"key": "apiVersion",
+			"value": "v1",
+			"type": "string"
+		}
+	],
+	"item": [
+		{
+			"name": "Market Data",
+			"item": [
+				{
+					"name": "Get Market Data",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/{{apiVersion}}/marketdata?symbol=BTCUSDT&exchange=binance&interval=1h&limit=100",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "{{apiVersion}}", "marketdata"],
+							"query": [
+								{
+									"key": "symbol",
+									"value": "BTCUSDT",
+									"description": "Trading symbol (e.g., BTCUSDT, ETHUSDT, AAPL)"
+								},
+								{
+									"key": "exchange",
+									"value": "binance",
+									"description": "Exchange name (binance, bybit, coinbase, etc.)"
+								},
+								{
+									"key": "interval",
+									"value": "1h",
+									"description": "Time interval (1m, 5m, 15m, 1h, 4h, 1d)"
+								},
+								{
+									"key": "limit",
+									"value": "100",
+									"description": "Number of candles to retrieve"
+								}
+							]
+						},
+						"description": "Retrieve historical market data (OHLCV candles) for a symbol"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Ticker",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/{{apiVersion}}/marketdata/ticker?symbol=BTCUSDT&exchange=binance",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "{{apiVersion}}", "marketdata", "ticker"],
+							"query": [
+								{
+									"key": "symbol",
+									"value": "BTCUSDT"
+								},
+								{
+									"key": "exchange",
+									"value": "binance"
+								}
+							]
+						},
+						"description": "Get current ticker information (price, volume, 24h change)"
+					},
+					"response": []
+				}
+			],
+			"description": "Market data endpoints for retrieving price, volume, and OHLCV data"
+		},
+		{
+			"name": "Orders",
+			"item": [
+				{
+					"name": "Place Market Order",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"symbol\": \"BTCUSDT\",\n  \"exchange\": \"binance\",\n  \"side\": \"Buy\",\n  \"type\": \"Market\",\n  \"quantity\": 0.001\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/{{apiVersion}}/orders",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "{{apiVersion}}", "orders"]
+						},
+						"description": "Place a market order (executes immediately at current market price)"
+					},
+					"response": []
+				},
+				{
+					"name": "Place Limit Order",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"symbol\": \"BTCUSDT\",\n  \"exchange\": \"binance\",\n  \"side\": \"Buy\",\n  \"type\": \"Limit\",\n  \"quantity\": 0.001,\n  \"price\": 50000.00\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/{{apiVersion}}/orders",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "{{apiVersion}}", "orders"]
+						},
+						"description": "Place a limit order (executes only at specified price or better)"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Order Status",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/{{apiVersion}}/orders/:orderId?exchange=binance",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "{{apiVersion}}", "orders", ":orderId"],
+							"query": [
+								{
+									"key": "exchange",
+									"value": "binance"
+								}
+							],
+							"variable": [
+								{
+									"key": "orderId",
+									"value": "12345678"
+								}
+							]
+						},
+						"description": "Get the current status of a specific order"
+					},
+					"response": []
+				},
+				{
+					"name": "Cancel Order",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/{{apiVersion}}/orders/:orderId?exchange=binance",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "{{apiVersion}}", "orders", ":orderId"],
+							"query": [
+								{
+									"key": "exchange",
+									"value": "binance"
+								}
+							],
+							"variable": [
+								{
+									"key": "orderId",
+									"value": "12345678"
+								}
+							]
+						},
+						"description": "Cancel an open order"
+					},
+					"response": []
+				}
+			],
+			"description": "Order management endpoints for placing, tracking, and canceling orders"
+		},
+		{
+			"name": "Positions",
+			"item": [
+				{
+					"name": "Get Positions",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/{{apiVersion}}/positions?exchange=binance",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "{{apiVersion}}", "positions"],
+							"query": [
+								{
+									"key": "exchange",
+									"value": "binance"
+								}
+							]
+						},
+						"description": "Get all open positions for a specific exchange"
+					},
+					"response": []
+				},
+				{
+					"name": "Close Position",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"symbol\": \"BTCUSDT\",\n  \"exchange\": \"binance\",\n  \"quantity\": 0.001\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/{{apiVersion}}/positions/close",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "{{apiVersion}}", "positions", "close"]
+						},
+						"description": "Close an existing position (sell if long, buy if short)"
+					},
+					"response": []
+				}
+			],
+			"description": "Position management endpoints"
+		},
+		{
+			"name": "Backtesting",
+			"item": [
+				{
+					"name": "Create Backtest",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"My Strategy Backtest\",\n  \"symbol\": \"BTCUSDT\",\n  \"startDate\": \"2024-01-01T00:00:00Z\",\n  \"endDate\": \"2024-12-31T23:59:59Z\",\n  \"initialCapital\": 10000,\n  \"strategyCode\": \"// Your strategy code here\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/{{apiVersion}}/backtest",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "{{apiVersion}}", "backtest"]
+						},
+						"description": "Create and run a new backtest"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Backtest Results",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/{{apiVersion}}/backtest/:backtestId",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "{{apiVersion}}", "backtest", ":backtestId"],
+							"variable": [
+								{
+									"key": "backtestId",
+									"value": "123"
+								}
+							]
+						},
+						"description": "Retrieve results from a completed backtest"
+					},
+					"response": []
+				},
+				{
+					"name": "List Backtests",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/{{apiVersion}}/backtest",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "{{apiVersion}}", "backtest"]
+						},
+						"description": "List all backtests"
+					},
+					"response": []
+				}
+			],
+			"description": "Backtesting endpoints for strategy validation"
+		},
+		{
+			"name": "ML Training",
+			"item": [
+				{
+					"name": "Train Model",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"modelType\": \"TrendReversal\",\n  \"symbols\": [\"BTCUSDT\", \"ETHUSDT\"],\n  \"startDate\": \"2024-01-01\",\n  \"endDate\": \"2024-12-31\",\n  \"features\": [\n    \"rsi\",\n    \"macd\",\n    \"bollinger_bands\",\n    \"volume_profile\"\n  ]\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/{{apiVersion}}/ml/train",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "{{apiVersion}}", "ml", "train"]
+						},
+						"description": "Train a new ML model for trend prediction"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Model Status",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/{{apiVersion}}/ml/models/:modelId",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "{{apiVersion}}", "ml", "models", ":modelId"],
+							"variable": [
+								{
+									"key": "modelId",
+									"value": "trend_reversals_latest"
+								}
+							]
+						},
+						"description": "Get training status and metrics for a model"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Predictions",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"symbol\": \"BTCUSDT\",\n  \"modelId\": \"trend_reversals_latest\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/{{apiVersion}}/ml/predict",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "{{apiVersion}}", "ml", "predict"]
+						},
+						"description": "Get ML predictions for a symbol"
+					},
+					"response": []
+				}
+			],
+			"description": "Machine Learning endpoints for model training and predictions"
+		},
+		{
+			"name": "Portfolio",
+			"item": [
+				{
+					"name": "Get Portfolio Summary",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/{{apiVersion}}/portfolio",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "{{apiVersion}}", "portfolio"]
+						},
+						"description": "Get complete portfolio summary across all exchanges"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Balance",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/{{apiVersion}}/portfolio/balance?exchange=binance",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "{{apiVersion}}", "portfolio", "balance"],
+							"query": [
+								{
+									"key": "exchange",
+									"value": "binance"
+								}
+							]
+						},
+						"description": "Get account balance for a specific exchange"
+					},
+					"response": []
+				}
+			],
+			"description": "Portfolio management and balance endpoints"
+		},
+		{
+			"name": "Health & Status",
+			"item": [
+				{
+					"name": "Health Check",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/health",
+							"host": ["{{baseUrl}}"],
+							"path": ["health"]
+						},
+						"description": "Check API health status"
+					},
+					"response": []
+				},
+				{
+					"name": "Get API Version",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/version",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "version"]
+						},
+						"description": "Get current API version information"
+					},
+					"response": []
+				}
+			],
+			"description": "System health and status endpoints"
+		}
+	]
+}

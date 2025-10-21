@@ -16,7 +16,7 @@ namespace AlgoTrendy.TradingEngine.Brokers;
 /// </summary>
 public class MEXCBroker : IBroker
 {
-    private MexcRestClient? _client;
+    private MexcClient? _client;
     private readonly MEXCOptions _options;
     private readonly ILogger<MEXCBroker> _logger;
     private bool _isConnected = false;
@@ -49,11 +49,11 @@ public class MEXCBroker : IBroker
     /// <summary>
     /// Gets or initializes the MEXC REST client (lazy initialization)
     /// </summary>
-    private MexcRestClient GetClient()
+    private MexcClient GetClient()
     {
         if (_client == null)
         {
-            _client = new MexcRestClient(opts =>
+            _client = new MexcClient(opts =>
             {
                 opts.ApiCredentials = new ApiCredentials(
                     _options.ApiKey,
