@@ -42,7 +42,7 @@ RUN dotnet publish AlgoTrendy.API.csproj \
 # ============================================================================
 # Stage 2: Runtime Stage
 # ============================================================================
-FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS runtime
+FROM mcr.microsoft.com/dotnet/aspnet:9.0 AS runtime
 
 # Install curl for health checks
 RUN apt-get update && \
