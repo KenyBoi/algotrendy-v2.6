@@ -29,6 +29,22 @@ except ImportError as e:
     print(f"Installing required packages: {e}")
     os.system("pip3 install --break-system-packages -q scikit-learn yfinance joblib pandas numpy fastapi uvicorn")
 
+# Import visualization module
+try:
+    from ml_visualizations import MLVisualizer
+    VISUALIZATIONS_AVAILABLE = True
+except ImportError:
+    VISUALIZATIONS_AVAILABLE = False
+    print("⚠️  Visualization module not available")
+
+# Import ensemble module
+try:
+    from ml_ensemble import EnsemblePredictor
+    ENSEMBLE_AVAILABLE = True
+except ImportError:
+    ENSEMBLE_AVAILABLE = False
+    print("⚠️  Ensemble module not available")
+
 # Initialize FastAPI app
 app = FastAPI(
     title="AlgoTrendy ML API",
@@ -373,6 +389,62 @@ async def get_prediction(request: PredictionRequest):
         "timestamp": datetime.now().isoformat()
     }
 
+@app.post("/predict/ensemble")
+async def get_ensemble_prediction(
+    request: PredictionRequest,
+    strategy: str = "weighted",
+    model_version: str = "latest"
+):
+    """
+    Get ensemble predictions combining multiple models
+
+    Strategies:
+    - voting: Simple majority vote
+    - weighted: Performance-based weighting
+    - confidence: Use only high-confidence models
+    """
+    if not ENSEMBLE_AVAILABLE:
+        raise HTTPException(status_code=501, detail="Ensemble module not available")
+
+    # Convert candles to DataFrame
+    df = pd.DataFrame(request.recent_candles)
+
+    # Calculate features
+    df = calculate_features(df)
+
+    # Get feature columns (from config or defaults)
+    feature_cols = [
+        'sma_5', 'sma_20', 'rsi', 'volume_ratio',
+        'close_position', 'price_change', 'momentum_3', 'momentum_5',
+        'volatility_3', 'volatility_5', 'range', 'body_size'
+    ]
+
+    # Prepare features for prediction
+    df_clean = df[feature_cols].dropna()
+
+    if len(df_clean) == 0:
+        raise HTTPException(status_code=400, detail="Insufficient data for prediction")
+
+    X = df_clean.iloc[-1].values  # Get last row as 1D array
+    X = np.where(np.isinf(X), 0, X)
+    X = np.nan_to_num(X, nan=0, posinf=1e6, neginf=-1e6)
+
+    # Load ensemble and predict
+    ensemble = EnsemblePredictor(ML_MODELS_DIR)
+    ensemble.load_models(model_version)
+
+    prediction = ensemble.predict_ensemble(X, strategy=strategy)
+
+    # Add symbol and feature values
+    prediction['symbol'] = request.symbol
+    prediction['is_reversal'] = bool(prediction['prediction'])
+    prediction['feature_values'] = {
+        feature: float(value)
+        for feature, value in zip(feature_cols, X)
+    }
+
+    return prediction
+
 @app.post("/drift")
 async def check_drift(request: DriftCheckRequest):
     """Calculate drift metrics for a model"""
@@ -481,6 +553,248 @@ async def get_latest_patterns():
     return data
 
 # ============================================================================
+# Visualization Endpoints
+# ============================================================================
+
+@app.get("/visualizations/learning-curves/{model_id}")
+async def get_learning_curves(model_id: str):
+    """Get learning curves visualization for overfitting detection"""
+    if not VISUALIZATIONS_AVAILABLE:
+        raise HTTPException(status_code=501, detail="Visualization module not available")
+
+    model_dir = ML_MODELS_DIR / model_id
+    metrics_path = model_dir / "metrics.json"
+
+    if not metrics_path.exists():
+        raise HTTPException(status_code=404, detail=f"Metrics for model {model_id} not found")
+
+    with open(metrics_path) as f:
+        metrics = json.load(f)
+
+    # Check if learning curve data exists
+    if 'learning_curves' not in metrics:
+        raise HTTPException(status_code=404, detail="Learning curves data not found for this model")
+
+    lc_data = metrics['learning_curves']
+    viz_json = MLVisualizer.create_learning_curves(
+        train_sizes=np.array(lc_data['train_sizes']),
+        train_scores=np.array(lc_data['train_scores']),
+        val_scores=np.array(lc_data['val_scores']),
+        title=f"Learning Curves - {model_id}"
+    )
+
+    return {
+        "model_id": model_id,
+        "visualization": json.loads(viz_json),
+        "type": "learning_curves"
+    }
+
+@app.get("/visualizations/feature-importance/{model_id}")
+async def get_feature_importance(model_id: str, top_n: int = 20):
+    """Get feature importance visualization"""
+    if not VISUALIZATIONS_AVAILABLE:
+        raise HTTPException(status_code=501, detail="Visualization module not available")
+
+    model_dir = ML_MODELS_DIR / model_id
+    config_path = model_dir / "config.json"
+
+    if not config_path.exists():
+        raise HTTPException(status_code=404, detail=f"Config for model {model_id} not found")
+
+    with open(config_path) as f:
+        config = json.load(f)
+
+    # Get feature importance
+    feature_importance = config.get('feature_importance', [])
+    if not feature_importance:
+        raise HTTPException(status_code=404, detail="Feature importance data not found")
+
+    feature_names = [item['feature'] for item in feature_importance]
+    importances = np.array([item['importance'] for item in feature_importance])
+
+    viz_json = MLVisualizer.create_feature_importance(
+        feature_names=feature_names,
+        importances=importances,
+        top_n=top_n,
+        title=f"Feature Importance - {model_id}"
+    )
+
+    return {
+        "model_id": model_id,
+        "visualization": json.loads(viz_json),
+        "type": "feature_importance"
+    }
+
+@app.post("/visualizations/roc-curve")
+async def create_roc_curve(y_true: List[int], y_pred_proba: List[float]):
+    """Generate ROC curve from predictions"""
+    if not VISUALIZATIONS_AVAILABLE:
+        raise HTTPException(status_code=501, detail="Visualization module not available")
+
+    if len(y_true) != len(y_pred_proba):
+        raise HTTPException(status_code=400, detail="y_true and y_pred_proba must have same length")
+
+    viz_json = MLVisualizer.create_roc_curve(
+        y_true=np.array(y_true),
+        y_pred_proba=np.array(y_pred_proba),
+        title="ROC Curve"
+    )
+
+    return {
+        "visualization": json.loads(viz_json),
+        "type": "roc_curve"
+    }
+
+@app.post("/visualizations/confusion-matrix")
+async def create_confusion_matrix_viz(y_true: List[int], y_pred: List[int]):
+    """Generate confusion matrix visualization"""
+    if not VISUALIZATIONS_AVAILABLE:
+        raise HTTPException(status_code=501, detail="Visualization module not available")
+
+    if len(y_true) != len(y_pred):
+        raise HTTPException(status_code=400, detail="y_true and y_pred must have same length")
+
+    viz_json = MLVisualizer.create_confusion_matrix(
+        y_true=np.array(y_true),
+        y_pred=np.array(y_pred),
+        title="Confusion Matrix"
+    )
+
+    return {
+        "visualization": json.loads(viz_json),
+        "type": "confusion_matrix"
+    }
+
+@app.get("/visualizations/training-history/{model_id}")
+async def get_training_history(model_id: str):
+    """Get training history visualization (for LSTM models)"""
+    if not VISUALIZATIONS_AVAILABLE:
+        raise HTTPException(status_code=501, detail="Visualization module not available")
+
+    model_dir = ML_MODELS_DIR / model_id
+    metrics_path = model_dir / "metrics.json"
+
+    if not metrics_path.exists():
+        raise HTTPException(status_code=404, detail=f"Metrics for model {model_id} not found")
+
+    with open(metrics_path) as f:
+        metrics = json.load(f)
+
+    # Check if this is an LSTM model with training history
+    if 'lstm' not in metrics or 'history' not in metrics['lstm']:
+        raise HTTPException(status_code=404, detail="Training history not found (not an LSTM model?)")
+
+    history = metrics['lstm']['history']
+    viz_json = MLVisualizer.create_training_history(
+        history_dict=history,
+        title=f"Training History - {model_id}"
+    )
+
+    return {
+        "model_id": model_id,
+        "visualization": json.loads(viz_json),
+        "type": "training_history"
+    }
+
+@app.get("/visualizations/model-comparison")
+async def get_model_comparison():
+    """Compare all available models"""
+    if not VISUALIZATIONS_AVAILABLE:
+        raise HTTPException(status_code=501, detail="Visualization module not available")
+
+    if not ML_MODELS_DIR.exists():
+        raise HTTPException(status_code=404, detail="No models directory found")
+
+    models_metrics = {}
+
+    for model_dir in ML_MODELS_DIR.iterdir():
+        if not model_dir.is_dir():
+            continue
+
+        metrics_path = model_dir / "metrics.json"
+        if not metrics_path.exists():
+            # Try old format
+            metrics_path = model_dir / "model_metrics.json"
+            if not metrics_path.exists():
+                continue
+
+        with open(metrics_path) as f:
+            metrics = json.load(f)
+
+        # Extract metrics for each model type
+        for model_type in ['xgboost', 'lstm', 'adaboost', 'gradient_boosting', 'random_forest']:
+            if model_type in metrics:
+                model_name = f"{model_dir.name}_{model_type}"
+                models_metrics[model_name] = metrics[model_type]
+            elif model_type == 'adaboost' and 'accuracy' in metrics:
+                # Old format
+                models_metrics[model_dir.name] = metrics
+                break
+
+    if not models_metrics:
+        raise HTTPException(status_code=404, detail="No model metrics found")
+
+    viz_json = MLVisualizer.create_model_comparison(
+        models_metrics=models_metrics,
+        title="Model Performance Comparison"
+    )
+
+    return {
+        "visualization": json.loads(viz_json),
+        "type": "model_comparison",
+        "models_count": len(models_metrics)
+    }
+
+@app.get("/visualizations/overfitting-dashboard/{model_id}")
+async def get_overfitting_dashboard(model_id: str):
+    """Get comprehensive overfitting detection dashboard"""
+    if not VISUALIZATIONS_AVAILABLE:
+        raise HTTPException(status_code=501, detail="Visualization module not available")
+
+    model_dir = ML_MODELS_DIR / model_id
+    metrics_path = model_dir / "metrics.json"
+
+    if not metrics_path.exists():
+        raise HTTPException(status_code=404, detail=f"Metrics for model {model_id} not found")
+
+    with open(metrics_path) as f:
+        metrics = json.load(f)
+
+    # Ensure we have all required data
+    required_keys = ['learning_curves', 'train_predictions', 'val_predictions']
+    missing = [k for k in required_keys if k not in metrics]
+
+    if missing:
+        return {
+            "error": f"Missing data for dashboard: {missing}",
+            "available_visualizations": [
+                "/visualizations/learning-curves/{model_id}",
+                "/visualizations/feature-importance/{model_id}",
+                "/visualizations/model-comparison"
+            ]
+        }
+
+    # Extract data
+    lc_data = metrics['learning_curves']
+    train_pred = metrics['train_predictions']
+    val_pred = metrics['val_predictions']
+
+    viz_json = MLVisualizer.create_overfitting_dashboard(
+        learning_curve_data=lc_data,
+        train_scores=np.array(lc_data['train_scores']),
+        val_scores=np.array(lc_data['val_scores']),
+        y_true=np.array(val_pred['y_true']),
+        y_pred=np.array(val_pred['y_pred']),
+        y_pred_proba=np.array(val_pred['y_pred_proba'])
+    )
+
+    return {
+        "model_id": model_id,
+        "visualization": json.loads(viz_json),
+        "type": "overfitting_dashboard"
+    }
+
+# ============================================================================
 # Main
 # ============================================================================
 
@@ -489,22 +803,33 @@ if __name__ == "__main__":
     ╔══════════════════════════════════════════════════════════════╗
     ║                                                              ║
     ║         🤖 AlgoTrendy ML API Server v2.6                    ║
+    ║         With XGBoost + LSTM + Visualizations                ║
     ║                                                              ║
     ╚══════════════════════════════════════════════════════════════╝
 
     Starting ML API server on http://localhost:5050
 
-    Available endpoints:
-    - GET  /models                  - List all models
-    - GET  /models/{id}             - Get model details
-    - POST /train                   - Start training job
-    - GET  /training/{id}           - Get training status
-    - POST /predict                 - Get predictions
-    - POST /drift                   - Check model drift
-    - POST /overfitting             - Analyze overfitting
-    - GET  /patterns                - Get latest patterns
+    📊 Core Endpoints:
+    - GET  /models                          - List all models
+    - GET  /models/{id}                     - Get model details
+    - POST /train                           - Start training job
+    - GET  /training/{id}                   - Get training status
+    - POST /predict                         - Get predictions (single model)
+    - POST /predict/ensemble                - Get ensemble predictions (NEW)
+    - POST /drift                           - Check model drift
+    - POST /overfitting                     - Analyze overfitting
+    - GET  /patterns                        - Get latest patterns
 
-    Documentation: http://localhost:5050/docs
+    📈 Visualization Endpoints (NEW):
+    - GET  /visualizations/learning-curves/{model_id}     - Overfitting detection
+    - GET  /visualizations/feature-importance/{model_id}  - Feature analysis
+    - POST /visualizations/roc-curve                      - ROC curve
+    - POST /visualizations/confusion-matrix               - Confusion matrix
+    - GET  /visualizations/training-history/{model_id}    - LSTM training
+    - GET  /visualizations/model-comparison               - Compare models
+    - GET  /visualizations/overfitting-dashboard/{id}     - Full dashboard
+
+    📚 Documentation: http://localhost:5050/docs
     """)
 
     uvicorn.run(app, host="0.0.0.0", port=5050, log_level="info")
