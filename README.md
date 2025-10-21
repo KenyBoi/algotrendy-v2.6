@@ -325,6 +325,31 @@ AlgoTrendy v2.6 supports **geographic distribution** across multiple VPS locatio
 - Good for: Multi-region optimization, fault isolation, parallel development
 - Potential setup: API Gateway (CDMX) → Trading Services (NJ/Chicago)
 
+### Geographic Distribution Example
+
+**Scenario:** Optimize latency for global users by routing to nearest VPS based on asset class.
+
+**Architecture:**
+```
+User (New York)
+│
+├─→ If trading US stocks
+│   └─→ New Jersey VPS (Monolith)
+│       └─→ 10-15ms to NYSE
+│
+├─→ If trading futures
+│   └─→ Chicago VPS (Microservices - Trading Service only)
+│       └─→ 8-12ms to CME
+│
+└─→ If trading crypto
+    └─→ CDMX VPS (Microservices - Data Service + Trading)
+        └─→ 30-50ms to Binance
+```
+
+**Routing:** GeoDNS or intelligent API gateway routes requests based on asset class and user location.
+
+**Result:** 80-90% latency reduction compared to single-region deployment.
+
 ### Performance Testing Tools
 
 ```bash
@@ -377,7 +402,49 @@ AlgoTrendy offers **two deployment architectures**:
 **📖 Comprehensive Guide:** See [DUAL_DEPLOYMENT_GUIDE.md](DUAL_DEPLOYMENT_GUIDE.md) for complete optimization guide
 **📊 Architecture Comparison:** See [MODULAR_VS_MONOLITH.md](MODULAR_VS_MONOLITH.md) for detailed comparison
 
-**Recommendation:** Start with monolith (simpler), migrate to microservices when needed.
+#### Quick Decision Guide
+
+```
+START: Choose Deployment Architecture
+│
+├─→ Q: Is this for local development?
+│   ├─→ YES → Use Monolith
+│   └─→ NO  → Continue
+│
+├─→ Q: Do you have <500 users?
+│   ├─→ YES → Use Monolith
+│   └─→ NO  → Continue
+│
+├─→ Q: Do you have dedicated DevOps team?
+│   ├─→ NO  → Use Monolith
+│   └─→ YES → Continue
+│
+├─→ Q: Do you need >10K requests/min?
+│   ├─→ NO  → Use Monolith (for now)
+│   └─→ YES → Continue
+│
+├─→ Q: Do you need geographic distribution?
+│   ├─→ NO  → Use Monolith or Hybrid
+│   └─→ YES → Use Microservices
+│
+└─→ Q: Is one specific component a bottleneck?
+    ├─→ NO  → Use Monolith
+    └─→ YES → Use Hybrid (extract that component)
+```
+
+#### Choose Based on Your Situation
+
+| Your Situation | Recommended Architecture |
+|----------------|-------------------------|
+| Solo developer, learning | **Monolith** |
+| Small team (<5), MVP | **Monolith** |
+| Small hedge fund (<100 users) | **Monolith** |
+| Medium fund (100-500 users) | **Hybrid** (Monolith + Data/ML microservices) |
+| Large firm (500-1000 users) | **Microservices** |
+| Enterprise (1000+ users) | **Microservices + Multi-region** |
+| High-frequency trading | **Microservices + Edge deployment** |
+
+**The Golden Rule:** Start with monolith, migrate to microservices when you measure the need (not when you assume it).
 
 ### Option 1: Docker Monolith (Recommended - One Command!)
 
