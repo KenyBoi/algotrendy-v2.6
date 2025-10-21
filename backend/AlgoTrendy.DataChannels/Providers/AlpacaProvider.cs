@@ -218,7 +218,9 @@ public class AlpacaProvider : IMarketDataProvider
                     High = bar.H,
                     Low = bar.L,
                     Close = bar.C,
-                    Volume = bar.V,                };
+                    Volume = bar.V,
+                    Source = "Alpaca"
+                };
             }
             else
             {
@@ -233,7 +235,9 @@ public class AlpacaProvider : IMarketDataProvider
                     High = data.Bar.H,
                     Low = data.Bar.L,
                     Close = data.Bar.C,
-                    Volume = data.Bar.V,                };
+                    Volume = data.Bar.V,
+                    Source = "Alpaca"
+                };
             }
         }
         catch (Exception ex)

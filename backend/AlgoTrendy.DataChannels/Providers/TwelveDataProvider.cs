@@ -118,6 +118,7 @@ public class TwelveDataProvider : IMarketDataProvider
                 Low = decimal.Parse(bar.Low, CultureInfo.InvariantCulture),
                 Close = decimal.Parse(bar.Close, CultureInfo.InvariantCulture),
                 Volume = decimal.Parse(bar.Volume ?? "0", CultureInfo.InvariantCulture),
+                Source = "TwelveData"
             }).OrderBy(x => x.Timestamp).ToList();
 
             _logger.LogInformation("[TwelveData] Fetched {Count} bars for {Symbol}",
@@ -172,6 +173,7 @@ public class TwelveDataProvider : IMarketDataProvider
                 Low = decimal.Parse(data.Low ?? data.Close, CultureInfo.InvariantCulture),
                 Close = decimal.Parse(data.Close, CultureInfo.InvariantCulture),
                 Volume = decimal.Parse(data.Volume ?? "0", CultureInfo.InvariantCulture),
+                Source = "TwelveData"
             };
         }
         catch (Exception ex)

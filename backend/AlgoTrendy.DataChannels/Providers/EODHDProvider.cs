@@ -110,7 +110,9 @@ public class EODHDProvider : IMarketDataProvider
                 High = bar.High,
                 Low = bar.Low,
                 Close = bar.Close,
-                Volume = bar.Volume,            }).ToList();
+                Volume = bar.Volume,
+                Source = "EODHD"
+            }).ToList();
 
             _logger.LogInformation("[EODHD] Fetched {Count} bars for {Symbol}",
                 marketDataList.Count, formattedSymbol);
@@ -166,7 +168,9 @@ public class EODHDProvider : IMarketDataProvider
                 High = data.High,
                 Low = data.Low,
                 Close = data.Close,
-                Volume = data.Volume,            };
+                Volume = data.Volume,
+                Source = "EODHD"
+            };
         }
         catch (Exception ex)
         {

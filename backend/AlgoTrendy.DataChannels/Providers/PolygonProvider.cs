@@ -113,7 +113,9 @@ public class PolygonProvider : IMarketDataProvider
                 High = bar.H,
                 Low = bar.L,
                 Close = bar.C,
-                Volume = bar.V,            }).ToList();
+                Volume = bar.V,
+                Source = "Polygon"
+            }).ToList();
 
             _logger.LogInformation("[Polygon.io] Fetched {Count} candles for {Symbol}",
                 marketDataList.Count, symbol);
@@ -167,7 +169,9 @@ public class PolygonProvider : IMarketDataProvider
                 High = bar.H,
                 Low = bar.L,
                 Close = bar.C,
-                Volume = bar.V,            };
+                Volume = bar.V,
+                Source = "Polygon"
+            };
         }
         catch (Exception ex)
         {

@@ -144,7 +144,9 @@ public class CoinGeckoProvider : IMarketDataProvider
                     High = prices.Max(),
                     Low = prices.Min(),
                     Close = prices.Last(),
-                    Volume = (decimal)volumes,                });
+                    Volume = (decimal)volumes,
+                    Source = "CoinGecko"
+                });
             }
 
             _logger.LogInformation("[CoinGecko] Fetched {Count} candles for {Symbol}",
@@ -226,7 +228,9 @@ public class CoinGeckoProvider : IMarketDataProvider
                 High = Math.Max(price, yesterdayPrice),
                 Low = Math.Min(price, yesterdayPrice),
                 Close = price,
-                Volume = volume,            };
+                Volume = volume,
+                Source = "CoinGecko"
+            };
         }
         catch (Exception ex)
         {
