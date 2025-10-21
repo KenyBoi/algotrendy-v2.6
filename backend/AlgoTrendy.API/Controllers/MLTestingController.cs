@@ -108,7 +108,7 @@ public class MLTestingController : ControllerBase
                     EnableBacktest = true,
                     EnableWalkForward = true,
                     EnableGapAnalysis = true,
-                    BacktestConfig = new BacktestConfig
+                    BacktestConfig = new MLBacktestConfig
                     {
                         NCVSplits = 3,
                         EmbargoPct = 0.01m,
@@ -131,7 +131,7 @@ public class MLTestingController : ControllerBase
                     EnableBacktest = true,
                     EnableWalkForward = true,
                     EnableGapAnalysis = true,
-                    BacktestConfig = new BacktestConfig
+                    BacktestConfig = new MLBacktestConfig
                     {
                         NCVSplits = 5,
                         EmbargoPct = 0.01m,
@@ -154,7 +154,7 @@ public class MLTestingController : ControllerBase
                     EnableBacktest = true,
                     EnableWalkForward = true,
                     EnableGapAnalysis = true,
-                    BacktestConfig = new BacktestConfig
+                    BacktestConfig = new MLBacktestConfig
                     {
                         NCVSplits = 10,
                         EmbargoPct = 0.02m,
@@ -177,7 +177,7 @@ public class MLTestingController : ControllerBase
                     EnableBacktest = true,
                     EnableWalkForward = false,
                     EnableGapAnalysis = false,
-                    BacktestConfig = new BacktestConfig
+                    BacktestConfig = new MLBacktestConfig
                     {
                         NCVSplits = 5,
                         EmbargoPct = 0.01m,
@@ -346,11 +346,11 @@ public record TestingConfig
     public bool EnableBacktest { get; set; } = true;
     public bool EnableWalkForward { get; set; } = true;
     public bool EnableGapAnalysis { get; set; } = true;
-    public BacktestConfig? BacktestConfig { get; set; }
+    public MLBacktestConfig? BacktestConfig { get; set; }
     public WalkForwardConfig? WalkForwardConfig { get; set; }
 }
 
-public record BacktestConfig
+public record MLBacktestConfig
 {
     public int NCVSplits { get; set; } = 5;
     public decimal EmbargoPct { get; set; } = 0.01m;
