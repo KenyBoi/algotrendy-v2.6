@@ -365,12 +365,26 @@ python3 benchmarks/latency_test.py
 - Git
 - Broker API credentials (optional for testing)
 
-### Option 1: Docker (Recommended - One Command!)
+### Deployment Options
+
+AlgoTrendy offers **two deployment architectures**:
+
+| Architecture | Best For | Branch | Command |
+|--------------|----------|--------|---------|
+| **🏛️ Monolith** | Most users, development, <500 users | `main` | `docker-compose up -d` |
+| **🔧 Microservices** | High scale, >1000 users, multi-region | `modular` | `docker-compose -f docker-compose.modular.yml up -d` |
+
+**📖 Comparison Guide:** See [MODULAR_VS_MONOLITH.md](MODULAR_VS_MONOLITH.md) for full comparison
+
+**Recommendation:** Start with monolith (simpler), migrate to microservices when needed.
+
+### Option 1: Docker Monolith (Recommended - One Command!)
 
 ```bash
 # Clone and start everything
 git clone https://github.com/KenyBoi/algotrendy-v2.6.git
 cd algotrendy-v2.6
+git checkout main  # Use monolith (stable)
 cp .env.example .env  # Configure your credentials
 docker-compose up -d
 ```
@@ -383,6 +397,25 @@ docker-compose up -d
 - 📝 **Logs (Seq)**: http://localhost:5341
 
 📘 **Full Guide**: [DOCKER_SETUP.md](DOCKER_SETUP.md)
+
+### Option 1b: Docker Microservices (Advanced)
+
+```bash
+# Clone and use microservices architecture
+git clone https://github.com/KenyBoi/algotrendy-v2.6.git
+cd algotrendy-v2.6
+git checkout modular  # Use microservices (v3.0-beta)
+cp .env.example .env
+docker-compose -f docker-compose.modular.yml up -d
+```
+
+**Services Running:**
+- 🌐 **API Gateway**: http://localhost:5000
+- 🔌 **Trading Service**: http://localhost:5001
+- 📊 **Data Service**: http://localhost:5002
+- 🧪 **Backtesting Service**: http://localhost:5003
+
+📘 **Microservices Guide:** [services/README.md](services/README.md)
 
 ### Option 2: Automated Development Setup
 
