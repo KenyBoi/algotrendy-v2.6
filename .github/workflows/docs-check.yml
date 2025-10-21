@@ -28,7 +28,7 @@ jobs:
           config-file: '.github/markdown-link-check-config.json'
 
       - name: Check Dead Links
-        uses: lycheeverse/lychee-action@v1
+        uses: lycheeverse/lychee-action@v2.0.2
         with:
           args: --verbose --no-progress '**/*.md'
           fail: true
