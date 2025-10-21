@@ -1,0 +1,29 @@
+{
+  "name": "algotrendy-v2.6",
+  "version": "2.6.0",
+  "description": "AlgoTrendy Trading Platform - Automated Trading System",
+  "private": true,
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/KenyBoi/algotrendy-v2.6.git"
+  },
+  "keywords": [
+    "trading",
+    "crypto",
+    "stocks",
+    "algorithmic-trading",
+    "backtesting"
+  ],
+  "author": "AlgoTrendy Team",
+  "license": "UNLICENSED",
+  "devDependencies": {
+    "@semantic-release/changelog": "^6.0.3",
+    "@semantic-release/git": "^10.0.1",
+    "@semantic-release/github": "^9.2.6",
+    "conventional-changelog-conventionalcommits": "^7.0.2",
+    "semantic-release": "^22.0.12"
+  },
+  "scripts": {
+    "semantic-release": "semantic-release"
+  }
+}

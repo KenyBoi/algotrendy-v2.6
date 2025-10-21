@@ -383,7 +383,10 @@ dotnet test --collect:"XPlat Code Coverage"
 
 ## 📚 Documentation
 
+> **📖 [MASTER DOCUMENTATION INDEX](DOCUMENTATION_INDEX.md)** - Complete searchable documentation catalog
+
 ### 🚀 Getting Started (Start Here!)
+- **[Quick Start Guide](QUICK_START_GUIDE.md)** - ⚡ 1-page quick reference (5 minutes)
 - **[Docker Setup Guide](DOCKER_SETUP.md)** - 🐳 One-command deployment (RECOMMENDED)
 - **[Development Setup Script](scripts/dev-setup.sh)** - 🛠️ Automated environment setup
 - **[API Usage Examples](docs/API_USAGE_EXAMPLES.md)** - 💻 Python, JavaScript, C#, cURL examples

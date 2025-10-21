@@ -1,0 +1,122 @@
+name: Automated Release
+
+on:
+  push:
+    branches:
+      - main
+      - modular
+
+permissions:
+  contents: write
+  issues: write
+  pull-requests: write
+
+jobs:
+  release:
+    name: Semantic Release
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install GitVersion
+        uses: gittools/actions/gitversion/setup@v0
+        with:
+          versionSpec: '6.x'
+
+      - name: Determine Version
+        id: gitversion
+        uses: gittools/actions/gitversion/execute@v0
+        with:
+          useConfigFile: true
+
+      - name: Display GitVersion outputs
+        run: |
+          echo "SemVer: ${{ steps.gitversion.outputs.semVer }}"
+          echo "Branch: ${{ steps.gitversion.outputs.branchName }}"
+          echo "AssemblySemVer: ${{ steps.gitversion.outputs.assemblySemVer }}"
+
+      - name: Restore dependencies
+        run: dotnet restore backend
+
+      - name: Build with version
+        run: |
+          dotnet build backend \
+            --configuration Release \
+            --no-restore \
+            /p:Version=${{ steps.gitversion.outputs.semVer }} \
+            /p:AssemblyVersion=${{ steps.gitversion.outputs.assemblySemVer }} \
+            /p:FileVersion=${{ steps.gitversion.outputs.assemblySemFileVer }} \
+            /p:InformationalVersion=${{ steps.gitversion.outputs.informationalVersion }}
+
+      - name: Run tests
+        run: dotnet test backend --configuration Release --no-build --verbosity normal --filter "Category!=Integration&Category!=ExternalAPI"
+
+      - name: Create NuGet packages
+        run: |
+          dotnet pack backend/AlgoTrendy.Core/AlgoTrendy.Core.csproj \
+            --configuration Release \
+            --no-build \
+            --output ./packages \
+            /p:PackageVersion=${{ steps.gitversion.outputs.semVer }}
+
+          dotnet pack backend/AlgoTrendy.TradingEngine/AlgoTrendy.TradingEngine.csproj \
+            --configuration Release \
+            --no-build \
+            --output ./packages \
+            /p:PackageVersion=${{ steps.gitversion.outputs.semVer }}
+
+          dotnet pack backend/AlgoTrendy.DataChannels/AlgoTrendy.DataChannels.csproj \
+            --configuration Release \
+            --no-build \
+            --output ./packages \
+            /p:PackageVersion=${{ steps.gitversion.outputs.semVer }}
+
+          dotnet pack backend/AlgoTrendy.Backtesting/AlgoTrendy.Backtesting.csproj \
+            --configuration Release \
+            --no-build \
+            --output ./packages \
+            /p:PackageVersion=${{ steps.gitversion.outputs.semVer }}
+
+          dotnet pack backend/AlgoTrendy.Infrastructure/AlgoTrendy.Infrastructure.csproj \
+            --configuration Release \
+            --no-build \
+            --output ./packages \
+            /p:PackageVersion=${{ steps.gitversion.outputs.semVer }}
+
+      - name: List generated packages
+        run: ls -lh ./packages/
+
+      - name: Install semantic-release dependencies
+        run: npm ci
+
+      - name: Run semantic-release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GIT_AUTHOR_NAME: github-actions[bot]
+          GIT_AUTHOR_EMAIL: github-actions[bot]@users.noreply.github.com
+          GIT_COMMITTER_NAME: github-actions[bot]
+          GIT_COMMITTER_EMAIL: github-actions[bot]@users.noreply.github.com
+        run: npx semantic-release
+
+      - name: Upload NuGet packages as artifacts
+        uses: actions/upload-artifact@v4
+        if: success()
+        with:
+          name: nuget-packages-${{ steps.gitversion.outputs.semVer }}
+          path: ./packages/*.nupkg
+          retention-days: 90

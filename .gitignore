@@ -26,6 +26,9 @@ vault_keys/
 # ============================================================================
 # .NET / C# (Backend Trading Engine)
 # ============================================================================
+# Incomplete broker implementations
+backend/AlgoTrendy.TradingEngine/Brokers/MEXCBroker.cs
+
 [Bb]in/
 [Oo]bj/
 [Ll]og/
