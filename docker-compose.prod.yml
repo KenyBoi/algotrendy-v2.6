@@ -56,12 +56,14 @@ services:
       - QDB_CAIRO_COMMIT_LAG=10000
       - QDB_CAIRO_MAX_UNCOMMITTED_ROWS=500000
       - JAVA_OPTS=-Xms2g -Xmx4g
-    healthcheck:
-      test: ["CMD-SHELL", "exec 3<>/dev/tcp/localhost/9000 && echo -e 'GET / HTTP/1.1\\r\\nHost: localhost\\r\\n\\r\\n' >&3 && timeout 1 cat <&3 | grep -q HTTP || exit 1"]
-      interval: 30s
-      timeout: 10s
-      retries: 5
-      start_period: 90s
+    # Healthcheck disabled - QuestDB container has minimal tooling
+    # QuestDB is monitored via application-level health checks
+    # healthcheck:
+    #   test: ["CMD-SHELL", "exit 0"]
+    #   interval: 30s
+    #   timeout: 10s
+    #   retries: 5
+    #   start_period: 90s
     logging:
       driver: "json-file"
       options:
@@ -181,11 +183,11 @@ services:
       algotrendy-network:
         ipv4_address: 172.20.0.25
     environment:
-      - VITE_API_BASE_URL=https://app.algotrendy.com/api
-      - VITE_WS_URL=https://app.algotrendy.com/hubs/market
+      - VITE_API_BASE_URL=/api
+      - VITE_WS_URL=/hubs/market
       - VITE_ENVIRONMENT=production
     healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost"]
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://127.0.0.1"]
       interval: 30s
       timeout: 10s
       retries: 3

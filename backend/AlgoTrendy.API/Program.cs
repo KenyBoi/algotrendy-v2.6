@@ -143,6 +143,14 @@ var questDbConnectionString = builder.Configuration.GetConnectionString("QuestDB
 builder.Services.AddScoped<IMarketDataRepository>(sp =>
     new MarketDataRepository(questDbConnectionString));
 
+// Register OrderRepository (uses QuestDB PostgreSQL wire protocol)
+builder.Services.AddScoped<IOrderRepository>(sp =>
+    new OrderRepository(questDbConnectionString));
+
+// Register PositionRepository (uses QuestDB PostgreSQL wire protocol)
+builder.Services.AddScoped<IPositionRepository>(sp =>
+    new PositionRepository(questDbConnectionString));
+
 // Add HttpClient factory for REST channels
 builder.Services.AddHttpClient();
 
@@ -151,6 +159,9 @@ builder.Services.AddHttpClient<IMLPredictionService, MLPredictionService>();
 builder.Services.AddScoped<AlgoTrendy.TradingEngine.Services.MLFeatureService>();
 builder.Services.AddScoped<AlgoTrendy.TradingEngine.Services.IndicatorService>();
 builder.Services.AddSingleton<AlgoTrendy.Core.Services.SymbolFormatterService>();
+
+// Register ML Model Service for Python ML API integration
+builder.Services.AddScoped<MLModelService>();
 
 // Register MFA (Multi-Factor Authentication) services
 builder.Services.AddSingleton<AlgoTrendy.Core.Services.TotpService>(sp =>
@@ -182,6 +193,55 @@ builder.Services.AddScoped<AlgoTrendy.DataChannels.Providers.YFinanceProvider>(s
     var logger = sp.GetRequiredService<ILogger<AlgoTrendy.DataChannels.Providers.YFinanceProvider>>();
     var serviceUrl = builder.Configuration["DataProviders:YFinance:ServiceUrl"] ?? "http://localhost:5001";
     return new AlgoTrendy.DataChannels.Providers.YFinanceProvider(httpClient, logger, serviceUrl);
+});
+
+builder.Services.AddScoped<AlgoTrendy.DataChannels.Providers.TiingoProvider>(sp =>
+{
+    var httpClient = sp.GetRequiredService<IHttpClientFactory>().CreateClient();
+    var logger = sp.GetRequiredService<ILogger<AlgoTrendy.DataChannels.Providers.TiingoProvider>>();
+    var apiKey = builder.Configuration["DataProviders:Tiingo:ApiKey"] ?? "";
+    return new AlgoTrendy.DataChannels.Providers.TiingoProvider(httpClient, logger, apiKey);
+});
+
+builder.Services.AddScoped<AlgoTrendy.DataChannels.Providers.PolygonProvider>(sp =>
+{
+    var httpClient = sp.GetRequiredService<IHttpClientFactory>().CreateClient();
+    var logger = sp.GetRequiredService<ILogger<AlgoTrendy.DataChannels.Providers.PolygonProvider>>();
+    var apiKey = builder.Configuration["DataProviders:Polygon:ApiKey"] ?? "";
+    return new AlgoTrendy.DataChannels.Providers.PolygonProvider(httpClient, logger, apiKey);
+});
+
+builder.Services.AddScoped<AlgoTrendy.DataChannels.Providers.AlpacaProvider>(sp =>
+{
+    var httpClient = sp.GetRequiredService<IHttpClientFactory>().CreateClient();
+    var logger = sp.GetRequiredService<ILogger<AlgoTrendy.DataChannels.Providers.AlpacaProvider>>();
+    var apiKey = builder.Configuration["DataProviders:Alpaca:ApiKey"] ?? "";
+    var apiSecret = builder.Configuration["DataProviders:Alpaca:ApiSecret"] ?? "";
+    return new AlgoTrendy.DataChannels.Providers.AlpacaProvider(httpClient, logger, apiKey, apiSecret);
+});
+
+builder.Services.AddScoped<AlgoTrendy.DataChannels.Providers.TwelveDataProvider>(sp =>
+{
+    var httpClient = sp.GetRequiredService<IHttpClientFactory>().CreateClient();
+    var logger = sp.GetRequiredService<ILogger<AlgoTrendy.DataChannels.Providers.TwelveDataProvider>>();
+    var apiKey = builder.Configuration["DataProviders:TwelveData:ApiKey"] ?? "";
+    return new AlgoTrendy.DataChannels.Providers.TwelveDataProvider(httpClient, logger, apiKey);
+});
+
+builder.Services.AddScoped<AlgoTrendy.DataChannels.Providers.EODHDProvider>(sp =>
+{
+    var httpClient = sp.GetRequiredService<IHttpClientFactory>().CreateClient();
+    var logger = sp.GetRequiredService<ILogger<AlgoTrendy.DataChannels.Providers.EODHDProvider>>();
+    var apiToken = builder.Configuration["DataProviders:EODHD:ApiToken"] ?? "";
+    return new AlgoTrendy.DataChannels.Providers.EODHDProvider(httpClient, logger, apiToken);
+});
+
+builder.Services.AddScoped<AlgoTrendy.DataChannels.Providers.CoinGeckoProvider>(sp =>
+{
+    var httpClient = sp.GetRequiredService<IHttpClientFactory>().CreateClient();
+    var logger = sp.GetRequiredService<ILogger<AlgoTrendy.DataChannels.Providers.CoinGeckoProvider>>();
+    var apiKey = builder.Configuration["DataProviders:CoinGecko:ApiKey"]; // Optional, can be null
+    return new AlgoTrendy.DataChannels.Providers.CoinGeckoProvider(httpClient, logger, apiKey);
 });
 
 // Register default IMarketDataProvider for backtesting and analytics (use YFinance as default)
@@ -246,6 +306,10 @@ builder.Services.Configure<AlgoTrendy.Backtesting.Engines.LocalLeanConfig>(optio
 
 builder.Services.AddScoped<LocalLeanBacktestEngine>();
 
+// Configure and register Backtesting.py service
+builder.Services.AddHttpClient<IBacktestingPyApiClient, BacktestingPyApiClient>();
+builder.Services.AddScoped<BacktestingPyEngine>();
+
 // Configure and register Backtest Engine Factory
 builder.Services.Configure<AlgoTrendy.Backtesting.Engines.BacktestEngineConfig>(options =>
 {
@@ -258,6 +322,7 @@ builder.Services.Configure<AlgoTrendy.Backtesting.Engines.BacktestEngineConfig>(
         "cloud" => AlgoTrendy.Backtesting.Engines.BacktestEngineType.Cloud,
         "local" => AlgoTrendy.Backtesting.Engines.BacktestEngineType.Local,
         "custom" => AlgoTrendy.Backtesting.Engines.BacktestEngineType.Custom,
+        "backtestingpy" => AlgoTrendy.Backtesting.Engines.BacktestEngineType.BacktestingPy,
         _ => AlgoTrendy.Backtesting.Engines.BacktestEngineType.Auto
     };
 

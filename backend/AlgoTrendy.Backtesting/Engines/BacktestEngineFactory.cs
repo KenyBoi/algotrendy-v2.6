@@ -24,6 +24,11 @@ public enum BacktestEngineType
     Custom,
 
     /// <summary>
+    /// Use Backtesting.py Python library
+    /// </summary>
+    BacktestingPy,
+
+    /// <summary>
     /// Auto-select: prefer local if available, fallback to cloud
     /// </summary>
     Auto
@@ -80,6 +85,7 @@ public class BacktestEngineFactory
             BacktestEngineType.Cloud => GetCloudEngine(),
             BacktestEngineType.Local => GetLocalEngine(),
             BacktestEngineType.Custom => GetCustomEngine(),
+            BacktestEngineType.BacktestingPy => GetBacktestingPyEngine(),
             BacktestEngineType.Auto => GetAutoEngine(),
             _ => throw new ArgumentException($"Unknown engine type: {selectedType}")
         };
@@ -135,6 +141,29 @@ public class BacktestEngineFactory
         }
 
         _logger.LogInformation("Using custom AlgoTrendy engine");
+        return engine;
+    }
+
+    /// <summary>
+    /// Get Backtesting.py engine
+    /// </summary>
+    private IBacktestEngine GetBacktestingPyEngine()
+    {
+        var engine = _serviceProvider.GetService(typeof(BacktestingPyEngine)) as IBacktestEngine;
+        if (engine == null)
+        {
+            _logger.LogWarning("Backtesting.py engine is not available");
+
+            if (_config.AllowCloudFallback)
+            {
+                _logger.LogInformation("Falling back to custom AlgoTrendy engine");
+                return GetCustomEngine();
+            }
+
+            throw new InvalidOperationException("Backtesting.py engine is not registered and fallback is disabled");
+        }
+
+        _logger.LogInformation("Using Backtesting.py engine");
         return engine;
     }
 
@@ -223,6 +252,26 @@ public class BacktestEngineFactory
         if (customEngine != null)
         {
             engines.Add((customEngine.EngineName, customEngine.EngineDescription, true));
+        }
+
+        // Check Backtesting.py
+        var backtestingPyEngine = _serviceProvider.GetService(typeof(BacktestingPyEngine)) as IBacktestEngine;
+        if (backtestingPyEngine != null)
+        {
+            // Check if service is running
+            var isAvailable = Task.Run(async () =>
+            {
+                try
+                {
+                    return await ((BacktestingPyEngine)backtestingPyEngine).IsAvailableAsync();
+                }
+                catch
+                {
+                    return false;
+                }
+            }).Result;
+
+            engines.Add((backtestingPyEngine.EngineName, backtestingPyEngine.EngineDescription, isAvailable));
         }
 
         return engines;

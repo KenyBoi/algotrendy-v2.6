@@ -240,3 +240,28 @@ start-here.md
 
 # IDE extensions (Qodo AI assistant)
 .qodo/
+
+# ============================================================================
+# Project Cleanup & Organization (Added 2025-10-21)
+# ============================================================================
+# Development context files (optional - can be committed if desired)
+# .dev/
+
+# Temporary and backup files
+*.backup
+*_backup.*
+*.bak.md
+
+# Generated reports (can be regenerated)
+*_report.json
+migration_report.json
+pattern_analysis_report.json
+
+# Session state files
+session-state.json
+
+# Empty deprecated directories
+trees/
+prompts/
+troubleshoot/
+tfvc-projects/

@@ -27,6 +27,8 @@ volumes:
     driver: local
   ml_logs:
     driver: local
+  backtesting_py_logs:
+    driver: local
   lean_algorithms:
     driver: local
   lean_results:
@@ -94,7 +96,46 @@ services:
       - PYTHONUNBUFFERED=1
       - FLASK_ENV=${FLASK_ENV:-production}
     healthcheck:
-      test: ["CMD", "python", "-c", "import requests; requests.get('http://localhost:5003/health')"]
+      test: ["CMD", "python3", "-c", "import socket; s=socket.socket(); s.settimeout(5); s.connect(('127.0.0.1', 5003))"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # ==========================================================================
+  # Backtesting.py Service - Python Flask Microservice (4th Engine)
+  # ==========================================================================
+  backtesting-py-service:
+    build:
+      context: ./backtesting-py-service
+      dockerfile: Dockerfile
+    image: algotrendy-backtesting-py:v1.0
+    container_name: algotrendy-backtesting-py
+    restart: unless-stopped
+    depends_on:
+      - questdb
+    networks:
+      algotrendy-network:
+        ipv4_address: 172.20.0.55
+    ports:
+      - "5004:5004"
+    volumes:
+      - backtesting_py_logs:/app/logs
+    environment:
+      - PYTHONUNBUFFERED=1
+      - FLASK_ENV=${FLASK_ENV:-production}
+      - QUESTDB_HOST=questdb
+      - QUESTDB_PORT=8812
+      - QUESTDB_USER=${QUESTDB_USER:-admin}
+      - QUESTDB_PASSWORD=${QUESTDB_PASSWORD:-quest}
+      - QUESTDB_DATABASE=qdb
+    healthcheck:
+      test: ["CMD-SHELL", "timeout 5 sh -c ':> /dev/tcp/127.0.0.1/5004' || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -148,6 +189,7 @@ services:
       - questdb
       - seq
       - ml-service
+      - backtesting-py-service
     networks:
       algotrendy-network:
         ipv4_address: 172.20.0.20
@@ -183,6 +225,10 @@ services:
       - MLService__Url=http://ml-service:5003
       - MLService__TimeoutSeconds=30
       - MLService__EnableMLEnhancement=${ML_ENHANCEMENT_ENABLED:-true}
+
+      # Backtesting.py Service Settings
+      - BacktestingPyService__Url=http://backtesting-py-service:5004
+      - BacktestingPyService__TimeoutSeconds=300
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:5002/health"]
       interval: 30s

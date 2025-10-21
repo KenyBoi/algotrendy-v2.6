@@ -1,225 +1,95 @@
-# AlgoTrendy v2.6 - Documentation Index
+# AlgoTrendy v2.6 Documentation
 
-**Complete documentation for AlgoTrendy multi-asset trading platform**
+**Last Updated:** 2025-10-21
 
----
+This directory contains all project documentation organized by category following software engineering best practices.
 
-## 📚 Quick Navigation
+## Documentation Structure
 
-| Category | Description | Location |
-|----------|-------------|----------|
-| **🔌 API Documentation** | Frontend-backend interface, endpoints, WebSocket | [`/api`](./api/) |
-| **🚀 Deployment** | Production deployment, DNS setup, Docker | [`/deployment`](./deployment/) |
-| **🏗️ Architecture** | System design, features, diagrams | [`/architecture`](./architecture/) |
-| **📋 Planning** | Roadmaps, remediation plans, TODO trees | [`/planning`](./planning/) |
-| **🏦 Brokers** | Broker integration guides | [`/brokers`](./brokers/) |
-| **📊 Data Providers** | Data channel documentation | [`/data`](./data/) |
-| **🚀 QuantConnect** | Cloud backtesting + MEM AI integration | [`../QUANTCONNECT_MEM_INTEGRATION.md`](../QUANTCONNECT_MEM_INTEGRATION.md) |
-| **📈 Status Reports** | Current status of various components | [`/status`](./status/) |
-| **🧪 Testing** | Testing guides and strategies | [`/testing`](./testing/) |
-| **🔒 Security** | Security documentation | [`/security`](./security/) |
-| **📖 User Guides** | End-user documentation | [`/user-guides`](./user-guides/) |
-| **📝 Reference** | Legacy documentation and references | [`/reference`](./reference/) |
+### `/user/`
+User-facing documentation, guides, and tutorials for end users of the AlgoTrendy platform.
 
----
+### `/developer/`
+Developer documentation including:
+- Development workflows
+- Code contribution guidelines
+- Technical references
+- [TODO Tree](developer/todo-tree.md) - Development task tracking
 
-## 🔥 Start Here
+### `/integration/`
+Integration guides and summaries organized by subsystem:
 
-### For Frontend Developers
-1. **[API Quick Reference](./api/API_QUICK_REFERENCE.md)** - Simple categorized API guide
-2. **[API Complete Interface](./api/API_FRONTEND_BACKEND_INTERFACE.md)** - Full detailed documentation
-3. **[API JSON Schema](./api/API_FRONTEND_BACKEND_INTERFACE.json)** - Machine-readable schema
+#### `/integration/data-providers/`
+- [Summary](integration/data-providers/summary.md) - Data provider integration overview
+- [Tiingo](integration/data-providers/tiingo.md) - Tiingo API integration guide
+- Additional data provider integrations
 
-### For DevOps/Deployment
-1. **[Domain Deployment Guide](./deployment/DOMAIN_DEPLOYMENT_GUIDE.md)** - Deploy to algotrendy.com
-2. **[DNS Setup (Namecheap)](./deployment/dns/NAMECHEAP_DNS_SETUP.md)** - Configure DNS
-3. **[Docker Deployment](./deployment/DEPLOYMENT_DOCKER.md)** - Deploy with Docker
-4. **[Production Checklist](./deployment/DEPLOYMENT_CHECKLIST.md)** - Pre-launch checklist
+#### `/integration/mem/`
+Memory Management (MEM) system integration:
+- [Frontend Integration](integration/mem/frontend-integration.md) - MEM frontend integration
+- [QuantConnect Integration](integration/mem/quantconnect-integration.md) - MEM with QuantConnect
 
-### For Backend Developers
-1. **[Architecture Overview](./architecture/PROJECT_OVERVIEW.md)** - System architecture
-2. **[QuantConnect Integration](../QUANTCONNECT_MEM_INTEGRATION.md)** - Cloud backtesting + MEM AI ✅ NEW
-3. **[Broker Integrations](./brokers/)** - Supported brokers
-4. **[Data Providers](./data/)** - Market data sources
-5. **[Implementation Guides](./implementation/)** - Technical implementation
+#### `/integration/ml/`
+Machine Learning system integration:
+- [Data Connection Points](integration/ml/data-connection-points.md) - ML data pipeline connections
+- [Model Retraining Guide](integration/ml/model-retraining-guide.md) - ML model retraining procedures
+- [Research Enhancements](integration/ml/research-enhancements.md) - ML research improvements
+- [Training Web Page](integration/ml/training-web-page.md) - ML training web interface
+- [Pattern Analysis Insights](integration/ml/pattern-analysis-insights-20251020.md) - Pattern analysis results
+- [Pattern Analysis Summary](integration/ml/pattern-analysis-summary.md) - Pattern analysis overview
 
-### For Project Managers
-1. **[Project Status](./status/BROKER_IMPLEMENTATION_STATUS.md)** - Current status
-2. **[Roadmap](./planning/v2.6_implementation_roadmap_APPROVED.md)** - v2.6 roadmap
-3. **[Future Enhancements](./planning/FUTURE_ENHANCEMENTS_ROADMAP.md)** - Planned features
+#### `/integration/backtesting/`
+Backtesting system integration documentation
 
----
+### `/deployment/`
+Deployment, operations, and infrastructure documentation:
+- [Credentials Setup Guide](deployment/credentials-setup-guide.md) - Setting up API credentials
+- [Security Updates](deployment/security-updates.md) - Security configuration and updates
 
-## 📁 Folder Structure
+### `/architecture/`
+System architecture, design decisions, and technical specifications.
 
-```
-docs/
-├── README.md                          # This file
-├── api/                               # API Documentation
-│   ├── API_QUICK_REFERENCE.md        # ⭐ Simple categorized guide
-│   ├── API_FRONTEND_BACKEND_INTERFACE.md  # Complete detailed docs
-│   └── API_FRONTEND_BACKEND_INTERFACE.json # JSON schema
-│
-├── deployment/                        # Deployment Guides
-│   ├── DOMAIN_DEPLOYMENT_GUIDE.md    # ⭐ Deploy to algotrendy.com
-│   ├── DEPLOYMENT_DOCKER.md          # Docker deployment
-│   ├── PRODUCTION_DEPLOYMENT_GUIDE.md
-│   ├── DEPLOYMENT_CHECKLIST.md
-│   ├── FREE_TIER_QUICKSTART.md
-│   └── dns/
-│       └── NAMECHEAP_DNS_SETUP.md    # ⭐ DNS configuration
-│
-├── architecture/                      # System Architecture
-│   ├── PROJECT_OVERVIEW.md           # System overview
-│   ├── ARCHITECTURE_DIAGRAMS.md      # Architecture diagrams
-│   ├── FEATURES.md                   # Feature list
-│   ├── API_CREDENTIALS_SETUP.md      # API key setup
-│   ├── RECOMMENDED_TOOLS.md          # Development tools
-│   └── DOCUMENTATION_INDEX.md        # Architecture docs index
-│
-├── planning/                          # Planning & Roadmaps
-│   ├── v2.6_implementation_roadmap_APPROVED.md  # v2.6 roadmap
-│   ├── FUTURE_ENHANCEMENTS_ROADMAP.md # Future plans
-│   ├── MASTER_REMEDIATION_PLAN.md    # Remediation plan
-│   ├── FINAL_BROKER_EXPANSION_PLAN.md # Broker expansion
-│   ├── UPGRADE_SUMMARY.md            # Upgrade notes
-│   ├── HEDGE_TODO_TREE.md            # TODO tree
-│   └── README.md                     # Planning index
-│
-├── brokers/                           # Broker Integrations
-│   └── (Broker-specific documentation)
-│
-├── data/                              # Data Providers
-│   └── (Data provider documentation)
-│
-├── status/                            # Status Reports
-│   ├── BROKER_IMPLEMENTATION_STATUS.md
-│   ├── DATA_PROVIDERS_STATUS.md
-│   ├── SECURITY_STATUS.md
-│   ├── FIREWALL_STATUS.md
-│   └── DOCUMENTATION_CONSISTENCY_REPORT.md
-│
-├── testing/                           # Testing
-│   └── (Testing guides)
-│
-├── security/                          # Security
-│   └── security_fixes_applied.md
-│
-├── user-guides/                       # User Guides
-│   └── (User documentation)
-│
-├── reference/                         # Reference Docs
-│   └── V2.5_REFERENCE_FINDINGS.md
-│
-├── analysis/                          # Analysis & Research
-│   ├── COMPREHENSIVE_ANALYSIS_SUMMARY.md
-│   ├── algotrendy_v2.6_investigational_findings.md
-│   ├── v2.5_actual_state_analysis.md
-│   ├── ai_assisted_development_strategy.md
-│   └── existing_infrastructure.md
-│
-├── guides/                            # General Guides
-│   └── GITHUB_TOOLS_GUIDE.md
-│
-├── archive/                           # Archived Docs
-│   ├── phase4b_data_channels_comparison.md
-│   ├── phase5_trading_engine_comparison.md
-│   └── phase6_testing_deployment_comparison.md
-│
-└── implementation/                    # Implementation Details
-    └── (Technical implementation docs)
-```
+### `/historical/`
+Historical documentation, summaries, and reports from previous development phases:
+- [Cleanup Summary](historical/cleanup-summary.md)
+- [Documentation Update Summary](historical/documentation-update-summary.md)
+- [Phase 7 Enablement](historical/phase-7-enablement-summary.md)
+- [Refactoring Complete](historical/refactoring-complete-summary.md)
+- [PR Description](historical/pr-description.md)
+- [Custom Engine Disabled](historical/custom-engine-disabled.md)
 
----
+## Root Documentation Files
 
-## 🎯 Common Tasks
+Essential documentation files remain at project root:
+- `../README.md` - Main project README
+- `../CONTRIBUTING.md` - Contribution guidelines
+- `../REORGANIZATION_PLAN.md` - Project reorganization plan (this cleanup effort)
 
-### I want to...
+## Finding Documentation
 
-**Build the frontend:**
-→ See [`/api/API_QUICK_REFERENCE.md`](./api/API_QUICK_REFERENCE.md)
+### By Topic
+- **Getting Started**: See root `../README.md`
+- **API Integration**: Check `/integration/data-providers/`
+- **ML/AI Features**: Check `/integration/ml/`
+- **Deployment**: Check `/deployment/`
+- **Development**: Check `/developer/`
 
-**Deploy to production:**
-→ See [`/deployment/DOMAIN_DEPLOYMENT_GUIDE.md`](./deployment/DOMAIN_DEPLOYMENT_GUIDE.md)
+### By Date
+Historical documentation in `/historical/` includes dates or phase numbers for chronological reference.
 
-**Set up DNS:**
-→ See [`/deployment/dns/NAMECHEAP_DNS_SETUP.md`](./deployment/dns/NAMECHEAP_DNS_SETUP.md)
+## Documentation Standards
 
-**Understand the architecture:**
-→ See [`/architecture/PROJECT_OVERVIEW.md`](./architecture/PROJECT_OVERVIEW.md)
+All documentation should follow these standards:
+1. **Markdown format** (.md files)
+2. **Descriptive filenames** using kebab-case
+3. **Date stamps** for time-sensitive documents (YYYYMMDD format)
+4. **Clear headers** with table of contents for long documents
+5. **Links** using relative paths within docs/
 
-**Add a new broker:**
-→ See [`/brokers/`](./brokers/) and [`/planning/FINAL_BROKER_EXPANSION_PLAN.md`](./planning/FINAL_BROKER_EXPANSION_PLAN.md)
+## Contributing to Documentation
 
-**Run cloud backtests with AI analysis:**
-→ See [`../QUANTCONNECT_MEM_INTEGRATION.md`](../QUANTCONNECT_MEM_INTEGRATION.md) ✅ NEW
+See `../CONTRIBUTING.md` for guidelines on updating documentation.
 
-**Check project status:**
-→ See [`/status/`](./status/)
+## Archive
 
-**Run tests:**
-→ See [`/testing/`](./testing/)
-
-**Configure API credentials:**
-→ See [`/architecture/API_CREDENTIALS_SETUP.md`](./architecture/API_CREDENTIALS_SETUP.md)
-
----
-
-## 📖 Documentation Standards
-
-### File Naming
-- Use `UPPERCASE_WITH_UNDERSCORES.md` for major docs
-- Use descriptive names (not `doc1.md`, `notes.md`)
-- Include version in filename if version-specific
-
-### Markdown Format
-- Use clear headers (# ## ###)
-- Include table of contents for long docs
-- Use code blocks with language tags
-- Include examples where possible
-
-### Updates
-- Update `Last Updated` date at bottom of docs
-- Add changelog section for major docs
-- Cross-reference related documents
-
----
-
-## 🔄 Recent Updates
-
-| Date | Update | Files |
-|------|--------|-------|
-| 2025-10-20 | QuantConnect + MEM AI integration | `QUANTCONNECT_MEM_INTEGRATION.md` |
-| 2025-10-20 | Created API documentation for frontend | `/api/*` |
-| 2025-10-20 | Added domain deployment guide | `/deployment/DOMAIN_DEPLOYMENT_GUIDE.md` |
-| 2025-10-20 | Organized documentation structure | All folders |
-| 2025-10-20 | Added DNS setup guide | `/deployment/dns/NAMECHEAP_DNS_SETUP.md` |
-
----
-
-## 🆘 Need Help?
-
-- **Can't find something?** Check the folder structure above
-- **Documentation outdated?** See `/status/` for current status
-- **Want to contribute?** Follow documentation standards above
-
----
-
-## 📊 Documentation Coverage
-
-| Area | Coverage | Status |
-|------|----------|--------|
-| API Documentation | ✅ Complete | 3 comprehensive guides |
-| Deployment | ✅ Complete | Docker, DNS, domain setup |
-| Architecture | ✅ Complete | Overview, diagrams, features |
-| QuantConnect Integration | ✅ Complete | Cloud backtesting + MEM AI |
-| Planning | ✅ Complete | Roadmaps, plans, TODOs |
-| Brokers | ⚠️ Partial | Some integrations documented |
-| Data Providers | ⚠️ Partial | In progress |
-| Testing | ⚠️ Partial | Basic guides available |
-| User Guides | ⚠️ Partial | Work in progress |
-
----
-
-**AlgoTrendy v2.6** - High-Performance Multi-Asset Trading Platform
-**Last Updated:** 2025-10-20
+Deprecated and historical files are stored in `../archive/` with timestamped subdirectories.

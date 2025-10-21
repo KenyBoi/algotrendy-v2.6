@@ -40,11 +40,11 @@ echo -e "${YELLOW}Creating certbot directories...${NC}"
 mkdir -p certbot/www
 mkdir -p certbot/conf
 
-# Check if DNS is configured
+# Check if DNS is configured (using Google DNS 8.8.8.8 to avoid cache issues)
 echo -e "${YELLOW}Checking DNS configuration...${NC}"
 for domain in $DOMAIN $WWW_DOMAIN $API_DOMAIN $APP_DOMAIN; do
-    if host $domain > /dev/null 2>&1; then
-        IP=$(host $domain | grep "has address" | awk '{print $4}' | head -1)
+    IP=$(dig @8.8.8.8 +short $domain A | head -1)
+    if [ -n "$IP" ]; then
         echo -e "${GREEN}✓ $domain resolves to $IP${NC}"
     else
         echo -e "${RED}✗ $domain does not resolve. Please configure DNS first.${NC}"

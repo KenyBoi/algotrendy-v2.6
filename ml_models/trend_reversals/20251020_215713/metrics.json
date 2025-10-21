@@ -1,0 +1,73 @@
+{
+  "version": "20251020_215713",
+  "best_model": "adaboost",
+  "validation_metrics": {
+    "accuracy": 0.9998066511987626,
+    "precision": 0.9973890339425587,
+    "recall": 1.0,
+    "f1": 0.9986928104575163
+  },
+  "all_models": {
+    "gradient_boosting": {
+      "train_metrics": {
+        "accuracy": 1.0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0
+      },
+      "val_metrics": {
+        "accuracy": 0.9988399071925754,
+        "precision": 0.9947368421052631,
+        "recall": 0.9895287958115183,
+        "f1": 0.9921259842519685
+      },
+      "overfit_score": 0.001160092807424573
+    },
+    "random_forest": {
+      "train_metrics": {
+        "accuracy": 0.9999516627996906,
+        "precision": 0.9992619926199262,
+        "recall": 1.0,
+        "f1": 0.9996308600959763
+      },
+      "val_metrics": {
+        "accuracy": 0.9769914926527455,
+        "precision": 0.9962264150943396,
+        "recall": 0.6910994764397905,
+        "f1": 0.8160741885625966
+      },
+      "overfit_score": 0.02296017014694507
+    },
+    "adaboost": {
+      "train_metrics": {
+        "accuracy": 1.0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0
+      },
+      "val_metrics": {
+        "accuracy": 0.9998066511987626,
+        "precision": 0.9973890339425587,
+        "recall": 1.0,
+        "f1": 0.9986928104575163
+      },
+      "overfit_score": 0.00019334880123744735
+    },
+    "logistic_regression": {
+      "train_metrics": {
+        "accuracy": 0.581399845320959,
+        "precision": 0.10567789291882557,
+        "recall": 0.7230428360413589,
+        "f1": 0.1844038425315502
+      },
+      "val_metrics": {
+        "accuracy": 0.45301624129930396,
+        "precision": 0.08228064185728917,
+        "recall": 0.6308900523560209,
+        "f1": 0.14557535487768045
+      },
+      "overfit_score": 0.12838360402165505
+    }
+  },
+  "trained_at": "2025-10-20T21:58:33.738057"
+}

@@ -7,33 +7,139 @@ updates:
       interval: "weekly"
       day: "monday"
       time: "09:00"
-      timezone: "America/New_York"
     open-pull-requests-limit: 10
-    reviewers:
-      - "kenyboi"
+    target-branch: "development"
     labels:
       - "dependencies"
-      - "nuget"
-      - "automated"
+      - "dotnet"
     commit-message:
-      prefix: "chore(deps)"
+      prefix: "chore"
       include: "scope"
+    reviewers:
+      - "KenyBoi"
+    assignees:
+      - "KenyBoi"
+    groups:
+      microsoft-packages:
+        patterns:
+          - "Microsoft.*"
+        update-types:
+          - "minor"
+          - "patch"
+      testing-packages:
+        patterns:
+          - "xunit*"
+          - "Moq"
+          - "FluentAssertions"
+      broker-packages:
+        patterns:
+          - "Binance.Net"
+          - "Bybit.Net"
 
-  # Python packages (yfinance service)
-  - package-ecosystem: "pip"
-    directory: "/backend/AlgoTrendy.DataChannels/PythonServices"
+  # npm packages (Frontend)
+  - package-ecosystem: "npm"
+    directory: "/docs/design/algotrendy_browser_figma"
     schedule:
       interval: "weekly"
       day: "monday"
       time: "09:00"
-      timezone: "America/New_York"
+    open-pull-requests-limit: 10
+    target-branch: "development"
+    labels:
+      - "dependencies"
+      - "frontend"
+      - "javascript"
+    commit-message:
+      prefix: "chore"
+    ignore:
+      # Ignore major version updates for stable dependencies
+      - dependency-name: "react"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "react-dom"
+        update-types: ["version-update:semver-major"]
+    groups:
+      react-packages:
+        patterns:
+          - "react*"
+          - "@types/react*"
+      radix-ui:
+        patterns:
+          - "@radix-ui/*"
+
+  # Python packages (ML Service)
+  - package-ecosystem: "pip"
+    directory: "/ml-service"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
     open-pull-requests-limit: 5
+    target-branch: "development"
     labels:
       - "dependencies"
       - "python"
-      - "automated"
+      - "ml-service"
     commit-message:
-      prefix: "chore(deps)"
+      prefix: "chore"
+
+  # Python packages (Backtesting Service)
+  - package-ecosystem: "pip"
+    directory: "/backtesting-py-service"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+    open-pull-requests-limit: 5
+    target-branch: "development"
+    labels:
+      - "dependencies"
+      - "python"
+      - "backtesting"
+    commit-message:
+      prefix: "chore"
+
+  # Docker base images
+  - package-ecosystem: "docker"
+    directory: "/backend"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+    open-pull-requests-limit: 3
+    target-branch: "development"
+    labels:
+      - "dependencies"
+      - "docker"
+    commit-message:
+      prefix: "chore"
+
+  - package-ecosystem: "docker"
+    directory: "/docs/design/algotrendy_browser_figma"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+    open-pull-requests-limit: 3
+    target-branch: "development"
+    labels:
+      - "dependencies"
+      - "docker"
+    commit-message:
+      prefix: "chore"
+
+  - package-ecosystem: "docker"
+    directory: "/ml-service"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+    open-pull-requests-limit: 3
+    target-branch: "development"
+    labels:
+      - "dependencies"
+      - "docker"
+    commit-message:
+      prefix: "chore"
 
   # GitHub Actions
   - package-ecosystem: "github-actions"
@@ -42,27 +148,10 @@ updates:
       interval: "weekly"
       day: "monday"
       time: "09:00"
-      timezone: "America/New_York"
     open-pull-requests-limit: 5
+    target-branch: "development"
     labels:
       - "dependencies"
       - "github-actions"
-      - "automated"
     commit-message:
-      prefix: "chore(deps)"
-
-  # Docker
-  - package-ecosystem: "docker"
-    directory: "/"
-    schedule:
-      interval: "weekly"
-      day: "monday"
-      time: "09:00"
-      timezone: "America/New_York"
-    open-pull-requests-limit: 3
-    labels:
-      - "dependencies"
-      - "docker"
-      - "automated"
-    commit-message:
-      prefix: "chore(deps)"
+      prefix: "chore"

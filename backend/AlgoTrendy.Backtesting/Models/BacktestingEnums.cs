@@ -74,11 +74,14 @@ public enum BacktesterEngine
     /// <summary>QuantConnect cloud-based engine</summary>
     QuantConnect,
 
-    /// <summary>Backtester.com cloud-based engine</summary>
+    /// <summary>Backtester.com cloud-based engine (deprecated - use BacktestingPy)</summary>
     Backtester,
 
     /// <summary>Custom built-in engine</summary>
-    Custom
+    Custom,
+
+    /// <summary>Backtesting.py Python library via microservice</summary>
+    BacktestingPy
 }
 
 /// <summary>

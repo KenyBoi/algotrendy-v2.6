@@ -9,6 +9,7 @@ import Dashboard from './pages/Dashboard';
 import Orders from './pages/Orders';
 import Positions from './pages/Positions';
 import Strategies from './pages/Strategies';
+import MLTraining from './pages/MLTraining';
 import Login from './pages/Login';
 import NotFound from './pages/NotFound';
 import Layout from './components/Layout';
@@ -47,6 +48,7 @@ function App() {
           <Route path="orders" element={<Orders />} />
           <Route path="positions" element={<Positions />} />
           <Route path="strategies" element={<Strategies />} />
+          <Route path="ml-training" element={<MLTraining />} />
           <Route path="*" element={<NotFound />} />
         </Route>
       </Routes>

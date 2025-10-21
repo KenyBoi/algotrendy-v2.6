@@ -1,3 +1,4 @@
+using AlgoTrendy.Core.Interfaces;
 using AlgoTrendy.Core.Models;
 using Microsoft.AspNetCore.Mvc;
 
@@ -12,10 +13,14 @@ namespace AlgoTrendy.API.Controllers;
 public class OrdersController : ControllerBase
 {
     private readonly ILogger<OrdersController> _logger;
+    private readonly IOrderRepository _orderRepository;
 
-    public OrdersController(ILogger<OrdersController> logger)
+    public OrdersController(
+        ILogger<OrdersController> logger,
+        IOrderRepository orderRepository)
     {
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        _orderRepository = orderRepository ?? throw new ArgumentNullException(nameof(orderRepository));
     }
 
     /// <summary>
@@ -33,13 +38,11 @@ public class OrdersController : ControllerBase
     {
         try
         {
-            _logger.LogInformation("Retrieving all orders");
+            _logger.LogInformation("Retrieving all active orders");
 
-            // TODO: Implement order repository to fetch orders from database
-            // For now, return empty list to make endpoint functional
-            var orders = new List<Order>();
+            var orders = await _orderRepository.GetActiveOrdersAsync(cancellationToken);
 
-            _logger.LogInformation("Retrieved {Count} orders", orders.Count);
+            _logger.LogInformation("Retrieved {Count} orders", orders.Count());
 
             return Ok(orders);
         }

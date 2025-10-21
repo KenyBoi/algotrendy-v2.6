@@ -4,7 +4,7 @@
  */
 
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
-import { Home, ListOrdered, Wallet, TrendingUp, Settings, LogOut } from 'lucide-react';
+import { Home, ListOrdered, Wallet, TrendingUp, Settings, LogOut, Brain } from 'lucide-react';
 import { Button } from './ui/button';
 
 export default function Layout() {
@@ -16,6 +16,7 @@ export default function Layout() {
     { path: '/positions', icon: Wallet, label: 'Positions' },
     { path: '/orders', icon: ListOrdered, label: 'Orders' },
     { path: '/strategies', icon: TrendingUp, label: 'Strategies' },
+    { path: '/ml-training', icon: Brain, label: 'ML Training' },
   ];
 
   const handleLogout = () => {
