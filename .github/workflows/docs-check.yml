@@ -19,7 +19,7 @@ jobs:
     name: Check Documentation Links
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Check Markdown Links
         uses: gaurav-nelson/github-action-markdown-link-check@v1
@@ -37,7 +37,7 @@ jobs:
     name: Lint Markdown Files
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Markdown Lint
         uses: DavidAnson/markdownlint-cli2-action@v16
@@ -48,7 +48,7 @@ jobs:
     name: Check for Outdated Content
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           fetch-depth: 0  # Full history for git log analysis
 
