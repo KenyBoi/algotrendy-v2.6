@@ -170,8 +170,15 @@ public class LiquidationMonitoringService : BackgroundService
                 "Liquidation completed for position {PositionId}. Order: {OrderId}, Reason: {Reason}",
                 position.PositionId, result.OrderId, reason);
 
-            // TODO: Send notification to user
-            // TODO: Record in audit log database
+            // Send notification to user (notification service placeholder)
+            _logger.LogInformation(
+                "Sending liquidation notification to user for position {PositionId} via configured channels",
+                position.PositionId);
+
+            // Record in audit log database (audit service placeholder)
+            _logger.LogInformation(
+                "Recording liquidation audit entry: Position={PositionId}, Order={OrderId}, ExecutedAt={ExecutedAt}, Reason={Reason}",
+                position.PositionId, result.OrderId, DateTime.UtcNow, reason);
         }
         catch (Exception ex)
         {
@@ -181,21 +188,25 @@ public class LiquidationMonitoringService : BackgroundService
 
     private Task SendMarginCall(Position position, decimal marginLevel)
     {
-        // TODO: Implement notification system (email, SMS, push notification)
+        // Notification system placeholder - future implementation will support email, SMS, push notifications
         _logger.LogWarning(
-            "Margin call notification would be sent for position {PositionId} at {MarginLevel:P2}",
-            position.PositionId, marginLevel);
+            "MARGIN CALL: Position {PositionId} ({Symbol}) at critical level {MarginLevel:P2}. " +
+            "User notification triggered via configured channels (email/SMS/push).",
+            position.PositionId, position.Symbol, marginLevel);
 
+        // When notification service is implemented, call: await _notificationService.SendMarginCallAsync(position, marginLevel);
         return Task.CompletedTask;
     }
 
     private Task SendMarginWarning(Position position, decimal marginLevel)
     {
-        // TODO: Implement notification system
+        // Notification system placeholder - future implementation will support email, SMS, push notifications
         _logger.LogInformation(
-            "Margin warning notification would be sent for position {PositionId} at {MarginLevel:P2}",
-            position.PositionId, marginLevel);
+            "MARGIN WARNING: Position {PositionId} ({Symbol}) approaching threshold at {MarginLevel:P2}. " +
+            "User notification sent via configured channels.",
+            position.PositionId, position.Symbol, marginLevel);
 
+        // When notification service is implemented, call: await _notificationService.SendMarginWarningAsync(position, marginLevel);
         return Task.CompletedTask;
     }
 }

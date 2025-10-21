@@ -8,7 +8,7 @@ updates:
       day: "monday"
       time: "09:00"
     open-pull-requests-limit: 10
-    target-branch: "development"
+    target-branch: "main"
     labels:
       - "dependencies"
       - "dotnet"
@@ -19,6 +19,19 @@ updates:
       - "KenyBoi"
     assignees:
       - "KenyBoi"
+    # Security updates - apply ASAP
+    allow:
+      - dependency-type: "all"
+    # Automatically rebase PRs when base branch updates
+    rebase-strategy: "auto"
+    # Ignore specific packages that need manual review
+    ignore:
+      # Wait for stable .NET 9 LTS before upgrading
+      - dependency-name: "Microsoft.AspNetCore.*"
+        update-types: ["version-update:semver-major"]
+      # Binance.Net major version needs breaking change review
+      - dependency-name: "Binance.Net"
+        update-types: ["version-update:semver-major"]
     groups:
       microsoft-packages:
         patterns:
@@ -31,10 +44,21 @@ updates:
           - "xunit*"
           - "Moq"
           - "FluentAssertions"
+        update-types:
+          - "minor"
+          - "patch"
       broker-packages:
         patterns:
           - "Binance.Net"
           - "Bybit.Net"
+        update-types:
+          - "minor"
+          - "patch"
+      security-updates:
+        patterns:
+          - "*"
+        update-types:
+          - "patch"
 
   # npm packages (Frontend)
   - package-ecosystem: "npm"
@@ -44,13 +68,15 @@ updates:
       day: "monday"
       time: "09:00"
     open-pull-requests-limit: 10
-    target-branch: "development"
+    target-branch: "main"
     labels:
       - "dependencies"
       - "frontend"
       - "javascript"
     commit-message:
       prefix: "chore"
+    rebase-strategy: "auto"
+    versioning-strategy: "increase"
     ignore:
       # Ignore major version updates for stable dependencies
       - dependency-name: "react"
@@ -62,25 +88,48 @@ updates:
         patterns:
           - "react*"
           - "@types/react*"
+        update-types:
+          - "minor"
+          - "patch"
       radix-ui:
         patterns:
           - "@radix-ui/*"
+        update-types:
+          - "minor"
+          - "patch"
 
-  # Python packages (ML Service)
-  - package-ecosystem: "pip"
-    directory: "/ml-service"
+  # npm packages (Frontend - Main)
+  - package-ecosystem: "npm"
+    directory: "/frontend"
     schedule:
       interval: "weekly"
       day: "monday"
       time: "09:00"
-    open-pull-requests-limit: 5
-    target-branch: "development"
+    open-pull-requests-limit: 10
+    target-branch: "main"
     labels:
       - "dependencies"
-      - "python"
-      - "ml-service"
+      - "frontend"
+      - "javascript"
     commit-message:
       prefix: "chore"
+    rebase-strategy: "auto"
+    versioning-strategy: "increase"
+    groups:
+      react-packages:
+        patterns:
+          - "react*"
+          - "@types/react*"
+        update-types:
+          - "minor"
+          - "patch"
+      vite-packages:
+        patterns:
+          - "vite*"
+          - "@vitejs/*"
+        update-types:
+          - "minor"
+          - "patch"
 
   # Python packages (Backtesting Service)
   - package-ecosystem: "pip"
@@ -90,13 +139,23 @@ updates:
       day: "monday"
       time: "09:00"
     open-pull-requests-limit: 5
-    target-branch: "development"
+    target-branch: "main"
     labels:
       - "dependencies"
       - "python"
       - "backtesting"
     commit-message:
       prefix: "chore"
+    rebase-strategy: "auto"
+    groups:
+      data-science-packages:
+        patterns:
+          - "pandas"
+          - "numpy"
+          - "scikit-learn"
+        update-types:
+          - "minor"
+          - "patch"
 
   # Docker base images
   - package-ecosystem: "docker"
@@ -106,7 +165,7 @@ updates:
       day: "monday"
       time: "09:00"
     open-pull-requests-limit: 3
-    target-branch: "development"
+    target-branch: "main"
     labels:
       - "dependencies"
       - "docker"
@@ -120,7 +179,7 @@ updates:
       day: "monday"
       time: "09:00"
     open-pull-requests-limit: 3
-    target-branch: "development"
+    target-branch: "main"
     labels:
       - "dependencies"
       - "docker"
@@ -128,13 +187,13 @@ updates:
       prefix: "chore"
 
   - package-ecosystem: "docker"
-    directory: "/ml-service"
+    directory: "/backtesting-py-service"
     schedule:
       interval: "weekly"
       day: "monday"
       time: "09:00"
     open-pull-requests-limit: 3
-    target-branch: "development"
+    target-branch: "main"
     labels:
       - "dependencies"
       - "docker"
@@ -149,7 +208,7 @@ updates:
       day: "monday"
       time: "09:00"
     open-pull-requests-limit: 5
-    target-branch: "development"
+    target-branch: "main"
     labels:
       - "dependencies"
       - "github-actions"
