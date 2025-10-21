@@ -16,7 +16,8 @@
     "react-dom": "^18.2.0",
     "recharts": "^2.10.3",
     "react-router-dom": "^6.20.1",
-    "lucide-react": "^0.294.0"
+    "lucide-react": "^0.294.0",
+    "plotly.js-dist-min": "^2.27.1"
   },
   "devDependencies": {
     "@types/react": "^18.2.43",

@@ -45,6 +45,16 @@ except ImportError:
     ENSEMBLE_AVAILABLE = False
     print("⚠️  Ensemble module not available")
 
+# Import A/B testing module
+try:
+    from ml_ab_testing import ABTestFramework
+    AB_TESTING_AVAILABLE = True
+    ab_framework = ABTestFramework()
+except ImportError:
+    AB_TESTING_AVAILABLE = False
+    ab_framework = None
+    print("⚠️  A/B testing module not available")
+
 # Initialize FastAPI app
 app = FastAPI(
     title="AlgoTrendy ML API",
@@ -553,6 +563,124 @@ async def get_latest_patterns():
     return data
 
 # ============================================================================
+# A/B Testing Endpoints
+# ============================================================================
+
+@app.post("/ab-test/create")
+async def create_ab_test(
+    model_a: str,
+    model_b: str,
+    traffic_split: float = 0.5,
+    min_samples: int = 100,
+    confidence_level: float = 0.95
+):
+    """Create a new A/B test"""
+    if not AB_TESTING_AVAILABLE or not ab_framework:
+        raise HTTPException(status_code=501, detail="A/B testing not available")
+
+    test_id = ab_framework.create_test(
+        model_a=model_a,
+        model_b=model_b,
+        traffic_split=traffic_split,
+        min_samples=min_samples,
+        confidence_level=confidence_level
+    )
+
+    return {
+        "test_id": test_id,
+        "status": "created",
+        "model_a": model_a,
+        "model_b": model_b,
+        "traffic_split": traffic_split
+    }
+
+@app.get("/ab-test/list")
+async def list_ab_tests():
+    """List all active A/B tests"""
+    if not AB_TESTING_AVAILABLE or not ab_framework:
+        raise HTTPException(status_code=501, detail="A/B testing not available")
+
+    tests = ab_framework.list_tests()
+    return {
+        "tests": [
+            {
+                "test_id": test.test_id,
+                "model_a": test.model_a,
+                "model_b": test.model_b,
+                "traffic_split": test.traffic_split,
+                "status": test.status,
+                "start_date": test.start_date,
+                "end_date": test.end_date
+            }
+            for test in tests
+        ]
+    }
+
+@app.get("/ab-test/{test_id}/assign")
+async def assign_ab_variant(test_id: str, user_id: Optional[str] = None):
+    """Assign a model variant for a prediction"""
+    if not AB_TESTING_AVAILABLE or not ab_framework:
+        raise HTTPException(status_code=501, detail="A/B testing not available")
+
+    try:
+        model = ab_framework.assign_model(test_id, user_id)
+        return {
+            "test_id": test_id,
+            "assigned_model": model,
+            "user_id": user_id
+        }
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+
+@app.post("/ab-test/{test_id}/record")
+async def record_ab_result(
+    test_id: str,
+    model_id: str,
+    prediction: int,
+    actual: Optional[int] = None,
+    confidence: float = 0.5
+):
+    """Record a prediction result for A/B testing"""
+    if not AB_TESTING_AVAILABLE or not ab_framework:
+        raise HTTPException(status_code=501, detail="A/B testing not available")
+
+    ab_framework.record_prediction(test_id, model_id, prediction, actual, confidence)
+
+    return {
+        "test_id": test_id,
+        "model_id": model_id,
+        "recorded": True
+    }
+
+@app.get("/ab-test/{test_id}/analyze")
+async def analyze_ab_test(test_id: str):
+    """Analyze A/B test results and determine winner"""
+    if not AB_TESTING_AVAILABLE or not ab_framework:
+        raise HTTPException(status_code=501, detail="A/B testing not available")
+
+    result = ab_framework.analyze_test(test_id)
+
+    if not result:
+        raise HTTPException(status_code=404, detail="Insufficient data for analysis")
+
+    from dataclasses import asdict
+    return asdict(result)
+
+@app.post("/ab-test/{test_id}/stop")
+async def stop_ab_test(test_id: str, reason: str = "Manual stop"):
+    """Stop an active A/B test"""
+    if not AB_TESTING_AVAILABLE or not ab_framework:
+        raise HTTPException(status_code=501, detail="A/B testing not available")
+
+    ab_framework.stop_test(test_id, reason)
+
+    return {
+        "test_id": test_id,
+        "status": "stopped",
+        "reason": reason
+    }
+
+# ============================================================================
 # Visualization Endpoints
 # ============================================================================
 
@@ -815,12 +943,20 @@ if __name__ == "__main__":
     - POST /train                           - Start training job
     - GET  /training/{id}                   - Get training status
     - POST /predict                         - Get predictions (single model)
-    - POST /predict/ensemble                - Get ensemble predictions (NEW)
+    - POST /predict/ensemble                - Get ensemble predictions
     - POST /drift                           - Check model drift
     - POST /overfitting                     - Analyze overfitting
     - GET  /patterns                        - Get latest patterns
 
-    📈 Visualization Endpoints (NEW):
+    🧪 A/B Testing Endpoints (NEW):
+    - POST /ab-test/create                  - Create A/B test
+    - GET  /ab-test/list                    - List active tests
+    - GET  /ab-test/{id}/assign             - Assign variant
+    - POST /ab-test/{id}/record             - Record result
+    - GET  /ab-test/{id}/analyze            - Analyze test
+    - POST /ab-test/{id}/stop               - Stop test
+
+    📈 Visualization Endpoints:
     - GET  /visualizations/learning-curves/{model_id}     - Overfitting detection
     - GET  /visualizations/feature-importance/{model_id}  - Feature analysis
     - POST /visualizations/roc-curve                      - ROC curve

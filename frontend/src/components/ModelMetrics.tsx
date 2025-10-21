@@ -5,7 +5,6 @@ interface Props {
 }
 
 export default function ModelMetrics({ model }: Props) {
-  const formatPercent = (value: number) => `${(value * 100).toFixed(2)}%`;
   const formatDate = (date: string) => new Date(date).toLocaleDateString();
 
   const getMetricColor = (value: number, metric: string) => {

@@ -1,6 +1,7 @@
 import axios from 'axios';
 
-const API_BASE_URL = '/api/mltraining';
+// Backend API base URL - update this if backend runs on different host/port
+const API_BASE_URL = (import.meta.env.VITE_API_URL || 'http://localhost:5002/api') + '/mltraining';
 
 export interface MLModelInfo {
   modelId: string;
@@ -81,6 +82,41 @@ export const mlApi = {
   // Check health
   async checkHealth() {
     const response = await axios.get(`${API_BASE_URL}/health`);
+    return response.data;
+  },
+
+  // Visualization endpoints
+  async getLearningCurves(modelId: string) {
+    const response = await axios.get(`${API_BASE_URL}/visualizations/learning-curves/${modelId}`);
+    return response.data;
+  },
+
+  async getFeatureImportance(modelId: string, topN: number = 20) {
+    const response = await axios.get(`${API_BASE_URL}/visualizations/feature-importance/${modelId}?top_n=${topN}`);
+    return response.data;
+  },
+
+  async getModelComparison() {
+    const response = await axios.get(`${API_BASE_URL}/visualizations/model-comparison`);
+    return response.data;
+  },
+
+  async getTrainingHistory(modelId: string) {
+    const response = await axios.get(`${API_BASE_URL}/visualizations/training-history/${modelId}`);
+    return response.data;
+  },
+
+  async getOverfittingDashboard(modelId: string) {
+    const response = await axios.get(`${API_BASE_URL}/visualizations/overfitting-dashboard/${modelId}`);
+    return response.data;
+  },
+
+  // Ensemble prediction
+  async ensemblePredict(symbol: string, candles: any[], strategy: 'voting' | 'weighted' | 'confidence' = 'weighted') {
+    const response = await axios.post(`${API_BASE_URL}/predict/ensemble?strategy=${strategy}`, {
+      symbol,
+      recent_candles: candles,
+    });
     return response.data;
   },
 };
