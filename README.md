@@ -399,6 +399,7 @@ dotnet test --collect:"XPlat Code Coverage"
 - [Code Style](docs/development/CODE_STYLE.md) - .NET and TypeScript conventions
 - [Testing Guidelines](docs/development/TESTING.md) - Testing requirements
 - [TODO Tree](docs/developer/todo-tree.md) - Project roadmap and tasks
+- **[Documentation Automation](docs/DOCUMENTATION_AUTOMATION.md)** - 🤖 Automated docs quality checks (NEW!)
 
 ### 🔗 Integrations
 - [QuantConnect Integration](docs/integration/mem/quantconnect-integration.md) - AI-powered backtesting

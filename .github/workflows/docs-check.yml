@@ -1,0 +1,91 @@
+name: Documentation Checks
+
+on:
+  push:
+    paths:
+      - 'docs/**'
+      - '**.md'
+      - 'backend/**/*.cs'
+  pull_request:
+    paths:
+      - 'docs/**'
+      - '**.md'
+  schedule:
+    # Run weekly on Sunday at midnight UTC
+    - cron: '0 0 * * 0'
+
+jobs:
+  check-links:
+    name: Check Documentation Links
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check Markdown Links
+        uses: gaurav-nelson/github-action-markdown-link-check@v1
+        with:
+          use-quiet-mode: 'yes'
+          config-file: '.github/markdown-link-check-config.json'
+
+      - name: Check Dead Links
+        uses: lycheeverse/lychee-action@v1
+        with:
+          args: --verbose --no-progress '**/*.md'
+          fail: true
+
+  lint-markdown:
+    name: Lint Markdown Files
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Markdown Lint
+        uses: DavidAnson/markdownlint-cli2-action@v16
+        with:
+          globs: '**/*.md'
+
+  check-outdated-content:
+    name: Check for Outdated Content
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Full history for git log analysis
+
+      - name: Find Stale Documentation
+        run: |
+          echo "## Stale Documentation Report" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Files not updated in 6+ months:" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          # Find markdown files older than 6 months
+          find . -name "*.md" -type f -not -path "./node_modules/*" -not -path "./.git/*" | while read file; do
+            last_modified=$(git log -1 --format="%ai" -- "$file" 2>/dev/null || echo "")
+            if [ -n "$last_modified" ]; then
+              months_old=$(( ( $(date +%s) - $(date -d "$last_modified" +%s) ) / 2592000 ))
+              if [ $months_old -gt 6 ]; then
+                echo "- \`$file\` (${months_old} months old)" >> $GITHUB_STEP_SUMMARY
+              fi
+            fi
+          done
+
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Review these files to ensure they're still accurate." >> $GITHUB_STEP_SUMMARY
+
+      - name: Comment on PR if Issues Found
+        uses: actions/github-script@v7
+        if: github.event_name == 'pull_request'
+        with:
+          script: |
+            const fs = require('fs');
+            const summary = fs.readFileSync(process.env.GITHUB_STEP_SUMMARY, 'utf8');
+
+            if (summary.includes('months old')) {
+              github.rest.issues.createComment({
+                issue_number: context.issue.number,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                body: '⚠️ Some documentation may be outdated. Please review the workflow summary for details.'
+              });
+            }

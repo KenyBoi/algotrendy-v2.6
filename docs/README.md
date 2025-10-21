@@ -85,6 +85,7 @@ Essential documentation files remain at project root:
 1. **[Contributing Guide](../CONTRIBUTING.md)** - Development workflow and standards
 2. **[Developer TODO Tree](developer/todo-tree.md)** - Project roadmap and tasks
 3. **[Architecture Overview](ARCHITECTURE.md)** - System design
+4. **[Documentation Automation](DOCUMENTATION_AUTOMATION.md)** - 🤖 Automated quality checks (NEW!)
 
 ## Finding Documentation
 
@@ -95,6 +96,7 @@ Essential documentation files remain at project root:
 - **Docker/Deployment**: `../DOCKER_SETUP.md` and `/deployment/`
 - **ML/AI Features**: `/integration/ml/` and `../MEM/`
 - **Development**: `../CONTRIBUTING.md`, `../scripts/dev-setup.sh`, and `/developer/`
+- **Documentation Automation** 🤖: `DOCUMENTATION_AUTOMATION.md` - Automated quality checks
 - **Architecture**: `ARCHITECTURE.md`
 
 ### By Date

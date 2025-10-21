@@ -406,6 +406,7 @@ public class BacktestingPyEngineTests
             Timeframe = TimeframeType.Day,
             InitialCapital = 10000,
             Commission = 0.001m,
+            AssetClass = AssetClass.Crypto,
             Indicators = new Dictionary<string, IndicatorConfig>
             {
                 ["SMA"] = new()

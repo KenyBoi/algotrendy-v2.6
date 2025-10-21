@@ -24,22 +24,17 @@ public class TiingoProviderIntegrationTests : IAsyncLifetime
 
     public TiingoProviderIntegrationTests()
     {
-        // Get API key from environment variable or configuration
-        var apiKey = Environment.GetEnvironmentVariable("Tiingo__ApiKey")
-                     ?? "1467e5d883e5d859383d70d8494dd8d3c226889f"; // Default from appsettings
+        // Get API key from environment variable only
+        var apiKey = Environment.GetEnvironmentVariable("Tiingo__ApiKey");
 
         _hasValidKey = !string.IsNullOrEmpty(apiKey);
-
-        if (!_hasValidKey)
-        {
-            Skip.If(true, "Tiingo API key not found. Set Tiingo__ApiKey environment variable");
-        }
 
         _logger = LoggerFactory.Create(builder => builder.AddConsole().SetMinimumLevel(LogLevel.Information))
             .CreateLogger<TiingoProvider>();
 
         var httpClient = new HttpClient();
-        _provider = new TiingoProvider(httpClient, _logger, apiKey!);
+        // Use apiKey if available, otherwise use a placeholder (tests will skip)
+        _provider = new TiingoProvider(httpClient, _logger, apiKey ?? "no-key");
     }
 
     public Task InitializeAsync()

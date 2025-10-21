@@ -1,843 +1,965 @@
-# AlgoTrendy API - Usage Examples
+# AlgoTrendy v2.6 - API Usage Examples
 
-This guide provides practical examples for interacting with the AlgoTrendy API using different programming languages and tools.
+Complete guide for integrating with the AlgoTrendy API using various programming languages and tools.
 
 ## Table of Contents
 
+- [Getting Started](#getting-started)
 - [Authentication](#authentication)
-- [Market Data](#market-data)
-- [Orders](#orders)
-- [Backtesting](#backtesting)
-- [Portfolio](#portfolio)
-- [WebSocket (SignalR)](#websocket-signalr)
+- [cURL Examples](#curl-examples)
+- [Python Examples](#python-examples)
+- [JavaScript/TypeScript Examples](#javascripttypescript-examples)
+- [C# Examples](#c-examples)
+- [Postman Collection](#postman-collection)
+- [Error Handling](#error-handling)
 
 ---
 
-## Base URL
+## Getting Started
+
+### Base URL
 
 ```
-Development: http://localhost:5002/api
-Production:  https://api.algotrendy.com/api
+Development:  http://localhost:5002/api
+Production:   https://api.algotrendy.com/api
 ```
+
+### Content Type
+
+All requests and responses use `application/json` unless otherwise specified.
+
+### Rate Limits
+
+- **Market Data**: 1200 requests/minute per IP
+- **Trading Operations**: 600 requests/minute per API key
+- **Batch Operations**: 100 requests/minute per API key
+
+---
 
 ## Authentication
 
-AlgoTrendy uses Bearer token authentication (JWT).
+Currently, the API does not require authentication for development. Future versions will use:
 
-### cURL
+- API Key authentication (`X-API-Key` header)
+- JWT tokens for user sessions
+- OAuth 2.0 for third-party integrations
 
+**Example with API Key** (Future):
 ```bash
-# Login to get access token
-curl -X POST http://localhost:5002/api/auth/login \
-  -H "Content-Type: application/json" \
-  -d '{
-    "username": "your_username",
-    "password": "your_password"
-  }'
-
-# Response:
-# {
-#   "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-#   "expiration": "2025-10-21T12:00:00Z"
-# }
-
-# Use token in subsequent requests
-curl -X GET http://localhost:5002/api/portfolio/summary \
-  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
-```
-
-### Python
-
-```python
-import requests
-
-class AlgoTrendyClient:
-    def __init__(self, base_url="http://localhost:5002/api"):
-        self.base_url = base_url
-        self.token = None
-
-    def login(self, username, password):
-        """Authenticate and store access token"""
-        response = requests.post(
-            f"{self.base_url}/auth/login",
-            json={"username": username, "password": password}
-        )
-        response.raise_for_status()
-        self.token = response.json()["token"]
-        return self.token
-
-    def _headers(self):
-        """Get headers with authorization"""
-        return {
-            "Authorization": f"Bearer {self.token}",
-            "Content-Type": "application/json"
-        }
-
-# Usage
-client = AlgoTrendyClient()
-client.login("your_username", "your_password")
-```
-
-### JavaScript/TypeScript
-
-```javascript
-class AlgoTrendyClient {
-  constructor(baseUrl = 'http://localhost:5002/api') {
-    this.baseUrl = baseUrl;
-    this.token = null;
-  }
-
-  async login(username, password) {
-    const response = await fetch(`${this.baseUrl}/auth/login`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username, password })
-    });
-
-    if (!response.ok) throw new Error('Login failed');
-
-    const data = await response.json();
-    this.token = data.token;
-    return this.token;
-  }
-
-  getHeaders() {
-    return {
-      'Authorization': `Bearer ${this.token}`,
-      'Content-Type': 'application/json'
-    };
-  }
-}
-
-// Usage
-const client = new AlgoTrendyClient();
-await client.login('your_username', 'your_password');
+curl -H "X-API-Key: your_api_key_here" \
+     https://api.algotrendy.com/api/orders
 ```
 
 ---
 
-## Market Data
+## cURL Examples
 
-### Get Available Symbols
-
-#### cURL
+### 1. Health Check
 
 ```bash
-curl -X GET http://localhost:5002/api/MarketData/symbols \
-  -H "Authorization: Bearer YOUR_TOKEN"
+curl -X GET http://localhost:5002/health
 ```
 
-#### Python
-
-```python
-def get_symbols(client):
-    """Get all available trading symbols"""
-    response = requests.get(
-        f"{client.base_url}/MarketData/symbols",
-        headers=client._headers()
-    )
-    return response.json()
-
-# Usage
-symbols = get_symbols(client)
-print(f"Available symbols: {symbols}")
-```
-
-#### JavaScript
-
-```javascript
-async getSymbols() {
-  const response = await fetch(`${this.baseUrl}/MarketData/symbols`, {
-    headers: this.getHeaders()
-  });
-  return await response.json();
+**Response:**
+```json
+{
+  "status": "healthy"
 }
-
-// Usage
-const symbols = await client.getSymbols();
-console.log('Available symbols:', symbols);
 ```
 
-### Get Latest Market Data
-
-#### cURL
+### 2. Get Market Data
 
 ```bash
-curl -X GET "http://localhost:5002/api/MarketData/latest?symbol=BTCUSDT" \
-  -H "Authorization: Bearer YOUR_TOKEN"
+curl -X GET "http://localhost:5002/api/marketdata/BTCUSDT?interval=1h&limit=100"
 ```
 
-#### Python
-
-```python
-def get_latest_price(client, symbol):
-    """Get latest market data for a symbol"""
-    response = requests.get(
-        f"{client.base_url}/MarketData/latest",
-        headers=client._headers(),
-        params={"symbol": symbol}
-    )
-    return response.json()
-
-# Usage
-btc_data = get_latest_price(client, "BTCUSDT")
-print(f"BTC Price: ${btc_data['close']}")
+**Response:**
+```json
+[
+  {
+    "symbol": "BTCUSDT",
+    "timestamp": "2024-10-21T12:00:00Z",
+    "open": 43250.50,
+    "high": 43500.00,
+    "low": 43100.00,
+    "close": 43450.00,
+    "volume": 125.5,
+    "quoteVolume": 5443125.25
+  }
+]
 ```
 
-#### JavaScript
-
-```javascript
-async getLatestPrice(symbol) {
-  const response = await fetch(
-    `${this.baseUrl}/MarketData/latest?symbol=${symbol}`,
-    { headers: this.getHeaders() }
-  );
-  return await response.json();
-}
-
-// Usage
-const btcData = await client.getLatestPrice('BTCUSDT');
-console.log(`BTC Price: $${btcData.close}`);
-```
-
-### Get Historical Data
-
-#### cURL
+### 3. Place Market Order
 
 ```bash
-curl -X GET "http://localhost:5002/api/MarketData/history?symbol=BTCUSDT&interval=1h&limit=100" \
-  -H "Authorization: Bearer YOUR_TOKEN"
-```
-
-#### Python
-
-```python
-def get_historical_data(client, symbol, interval="1h", limit=100):
-    """Get historical market data"""
-    response = requests.get(
-        f"{client.base_url}/MarketData/history",
-        headers=client._headers(),
-        params={
-            "symbol": symbol,
-            "interval": interval,
-            "limit": limit
-        }
-    )
-    return response.json()
-
-# Usage
-import pandas as pd
-
-history = get_historical_data(client, "BTCUSDT", interval="1h", limit=100)
-df = pd.DataFrame(history)
-print(df.head())
-```
-
-#### JavaScript
-
-```javascript
-async getHistoricalData(symbol, interval = '1h', limit = 100) {
-  const params = new URLSearchParams({ symbol, interval, limit });
-  const response = await fetch(
-    `${this.baseUrl}/MarketData/history?${params}`,
-    { headers: this.getHeaders() }
-  );
-  return await response.json();
-}
-
-// Usage
-const history = await client.getHistoricalData('BTCUSDT', '1h', 100);
-console.log(`Retrieved ${history.length} candles`);
-```
-
----
-
-## Orders
-
-### Place Market Order
-
-#### cURL
-
-```bash
-curl -X POST http://localhost:5002/api/Orders/market \
-  -H "Authorization: Bearer YOUR_TOKEN" \
+curl -X POST http://localhost:5002/api/orders \
   -H "Content-Type: application/json" \
   -d '{
     "symbol": "BTCUSDT",
+    "exchange": "binance",
     "side": "Buy",
-    "quantity": 0.001,
-    "brokerId": "bybit"
+    "type": "Market",
+    "quantity": 0.001
   }'
 ```
 
-#### Python
-
-```python
-def place_market_order(client, symbol, side, quantity, broker_id="bybit"):
-    """Place a market order"""
-    response = requests.post(
-        f"{client.base_url}/Orders/market",
-        headers=client._headers(),
-        json={
-            "symbol": symbol,
-            "side": side,
-            "quantity": quantity,
-            "brokerId": broker_id
-        }
-    )
-    return response.json()
-
-# Usage
-order = place_market_order(
-    client,
-    symbol="BTCUSDT",
-    side="Buy",
-    quantity=0.001
-)
-print(f"Order placed: {order['orderId']}")
-```
-
-#### JavaScript
-
-```javascript
-async placeMarketOrder(symbol, side, quantity, brokerId = 'bybit') {
-  const response = await fetch(`${this.baseUrl}/Orders/market`, {
-    method: 'POST',
-    headers: this.getHeaders(),
-    body: JSON.stringify({ symbol, side, quantity, brokerId })
-  });
-  return await response.json();
+**Response:**
+```json
+{
+  "orderId": "550e8400-e29b-41d4-a716-446655440000",
+  "clientOrderId": "AT_1697123456789_abc123",
+  "exchangeOrderId": "12345678901",
+  "status": "Filled",
+  "message": "Order placed successfully",
+  "timestamp": "2024-10-21T12:00:00Z"
 }
-
-// Usage
-const order = await client.placeMarketOrder('BTCUSDT', 'Buy', 0.001);
-console.log(`Order placed: ${order.orderId}`);
 ```
 
-### Place Limit Order
-
-#### cURL
+### 4. Place Limit Order
 
 ```bash
-curl -X POST http://localhost:5002/api/Orders/limit \
-  -H "Authorization: Bearer YOUR_TOKEN" \
+curl -X POST http://localhost:5002/api/orders \
+  -H "Content-Type: application/json" \
+  -d '{
+    "clientOrderId": "MY_CUSTOM_ID_123",
+    "symbol": "ETHUSDT",
+    "exchange": "binance",
+    "side": "Sell",
+    "type": "Limit",
+    "quantity": 1.5,
+    "price": 3000.00
+  }'
+```
+
+### 5. Get Order Status
+
+```bash
+curl -X GET "http://localhost:5002/api/orders/550e8400-e29b-41d4-a716-446655440000"
+```
+
+### 6. Get All Orders
+
+```bash
+curl -X GET "http://localhost:5002/api/orders?symbol=BTCUSDT&limit=50"
+```
+
+### 7. Cancel Order
+
+```bash
+curl -X DELETE "http://localhost:5002/api/orders/550e8400-e29b-41d4-a716-446655440000"
+```
+
+### 8. Get Account Balance
+
+```bash
+curl -X GET "http://localhost:5002/api/account/balance?exchange=binance"
+```
+
+### 9. Get Open Positions
+
+```bash
+curl -X GET "http://localhost:5002/api/positions?exchange=binance"
+```
+
+### 10. Run Backtest
+
+```bash
+curl -X POST http://localhost:5002/api/backtest/run \
   -H "Content-Type: application/json" \
   -d '{
     "symbol": "BTCUSDT",
-    "side": "Buy",
-    "quantity": 0.001,
-    "price": 65000.0,
-    "brokerId": "bybit"
+    "startDate": "2024-01-01",
+    "endDate": "2024-12-31",
+    "initialCapital": 10000,
+    "strategyType": "SMA_CROSSOVER",
+    "parameters": {
+      "fastPeriod": 10,
+      "slowPeriod": 30
+    }
   }'
 ```
 
-#### Python
-
-```python
-def place_limit_order(client, symbol, side, quantity, price, broker_id="bybit"):
-    """Place a limit order"""
-    response = requests.post(
-        f"{client.base_url}/Orders/limit",
-        headers=client._headers(),
-        json={
-            "symbol": symbol,
-            "side": side,
-            "quantity": quantity,
-            "price": price,
-            "brokerId": broker_id
-        }
-    )
-    return response.json()
-
-# Usage
-order = place_limit_order(
-    client,
-    symbol="BTCUSDT",
-    side="Buy",
-    quantity=0.001,
-    price=65000.0
-)
-print(f"Limit order placed: {order['orderId']}")
-```
-
-### Get Order Status
-
-#### Python
-
-```python
-def get_order_status(client, order_id):
-    """Get status of an order"""
-    response = requests.get(
-        f"{client.base_url}/Orders/{order_id}",
-        headers=client._headers()
-    )
-    return response.json()
-
-# Usage
-status = get_order_status(client, "order_id_123")
-print(f"Order status: {status['status']}")
-```
-
-### Cancel Order
-
-#### Python
-
-```python
-def cancel_order(client, order_id):
-    """Cancel an open order"""
-    response = requests.delete(
-        f"{client.base_url}/Orders/{order_id}",
-        headers=client._headers()
-    )
-    return response.json()
-
-# Usage
-result = cancel_order(client, "order_id_123")
-print(f"Cancel result: {result}")
-```
-
 ---
 
-## Backtesting
+## Python Examples
 
-### Run Backtest
-
-#### cURL
+### Installation
 
 ```bash
-curl -X POST http://localhost:5002/api/Backtest/run \
-  -H "Authorization: Bearer YOUR_TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "algorithmCode": "class MyStrategy(QCAlgorithm):\n    def Initialize(self):\n        self.SetStartDate(2023, 1, 1)\n        self.SetCash(100000)\n        self.AddEquity(\"SPY\", Resolution.Daily)",
-    "startDate": "2023-01-01",
-    "endDate": "2023-12-31",
-    "initialCapital": 100000,
-    "engineType": "QuantConnect"
-  }'
+pip install requests
 ```
 
-#### Python
-
-```python
-def run_backtest(client, algorithm_code, start_date, end_date, initial_capital=100000):
-    """Run a backtest"""
-    response = requests.post(
-        f"{client.base_url}/Backtest/run",
-        headers=client._headers(),
-        json={
-            "algorithmCode": algorithm_code,
-            "startDate": start_date,
-            "endDate": end_date,
-            "initialCapital": initial_capital,
-            "engineType": "QuantConnect"
-        }
-    )
-    return response.json()
-
-# Usage
-algorithm = """
-class MyStrategy(QCAlgorithm):
-    def Initialize(self):
-        self.SetStartDate(2023, 1, 1)
-        self.SetCash(100000)
-        self.AddEquity("SPY", Resolution.Daily)
-
-    def OnData(self, data):
-        if not self.Portfolio.Invested:
-            self.SetHoldings("SPY", 1.0)
-"""
-
-result = run_backtest(
-    client,
-    algorithm_code=algorithm,
-    start_date="2023-01-01",
-    end_date="2023-12-31"
-)
-print(f"Backtest ID: {result['backtestId']}")
-```
-
-#### JavaScript
-
-```javascript
-async runBacktest(algorithmCode, startDate, endDate, initialCapital = 100000) {
-  const response = await fetch(`${this.baseUrl}/Backtest/run`, {
-    method: 'POST',
-    headers: this.getHeaders(),
-    body: JSON.stringify({
-      algorithmCode,
-      startDate,
-      endDate,
-      initialCapital,
-      engineType: 'QuantConnect'
-    })
-  });
-  return await response.json();
-}
-
-// Usage
-const algorithm = `
-class MyStrategy(QCAlgorithm):
-    def Initialize(self):
-        self.SetStartDate(2023, 1, 1)
-        self.SetCash(100000)
-        self.AddEquity("SPY", Resolution.Daily)
-`;
-
-const result = await client.runBacktest(
-  algorithm,
-  '2023-01-01',
-  '2023-12-31'
-);
-console.log(`Backtest ID: ${result.backtestId}`);
-```
-
-### Get Backtest Results
-
-#### Python
-
-```python
-def get_backtest_results(client, backtest_id):
-    """Get results of a completed backtest"""
-    response = requests.get(
-        f"{client.base_url}/Backtest/{backtest_id}/results",
-        headers=client._headers()
-    )
-    return response.json()
-
-# Usage
-results = get_backtest_results(client, "backtest_id_123")
-print(f"Total Return: {results['totalReturn']}%")
-print(f"Sharpe Ratio: {results['sharpeRatio']}")
-print(f"Max Drawdown: {results['maxDrawdown']}%")
-```
-
----
-
-## Portfolio
-
-### Get Portfolio Summary
-
-#### cURL
-
-```bash
-curl -X GET http://localhost:5002/api/Portfolio/summary \
-  -H "Authorization: Bearer YOUR_TOKEN"
-```
-
-#### Python
-
-```python
-def get_portfolio_summary(client):
-    """Get portfolio summary"""
-    response = requests.get(
-        f"{client.base_url}/Portfolio/summary",
-        headers=client._headers()
-    )
-    return response.json()
-
-# Usage
-portfolio = get_portfolio_summary(client)
-print(f"Total Value: ${portfolio['totalValue']}")
-print(f"Available Cash: ${portfolio['availableCash']}")
-print(f"Total P&L: ${portfolio['totalPnL']}")
-```
-
-#### JavaScript
-
-```javascript
-async getPortfolioSummary() {
-  const response = await fetch(`${this.baseUrl}/Portfolio/summary`, {
-    headers: this.getHeaders()
-  });
-  return await response.json();
-}
-
-// Usage
-const portfolio = await client.getPortfolioSummary();
-console.log(`Total Value: $${portfolio.totalValue}`);
-```
-
-### Get Open Positions
-
-#### Python
-
-```python
-def get_open_positions(client):
-    """Get all open positions"""
-    response = requests.get(
-        f"{client.base_url}/Portfolio/positions",
-        headers=client._headers()
-    )
-    return response.json()
-
-# Usage
-positions = get_open_positions(client)
-for pos in positions:
-    print(f"{pos['symbol']}: {pos['quantity']} @ ${pos['avgPrice']}")
-```
-
----
-
-## WebSocket (SignalR)
-
-### Python (using signalrcore)
-
-```python
-from signalrcore.hub_connection_builder import HubConnectionBuilder
-
-class MarketDataSubscriber:
-    def __init__(self, hub_url, token):
-        self.connection = HubConnectionBuilder()\
-            .with_url(hub_url, options={
-                "access_token_factory": lambda: token
-            })\
-            .configure_logging(logging.INFO)\
-            .with_automatic_reconnect({
-                "type": "interval",
-                "intervals": [0, 2, 10, 30]
-            })\
-            .build()
-
-        # Register event handlers
-        self.connection.on("ReceiveMarketData", self.on_market_data)
-        self.connection.on("ReceiveTrade", self.on_trade)
-
-    def on_market_data(self, data):
-        print(f"Market Data: {data}")
-
-    def on_trade(self, trade):
-        print(f"Trade: {trade}")
-
-    def start(self):
-        self.connection.start()
-
-    def subscribe_to_symbol(self, symbol):
-        self.connection.send("SubscribeToSymbol", [symbol])
-
-# Usage
-subscriber = MarketDataSubscriber(
-    "http://localhost:5002/hubs/market",
-    client.token
-)
-subscriber.start()
-subscriber.subscribe_to_symbol("BTCUSDT")
-```
-
-### JavaScript (using @microsoft/signalr)
-
-```javascript
-import * as signalR from '@microsoft/signalr';
-
-class MarketDataSubscriber {
-  constructor(hubUrl, token) {
-    this.connection = new signalR.HubConnectionBuilder()
-      .withUrl(hubUrl, { accessTokenFactory: () => token })
-      .withAutomaticReconnect()
-      .build();
-
-    // Register event handlers
-    this.connection.on('ReceiveMarketData', this.onMarketData.bind(this));
-    this.connection.on('ReceiveTrade', this.onTrade.bind(this));
-  }
-
-  onMarketData(data) {
-    console.log('Market Data:', data);
-  }
-
-  onTrade(trade) {
-    console.log('Trade:', trade);
-  }
-
-  async start() {
-    await this.connection.start();
-    console.log('SignalR Connected');
-  }
-
-  async subscribeToSymbol(symbol) {
-    await this.connection.invoke('SubscribeToSymbol', symbol);
-  }
-}
-
-// Usage
-const subscriber = new MarketDataSubscriber(
-  'http://localhost:5002/hubs/market',
-  client.token
-);
-await subscriber.start();
-await subscriber.subscribeToSymbol('BTCUSDT');
-```
-
----
-
-## Complete Example: Automated Trading Bot
-
-### Python
+### Basic Client
 
 ```python
 import requests
-import time
+from typing import Dict, List, Optional
 from datetime import datetime
 
-class TradingBot:
-    def __init__(self, base_url, username, password):
-        self.client = AlgoTrendyClient(base_url)
-        self.client.login(username, password)
+class AlgoTrendyClient:
+    """Python client for AlgoTrendy API"""
+    
+    def __init__(self, base_url: str = "http://localhost:5002/api"):
+        self.base_url = base_url
+        self.session = requests.Session()
+        self.session.headers.update({
+            'Content-Type': 'application/json'
+        })
+    
+    def _get(self, endpoint: str, params: Optional[Dict] = None) -> Dict:
+        """Make GET request"""
+        response = self.session.get(f"{self.base_url}{endpoint}", params=params)
+        response.raise_for_status()
+        return response.json()
+    
+    def _post(self, endpoint: str, data: Dict) -> Dict:
+        """Make POST request"""
+        response = self.session.post(f"{self.base_url}{endpoint}", json=data)
+        response.raise_for_status()
+        return response.json()
+    
+    def _delete(self, endpoint: str) -> Dict:
+        """Make DELETE request"""
+        response = self.session.delete(f"{self.base_url}{endpoint}")
+        response.raise_for_status()
+        return response.json()
+    
+    # Market Data
+    def get_market_data(self, symbol: str, interval: str = "1h", limit: int = 100) -> List[Dict]:
+        """Get historical market data"""
+        return self._get(f"/marketdata/{symbol}", {
+            'interval': interval,
+            'limit': limit
+        })
+    
+    # Orders
+    def place_market_order(self, symbol: str, side: str, quantity: float, 
+                          exchange: str = "binance") -> Dict:
+        """Place a market order"""
+        return self._post("/orders", {
+            'symbol': symbol,
+            'exchange': exchange,
+            'side': side,
+            'type': 'Market',
+            'quantity': quantity
+        })
+    
+    def place_limit_order(self, symbol: str, side: str, quantity: float, 
+                         price: float, exchange: str = "binance") -> Dict:
+        """Place a limit order"""
+        return self._post("/orders", {
+            'symbol': symbol,
+            'exchange': exchange,
+            'side': side,
+            'type': 'Limit',
+            'quantity': quantity,
+            'price': price
+        })
+    
+    def get_order(self, order_id: str) -> Dict:
+        """Get order by ID"""
+        return self._get(f"/orders/{order_id}")
+    
+    def get_orders(self, symbol: Optional[str] = None, limit: int = 100) -> List[Dict]:
+        """Get all orders"""
+        params = {'limit': limit}
+        if symbol:
+            params['symbol'] = symbol
+        return self._get("/orders", params)
+    
+    def cancel_order(self, order_id: str) -> Dict:
+        """Cancel an order"""
+        return self._delete(f"/orders/{order_id}")
+    
+    # Account
+    def get_balance(self, exchange: str = "binance") -> Dict:
+        """Get account balance"""
+        return self._get(f"/account/balance", {'exchange': exchange})
+    
+    # Positions
+    def get_positions(self, exchange: str = "binance") -> List[Dict]:
+        """Get open positions"""
+        return self._get("/positions", {'exchange': exchange})
+    
+    # Backtesting
+    def run_backtest(self, symbol: str, start_date: str, end_date: str,
+                    initial_capital: float = 10000, strategy_type: str = "SMA_CROSSOVER",
+                    parameters: Optional[Dict] = None) -> Dict:
+        """Run a backtest"""
+        return self._post("/backtest/run", {
+            'symbol': symbol,
+            'startDate': start_date,
+            'endDate': end_date,
+            'initialCapital': initial_capital,
+            'strategyType': strategy_type,
+            'parameters': parameters or {'fastPeriod': 10, 'slowPeriod': 30}
+        })
 
-    def run_simple_strategy(self, symbol, quantity):
-        """
-        Simple moving average crossover strategy
-        """
-        print(f"Starting strategy for {symbol}...")
+# Usage Example
+if __name__ == "__main__":
+    client = AlgoTrendyClient()
+    
+    # Get market data
+    print("Fetching BTC market data...")
+    market_data = client.get_market_data("BTCUSDT", interval="1h", limit=10)
+    print(f"Received {len(market_data)} candles")
+    print(f"Latest close: ${market_data[0]['close']}")
+    
+    # Place market order
+    print("\nPlacing market order...")
+    order = client.place_market_order(
+        symbol="BTCUSDT",
+        side="Buy",
+        quantity=0.001
+    )
+    print(f"Order ID: {order['orderId']}")
+    print(f"Status: {order['status']}")
+    
+    # Get order status
+    print("\nChecking order status...")
+    order_status = client.get_order(order['orderId'])
+    print(f"Order status: {order_status['status']}")
+    
+    # Run backtest
+    print("\nRunning backtest...")
+    backtest = client.run_backtest(
+        symbol="BTCUSDT",
+        start_date="2024-01-01",
+        end_date="2024-12-31",
+        initial_capital=10000
+    )
+    print(f"Backtest ID: {backtest['backtestId']}")
+    print(f"Total Return: {backtest['totalReturn']:.2%}")
+    print(f"Sharpe Ratio: {backtest['sharpeRatio']:.2f}")
+```
 
-        while True:
-            # Get historical data
-            history = get_historical_data(
-                self.client,
-                symbol,
-                interval="1h",
-                limit=50
-            )
+### Async Python Client
 
-            # Calculate simple moving averages
-            prices = [candle['close'] for candle in history]
-            sma_short = sum(prices[-10:]) / 10
-            sma_long = sum(prices[-30:]) / 30
+```python
+import aiohttp
+import asyncio
+from typing import Dict, List, Optional
 
-            # Get current position
-            positions = get_open_positions(self.client)
-            has_position = any(p['symbol'] == symbol for p in positions)
-
-            # Trading logic
-            if sma_short > sma_long and not has_position:
-                print(f"BUY signal detected! SMA Short: {sma_short}, SMA Long: {sma_long}")
-                order = place_market_order(self.client, symbol, "Buy", quantity)
-                print(f"Order placed: {order}")
-
-            elif sma_short < sma_long and has_position:
-                print(f"SELL signal detected! SMA Short: {sma_short}, SMA Long: {sma_long}")
-                order = place_market_order(self.client, symbol, "Sell", quantity)
-                print(f"Order placed: {order}")
-
-            else:
-                print(f"No signal. SMA Short: {sma_short:.2f}, SMA Long: {sma_long:.2f}")
-
-            # Wait before next iteration
-            time.sleep(3600)  # 1 hour
+class AsyncAlgoTrendyClient:
+    """Async Python client for AlgoTrendy API"""
+    
+    def __init__(self, base_url: str = "http://localhost:5002/api"):
+        self.base_url = base_url
+    
+    async def _get(self, session: aiohttp.ClientSession, endpoint: str, 
+                   params: Optional[Dict] = None) -> Dict:
+        async with session.get(f"{self.base_url}{endpoint}", params=params) as response:
+            response.raise_for_status()
+            return await response.json()
+    
+    async def _post(self, session: aiohttp.ClientSession, endpoint: str, data: Dict) -> Dict:
+        async with session.post(f"{self.base_url}{endpoint}", json=data) as response:
+            response.raise_for_status()
+            return await response.json()
+    
+    async def get_market_data(self, symbol: str, interval: str = "1h") -> List[Dict]:
+        async with aiohttp.ClientSession() as session:
+            return await self._get(session, f"/marketdata/{symbol}", {'interval': interval})
+    
+    async def place_order(self, symbol: str, side: str, quantity: float) -> Dict:
+        async with aiohttp.ClientSession() as session:
+            return await self._post(session, "/orders", {
+                'symbol': symbol,
+                'side': side,
+                'type': 'Market',
+                'quantity': quantity
+            })
 
 # Usage
-if __name__ == "__main__":
-    bot = TradingBot(
-        base_url="http://localhost:5002/api",
-        username="your_username",
-        password="your_password"
-    )
-    bot.run_simple_strategy("BTCUSDT", quantity=0.001)
+async def main():
+    client = AsyncAlgoTrendyClient()
+    
+    # Fetch multiple symbols concurrently
+    symbols = ["BTCUSDT", "ETHUSDT", "SOLUSDT"]
+    tasks = [client.get_market_data(symbol) for symbol in symbols]
+    results = await asyncio.gather(*tasks)
+    
+    for symbol, data in zip(symbols, results):
+        print(f"{symbol}: ${data[0]['close']}")
+
+asyncio.run(main())
+```
+
+---
+
+## JavaScript/TypeScript Examples
+
+### Installation
+
+```bash
+npm install axios
+```
+
+### TypeScript Client
+
+```typescript
+import axios, { AxiosInstance, AxiosResponse } from 'axios';
+
+interface MarketData {
+  symbol: string;
+  timestamp: string;
+  open: number;
+  high: number;
+  low: number;
+  close: number;
+  volume: number;
+  quoteVolume: number;
+}
+
+interface Order {
+  orderId: string;
+  clientOrderId?: string;
+  exchangeOrderId?: string;
+  symbol: string;
+  exchange: string;
+  side: 'Buy' | 'Sell';
+  type: 'Market' | 'Limit' | 'StopLoss' | 'StopLimit';
+  status: string;
+  quantity: number;
+  price?: number;
+  filledQuantity?: number;
+  averageFillPrice?: number;
+  timestamp: string;
+}
+
+interface OrderRequest {
+  clientOrderId?: string;
+  symbol: string;
+  exchange?: string;
+  side: 'Buy' | 'Sell';
+  type: 'Market' | 'Limit' | 'StopLoss' | 'StopLimit';
+  quantity: number;
+  price?: number;
+  stopPrice?: number;
+}
+
+class AlgoTrendyClient {
+  private client: AxiosInstance;
+
+  constructor(baseURL: string = 'http://localhost:5002/api') {
+    this.client = axios.create({
+      baseURL,
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+  }
+
+  // Market Data
+  async getMarketData(
+    symbol: string,
+    interval: string = '1h',
+    limit: number = 100
+  ): Promise<MarketData[]> {
+    const response = await this.client.get<MarketData[]>(
+      `/marketdata/${symbol}`,
+      {
+        params: { interval, limit },
+      }
+    );
+    return response.data;
+  }
+
+  // Orders
+  async placeOrder(orderRequest: OrderRequest): Promise<Order> {
+    const response = await this.client.post<Order>('/orders', {
+      ...orderRequest,
+      exchange: orderRequest.exchange || 'binance',
+    });
+    return response.data;
+  }
+
+  async placeMarketOrder(
+    symbol: string,
+    side: 'Buy' | 'Sell',
+    quantity: number,
+    exchange: string = 'binance'
+  ): Promise<Order> {
+    return this.placeOrder({
+      symbol,
+      side,
+      type: 'Market',
+      quantity,
+      exchange,
+    });
+  }
+
+  async placeLimitOrder(
+    symbol: string,
+    side: 'Buy' | 'Sell',
+    quantity: number,
+    price: number,
+    exchange: string = 'binance'
+  ): Promise<Order> {
+    return this.placeOrder({
+      symbol,
+      side,
+      type: 'Limit',
+      quantity,
+      price,
+      exchange,
+    });
+  }
+
+  async getOrder(orderId: string): Promise<Order> {
+    const response = await this.client.get<Order>(`/orders/${orderId}`);
+    return response.data;
+  }
+
+  async getOrders(symbol?: string, limit: number = 100): Promise<Order[]> {
+    const response = await this.client.get<Order[]>('/orders', {
+      params: { symbol, limit },
+    });
+    return response.data;
+  }
+
+  async cancelOrder(orderId: string): Promise<void> {
+    await this.client.delete(`/orders/${orderId}`);
+  }
+
+  // Account
+  async getBalance(exchange: string = 'binance'): Promise<any> {
+    const response = await this.client.get('/account/balance', {
+      params: { exchange },
+    });
+    return response.data;
+  }
+
+  // Positions
+  async getPositions(exchange: string = 'binance'): Promise<any[]> {
+    const response = await this.client.get('/positions', {
+      params: { exchange },
+    });
+    return response.data;
+  }
+}
+
+// Usage Example
+const client = new AlgoTrendyClient();
+
+// Get market data
+client.getMarketData('BTCUSDT', '1h', 10)
+  .then(data => {
+    console.log(`Latest BTC price: $${data[0].close}`);
+  })
+  .catch(error => {
+    console.error('Error:', error.message);
+  });
+
+// Place market order
+client.placeMarketOrder('BTCUSDT', 'Buy', 0.001)
+  .then(order => {
+    console.log(`Order placed: ${order.orderId}`);
+    console.log(`Status: ${order.status}`);
+  })
+  .catch(error => {
+    console.error('Order failed:', error.message);
+  });
+
+// Using async/await
+async function tradingExample() {
+  try {
+    // Fetch market data
+    const marketData = await client.getMarketData('BTCUSDT');
+    const currentPrice = marketData[0].close;
+    console.log(`Current BTC price: $${currentPrice}`);
+
+    // Place buy order if price is favorable
+    if (currentPrice < 45000) {
+      const order = await client.placeMarketOrder('BTCUSDT', 'Buy', 0.001);
+      console.log(`Buy order executed: ${order.orderId}`);
+    }
+
+    // Check positions
+    const positions = await client.getPositions();
+    console.log(`Open positions: ${positions.length}`);
+  } catch (error) {
+    console.error('Trading error:', error);
+  }
+}
+
+tradingExample();
+```
+
+### React Hook Example
+
+```typescript
+import { useState, useEffect } from 'react';
+import { AlgoTrendyClient } from './AlgoTrendyClient';
+
+function useMarketData(symbol: string, interval: string = '1h') {
+  const [data, setData] = useState<MarketData[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
+
+  useEffect(() => {
+    const client = new AlgoTrendyClient();
+    
+    async function fetchData() {
+      try {
+        setLoading(true);
+        const result = await client.getMarketData(symbol, interval);
+        setData(result);
+        setError(null);
+      } catch (err) {
+        setError(err as Error);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchData();
+    const interval = setInterval(fetchData, 60000); // Refresh every minute
+
+    return () => clearInterval(interval);
+  }, [symbol, interval]);
+
+  return { data, loading, error };
+}
+
+// Component usage
+function TradingDashboard() {
+  const { data, loading, error } = useMarketData('BTCUSDT');
+
+  if (loading) return <div>Loading...</div>;
+  if (error) return <div>Error: {error.message}</div>;
+
+  return (
+    <div>
+      <h1>BTC/USDT</h1>
+      <p>Price: ${data[0]?.close}</p>
+      <p>Volume: {data[0]?.volume}</p>
+    </div>
+  );
+}
+```
+
+---
+
+## C# Examples
+
+### Installation
+
+```bash
+dotnet add package RestSharp
+```
+
+### C# Client
+
+```csharp
+using System;
+using System.Collections.Generic;
+using System.Threading.Tasks;
+using RestSharp;
+using Newtonsoft.Json;
+
+public class AlgoTrendyClient
+{
+    private readonly RestClient _client;
+    private readonly string _baseUrl;
+
+    public AlgoTrendyClient(string baseUrl = "http://localhost:5002/api")
+    {
+        _baseUrl = baseUrl;
+        _client = new RestClient(baseUrl);
+    }
+
+    // Market Data
+    public async Task<List<MarketData>> GetMarketDataAsync(
+        string symbol, 
+        string interval = "1h", 
+        int limit = 100)
+    {
+        var request = new RestRequest($"/marketdata/{symbol}")
+            .AddQueryParameter("interval", interval)
+            .AddQueryParameter("limit", limit.ToString());
+
+        var response = await _client.ExecuteGetAsync<List<MarketData>>(request);
+        
+        if (!response.IsSuccessful)
+            throw new Exception($"API Error: {response.ErrorMessage}");
+
+        return response.Data;
+    }
+
+    // Orders
+    public async Task<Order> PlaceMarketOrderAsync(
+        string symbol,
+        string side,
+        decimal quantity,
+        string exchange = "binance")
+    {
+        var request = new RestRequest("/orders", Method.Post)
+            .AddJsonBody(new
+            {
+                symbol,
+                exchange,
+                side,
+                type = "Market",
+                quantity
+            });
+
+        var response = await _client.ExecutePostAsync<Order>(request);
+
+        if (!response.IsSuccessful)
+            throw new Exception($"Order failed: {response.ErrorMessage}");
+
+        return response.Data;
+    }
+
+    public async Task<Order> PlaceLimitOrderAsync(
+        string symbol,
+        string side,
+        decimal quantity,
+        decimal price,
+        string exchange = "binance")
+    {
+        var request = new RestRequest("/orders", Method.Post)
+            .AddJsonBody(new
+            {
+                symbol,
+                exchange,
+                side,
+                type = "Limit",
+                quantity,
+                price
+            });
+
+        var response = await _client.ExecutePostAsync<Order>(request);
+
+        if (!response.IsSuccessful)
+            throw new Exception($"Order failed: {response.ErrorMessage}");
+
+        return response.Data;
+    }
+
+    public async Task<Order> GetOrderAsync(string orderId)
+    {
+        var request = new RestRequest($"/orders/{orderId}");
+        var response = await _client.ExecuteGetAsync<Order>(request);
+
+        if (!response.IsSuccessful)
+            throw new Exception($"Failed to get order: {response.ErrorMessage}");
+
+        return response.Data;
+    }
+
+    public async Task<List<Order>> GetOrdersAsync(string symbol = null, int limit = 100)
+    {
+        var request = new RestRequest("/orders")
+            .AddQueryParameter("limit", limit.ToString());
+
+        if (!string.IsNullOrEmpty(symbol))
+            request.AddQueryParameter("symbol", symbol);
+
+        var response = await _client.ExecuteGetAsync<List<Order>>(request);
+
+        if (!response.IsSuccessful)
+            throw new Exception($"Failed to get orders: {response.ErrorMessage}");
+
+        return response.Data;
+    }
+
+    public async Task CancelOrderAsync(string orderId)
+    {
+        var request = new RestRequest($"/orders/{orderId}", Method.Delete);
+        var response = await _client.ExecuteAsync(request);
+
+        if (!response.IsSuccessful)
+            throw new Exception($"Failed to cancel order: {response.ErrorMessage}");
+    }
+}
+
+// Models
+public class MarketData
+{
+    public string Symbol { get; set; }
+    public DateTime Timestamp { get; set; }
+    public decimal Open { get; set; }
+    public decimal High { get; set; }
+    public decimal Low { get; set; }
+    public decimal Close { get; set; }
+    public decimal Volume { get; set; }
+    public decimal QuoteVolume { get; set; }
+}
+
+public class Order
+{
+    public string OrderId { get; set; }
+    public string ClientOrderId { get; set; }
+    public string ExchangeOrderId { get; set; }
+    public string Symbol { get; set; }
+    public string Exchange { get; set; }
+    public string Side { get; set; }
+    public string Type { get; set; }
+    public string Status { get; set; }
+    public decimal Quantity { get; set; }
+    public decimal? Price { get; set; }
+    public decimal FilledQuantity { get; set; }
+    public decimal? AverageFillPrice { get; set; }
+    public DateTime CreatedAt { get; set; }
+    public DateTime? UpdatedAt { get; set; }
+}
+
+// Usage Example
+class Program
+{
+    static async Task Main(string[] args)
+    {
+        var client = new AlgoTrendyClient();
+
+        try
+        {
+            // Get market data
+            Console.WriteLine("Fetching market data...");
+            var marketData = await client.GetMarketDataAsync("BTCUSDT", "1h", 10);
+            Console.WriteLine($"Latest BTC price: ${marketData[0].Close}");
+
+            // Place market order
+            Console.WriteLine("\nPlacing market order...");
+            var order = await client.PlaceMarketOrderAsync(
+                symbol: "BTCUSDT",
+                side: "Buy",
+                quantity: 0.001m
+            );
+            Console.WriteLine($"Order ID: {order.OrderId}");
+            Console.WriteLine($"Status: {order.Status}");
+
+            // Get order status
+            Console.WriteLine("\nChecking order status...");
+            var orderStatus = await client.GetOrderAsync(order.OrderId);
+            Console.WriteLine($"Current status: {orderStatus.Status}");
+
+            // Get all orders
+            Console.WriteLine("\nFetching all orders...");
+            var orders = await client.GetOrdersAsync("BTCUSDT", 50);
+            Console.WriteLine($"Total orders: {orders.Count}");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error: {ex.Message}");
+        }
+    }
+}
+```
+
+---
+
+## Postman Collection
+
+Import this JSON into Postman to get started quickly:
+
+```json
+{
+  "info": {
+    "name": "AlgoTrendy API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Market Data",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/marketdata/BTCUSDT?interval=1h&limit=100",
+          "host": ["{{baseUrl}}"],
+          "path": ["marketdata", "BTCUSDT"],
+          "query": [
+            {"key": "interval", "value": "1h"},
+            {"key": "limit", "value": "100"}
+          ]
+        }
+      }
+    },
+    {
+      "name": "Place Market Order",
+      "request": {
+        "method": "POST",
+        "header": [{"key": "Content-Type", "value": "application/json"}],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"symbol\": \"BTCUSDT\",\n  \"exchange\": \"binance\",\n  \"side\": \"Buy\",\n  \"type\": \"Market\",\n  \"quantity\": 0.001\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/orders",
+          "host": ["{{baseUrl}}"],
+          "path": ["orders"]
+        }
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:5002/api"
+    }
+  ]
+}
 ```
 
 ---
 
 ## Error Handling
 
-### Python
+### Common Error Codes
 
-```python
-def make_api_request(func):
-    """Decorator for API error handling"""
-    def wrapper(*args, **kwargs):
-        try:
-            return func(*args, **kwargs)
-        except requests.exceptions.HTTPError as e:
-            print(f"HTTP Error: {e.response.status_code}")
-            print(f"Response: {e.response.text}")
-            raise
-        except requests.exceptions.ConnectionError:
-            print("Connection Error: Could not connect to API")
-            raise
-        except requests.exceptions.Timeout:
-            print("Timeout Error: Request timed out")
-            raise
-        except Exception as e:
-            print(f"Unexpected error: {e}")
-            raise
-    return wrapper
+| Code | Meaning | Action |
+|------|---------|--------|
+| 400 | Bad Request | Check request parameters |
+| 404 | Not Found | Verify resource ID/symbol |
+| 429 | Rate Limit | Wait and retry |
+| 500 | Server Error | Contact support |
 
-@make_api_request
-def get_market_data(client, symbol):
-    response = requests.get(
-        f"{client.base_url}/MarketData/latest",
-        headers=client._headers(),
-        params={"symbol": symbol},
-        timeout=30
-    )
-    response.raise_for_status()
-    return response.json()
-```
+### Error Response Format
 
-### JavaScript
-
-```javascript
-async function makeApiRequest(requestFunc) {
-  try {
-    return await requestFunc();
-  } catch (error) {
-    if (error.response) {
-      console.error('HTTP Error:', error.response.status);
-      console.error('Response:', await error.response.text());
-    } else if (error.request) {
-      console.error('No response received:', error.request);
-    } else {
-      console.error('Error:', error.message);
+```json
+{
+  "error": "Validation failed",
+  "details": [
+    {
+      "field": "quantity",
+      "message": "Quantity must be greater than 0"
     }
-    throw error;
-  }
+  ],
+  "timestamp": "2024-10-21T12:00:00Z"
 }
-
-// Usage
-const data = await makeApiRequest(() =>
-  client.getLatestPrice('BTCUSDT')
-);
 ```
 
----
-
-## Rate Limiting
-
-The API implements rate limiting to prevent abuse:
-
-- **Default limit:** 100 requests per minute per IP
-- **Authenticated:** 1000 requests per minute per user
-
-When rate limited, you'll receive a `429 Too Many Requests` response with a `Retry-After` header.
-
-### Python Rate Limit Handling
+### Python Error Handling
 
 ```python
-import time
-
-def api_call_with_retry(func, max_retries=3):
-    """Retry API call with exponential backoff"""
-    for attempt in range(max_retries):
-        try:
-            return func()
-        except requests.exceptions.HTTPError as e:
-            if e.response.status_code == 429:
-                retry_after = int(e.response.headers.get('Retry-After', 60))
-                print(f"Rate limited. Retrying after {retry_after} seconds...")
-                time.sleep(retry_after)
-            else:
-                raise
-    raise Exception("Max retries exceeded")
+try:
+    order = client.place_market_order("BTCUSDT", "Buy", 0.001)
+except requests.exceptions.HTTPError as e:
+    if e.response.status_code == 400:
+        error_data = e.response.json()
+        print(f"Validation error: {error_data['error']}")
+        for detail in error_data.get('details', []):
+            print(f"  - {detail['field']}: {detail['message']}")
+    elif e.response.status_code == 429:
+        print("Rate limit exceeded. Wait 60 seconds.")
+        time.sleep(60)
+    else:
+        print(f"API error: {e}")
+except requests.exceptions.ConnectionError:
+    print("Cannot connect to API. Is the server running?")
 ```
 
 ---
 
-## Additional Resources
+## Next Steps
 
-- **API Documentation:** http://localhost:5002/swagger
-- **Project Repository:** https://github.com/KenyBoi/algotrendy-v2.6
-- **Support:** Open an issue on GitHub
+- **Explore Swagger UI**: http://localhost:5002/swagger
+- **Read the Architecture**: [ARCHITECTURE.md](ARCHITECTURE.md)
+- **Deploy to Production**: [DEPLOYMENT_GUIDE.md](DEPLOYMENT_GUIDE.md)
 
 ---
 
-**Happy Trading!** 🚀
+**Last Updated**: October 21, 2025
+**API Version**: 2.6.0

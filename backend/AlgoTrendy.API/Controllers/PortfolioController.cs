@@ -12,15 +12,86 @@ namespace AlgoTrendy.API.Controllers;
 [Route("api/[controller]")]
 public class PortfolioController : ControllerBase
 {
-    private readonly IDebtManagementService _debtManagementService;
+    private readonly IDebtManagementService? _debtManagementService;
     private readonly ILogger<PortfolioController> _logger;
+    private readonly IPositionRepository? _positionRepository;
 
     public PortfolioController(
-        IDebtManagementService debtManagementService,
-        ILogger<PortfolioController> logger)
+        ILogger<PortfolioController> logger,
+        IDebtManagementService? debtManagementService = null,
+        IPositionRepository? positionRepository = null)
     {
-        _debtManagementService = debtManagementService ?? throw new ArgumentNullException(nameof(debtManagementService));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        _debtManagementService = debtManagementService;
+        _positionRepository = positionRepository;
+    }
+
+    /// <summary>
+    /// Gets portfolio summary with positions and PnL
+    /// </summary>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Portfolio summary</returns>
+    /// <response code="200">Portfolio summary retrieved successfully</response>
+    /// <response code="500">Internal server error</response>
+    [HttpGet]
+    [ProducesResponseType(typeof(PortfolioSummary), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    public async Task<ActionResult<PortfolioSummary>> GetPortfolioSummaryAsync(CancellationToken cancellationToken)
+    {
+        try
+        {
+            _logger.LogInformation("Portfolio summary requested");
+
+            // Get positions if repository is available
+            var positions = new List<Position>();
+            if (_positionRepository != null)
+            {
+                try
+                {
+                    positions = (await _positionRepository.GetAllActiveAsync(cancellationToken)).ToList();
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Failed to fetch positions for portfolio summary");
+                }
+            }
+
+            // Calculate portfolio metrics
+            var unrealizedPnl = positions.Sum(p => p.UnrealizedPnL);
+
+            // Mock data for cash, equity, and realized PnL (would come from account service in production)
+            var cash = 10000m;
+            var realizedPnl = 0m; // Would come from closed positions/trades in production
+            var equity = positions.Sum(p => p.CurrentValue);
+            var totalValue = cash + equity;
+
+            // Calculate today's P&L (simplified - would need historical data for accurate calculation)
+            var todayPnl = unrealizedPnl; // Simplified
+            var todayPnlPercent = totalValue > 0 ? (todayPnl / totalValue) * 100 : 0;
+
+            var summary = new PortfolioSummary
+            {
+                TotalValue = totalValue,
+                Cash = cash,
+                Equity = equity,
+                UnrealizedPnl = unrealizedPnl,
+                RealizedPnl = realizedPnl,
+                TodayPnl = todayPnl,
+                TodayPnlPercent = todayPnlPercent,
+                Positions = positions
+            };
+
+            _logger.LogInformation(
+                "Portfolio summary retrieved - TotalValue: {TotalValue}, UnrealizedPnL: {UnrealizedPnL}, Positions: {PositionCount}",
+                summary.TotalValue, summary.UnrealizedPnl, positions.Count);
+
+            return Ok(summary);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to retrieve portfolio summary");
+            return StatusCode(500, new { error = "Internal server error" });
+        }
     }
 
     /// <summary>
@@ -647,4 +718,50 @@ public class ClosePositionResponse
     /// Closure result message
     /// </summary>
     public string? Message { get; set; }
+}
+
+/// <summary>
+/// Portfolio summary response model
+/// </summary>
+public class PortfolioSummary
+{
+    /// <summary>
+    /// Total portfolio value (cash + equity + unrealized PnL)
+    /// </summary>
+    public decimal TotalValue { get; set; }
+
+    /// <summary>
+    /// Available cash balance
+    /// </summary>
+    public decimal Cash { get; set; }
+
+    /// <summary>
+    /// Total equity value of positions
+    /// </summary>
+    public decimal Equity { get; set; }
+
+    /// <summary>
+    /// Unrealized profit/loss from open positions
+    /// </summary>
+    public decimal UnrealizedPnl { get; set; }
+
+    /// <summary>
+    /// Realized profit/loss from closed positions
+    /// </summary>
+    public decimal RealizedPnl { get; set; }
+
+    /// <summary>
+    /// Today's profit/loss
+    /// </summary>
+    public decimal TodayPnl { get; set; }
+
+    /// <summary>
+    /// Today's profit/loss percentage
+    /// </summary>
+    public decimal TodayPnlPercent { get; set; }
+
+    /// <summary>
+    /// List of open positions
+    /// </summary>
+    public List<Position> Positions { get; set; } = new();
 }
