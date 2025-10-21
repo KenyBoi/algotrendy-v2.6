@@ -411,13 +411,13 @@ builder.Services.Configure<AlgoTrendy.TradingEngine.Brokers.CoinbaseOptions>(opt
     options.ApiSecret = builder.Configuration["Coinbase__ApiSecret"] ?? Environment.GetEnvironmentVariable("COINBASE_API_SECRET") ?? "";
 });
 
-// Configure MEXC broker options (DISABLED - MEXCBroker implementation incomplete)
-// builder.Services.Configure<AlgoTrendy.TradingEngine.Brokers.MEXCOptions>(options =>
-// {
-//     options.ApiKey = builder.Configuration["MEXC__ApiKey"] ?? Environment.GetEnvironmentVariable("MEXC_API_KEY") ?? "";
-//     options.ApiSecret = builder.Configuration["MEXC__ApiSecret"] ?? Environment.GetEnvironmentVariable("MEXC_API_SECRET") ?? "";
-//     options.UseTestnet = builder.Configuration.GetValue<bool>("MEXC__UseTestnet", true);
-// });
+// Configure MEXC broker options
+builder.Services.Configure<AlgoTrendy.TradingEngine.Brokers.MEXCOptions>(options =>
+{
+    options.ApiKey = builder.Configuration["MEXC__ApiKey"] ?? Environment.GetEnvironmentVariable("MEXC_API_KEY") ?? "";
+    options.ApiSecret = builder.Configuration["MEXC__ApiSecret"] ?? Environment.GetEnvironmentVariable("MEXC_API_SECRET") ?? "";
+    options.UseTestnet = builder.Configuration.GetValue<bool>("MEXC__UseTestnet", true);
+});
 
 // Register all brokers as named services
 builder.Services.AddScoped<AlgoTrendy.TradingEngine.Brokers.BinanceBroker>();
@@ -427,7 +427,7 @@ builder.Services.AddScoped<AlgoTrendy.TradingEngine.Brokers.NinjaTraderBroker>()
 builder.Services.AddScoped<AlgoTrendy.TradingEngine.Brokers.InteractiveBrokersBroker>();
 // builder.Services.AddScoped<AlgoTrendy.TradingEngine.Brokers.KrakenBroker>(); // DISABLED - Package API mismatch
 builder.Services.AddScoped<AlgoTrendy.TradingEngine.Brokers.CoinbaseBroker>(); // ✅ ACTIVE
-// builder.Services.AddScoped<AlgoTrendy.TradingEngine.Brokers.MEXCBroker>(); // DISABLED - Implementation incomplete
+builder.Services.AddScoped<AlgoTrendy.TradingEngine.Brokers.MEXCBroker>(); // ✅ ACTIVE
 
 // Register default broker (can be configured via environment variable)
 builder.Services.AddScoped<IBroker>(sp =>
@@ -443,7 +443,7 @@ builder.Services.AddScoped<IBroker>(sp =>
         "interactivebrokers" or "ibkr" => sp.GetRequiredService<AlgoTrendy.TradingEngine.Brokers.InteractiveBrokersBroker>(),
         // "kraken" => sp.GetRequiredService<AlgoTrendy.TradingEngine.Brokers.KrakenBroker>(), // DISABLED - Package API mismatch
         "coinbase" => sp.GetRequiredService<AlgoTrendy.TradingEngine.Brokers.CoinbaseBroker>(), // ✅ ACTIVE
-        // "mexc" => sp.GetRequiredService<AlgoTrendy.TradingEngine.Brokers.MEXCBroker>(), // DISABLED - Implementation incomplete
+        "mexc" => sp.GetRequiredService<AlgoTrendy.TradingEngine.Brokers.MEXCBroker>(), // ✅ ACTIVE
         _ => sp.GetRequiredService<AlgoTrendy.TradingEngine.Brokers.BybitBroker>() // Default to Bybit
     };
 });
