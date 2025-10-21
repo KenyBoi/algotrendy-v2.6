@@ -9,7 +9,7 @@ scikit-learn==1.5.2
 # ML Enhancement - XGBoost and LSTM
 xgboost==2.0.3
 tensorflow==2.15.0
-keras==2.15.0
+keras==3.11.3
 
 # Visualization
 plotly==5.18.0
