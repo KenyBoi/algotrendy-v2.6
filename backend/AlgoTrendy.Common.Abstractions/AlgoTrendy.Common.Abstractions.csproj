@@ -5,8 +5,22 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <LangVersion>latest</LangVersion>
-    <Version>2.6.0-refactor</Version>
+
+    <!-- Version Management (GitVersion) -->
+    <Version>$(GitVersion_SemVer)</Version>
+    <AssemblyVersion>$(GitVersion_AssemblySemVer)</AssemblyVersion>
+    <FileVersion>$(GitVersion_AssemblySemFileVer)</FileVersion>
+    <InformationalVersion>$(GitVersion_InformationalVersion)</InformationalVersion>
+
+    <!-- NuGet Package Metadata -->
+    <PackageId>AlgoTrendy.Common.Abstractions</PackageId>
+    <Authors>AlgoTrendy Team</Authors>
     <Description>Common abstractions and utilities to reduce code duplication across AlgoTrendy</Description>
+    <PackageProjectUrl>https://github.com/KenyBoi/algotrendy-v2.6</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/KenyBoi/algotrendy-v2.6</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageTags>trading;utilities;abstractions;common</PackageTags>
+    <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
   </PropertyGroup>
 
   <ItemGroup>

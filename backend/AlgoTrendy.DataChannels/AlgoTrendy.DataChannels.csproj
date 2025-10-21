@@ -11,6 +11,8 @@
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="9.0.10" />
     <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="9.0.10" />
     <PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" Version="9.0.10" />
+    <!-- Security fix: Override vulnerable transitive RestSharp 111.0.0 from CryptoExchange.Net -->
+    <PackageReference Include="RestSharp" Version="112.0.0" />
     <PackageReference Include="System.Text.Json" Version="9.0.10" />
   </ItemGroup>
 
@@ -18,6 +20,22 @@
     <TargetFramework>net8.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+
+    <!-- Version Management (GitVersion) -->
+    <Version>$(GitVersion_SemVer)</Version>
+    <AssemblyVersion>$(GitVersion_AssemblySemVer)</AssemblyVersion>
+    <FileVersion>$(GitVersion_AssemblySemFileVer)</FileVersion>
+    <InformationalVersion>$(GitVersion_InformationalVersion)</InformationalVersion>
+
+    <!-- NuGet Package Metadata -->
+    <PackageId>AlgoTrendy.DataChannels</PackageId>
+    <Authors>AlgoTrendy Team</Authors>
+    <Description>Market data providers and channels for AlgoTrendy platform</Description>
+    <PackageProjectUrl>https://github.com/KenyBoi/algotrendy-v2.6</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/KenyBoi/algotrendy-v2.6</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageTags>trading;market-data;providers;realtime</PackageTags>
+    <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
   </PropertyGroup>
 
 </Project>

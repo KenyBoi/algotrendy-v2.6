@@ -7,6 +7,22 @@
     <UserSecretsId>algotrendy-v2.6-api-secrets</UserSecretsId>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <NoWarn>$(NoWarn);1591</NoWarn>
+
+    <!-- Version Management (GitVersion) -->
+    <Version>$(GitVersion_SemVer)</Version>
+    <AssemblyVersion>$(GitVersion_AssemblySemVer)</AssemblyVersion>
+    <FileVersion>$(GitVersion_AssemblySemFileVer)</FileVersion>
+    <InformationalVersion>$(GitVersion_InformationalVersion)</InformationalVersion>
+
+    <!-- NuGet Package Metadata -->
+    <PackageId>AlgoTrendy.API</PackageId>
+    <Authors>AlgoTrendy Team</Authors>
+    <Description>Main API server for AlgoTrendy trading platform</Description>
+    <PackageProjectUrl>https://github.com/KenyBoi/algotrendy-v2.6</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/KenyBoi/algotrendy-v2.6</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageTags>trading;api;web;rest</PackageTags>
+    <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
   </PropertyGroup>
 
   <ItemGroup>
@@ -16,6 +32,8 @@
     <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="8.0.21" />
     <PackageReference Include="Microsoft.AspNetCore.SignalR" Version="1.2.0" />
     <PackageReference Include="QRCoder" Version="1.7.0" />
+    <!-- Security fix: Override vulnerable transitive RestSharp 111.0.0 from CryptoExchange.Net -->
+    <PackageReference Include="RestSharp" Version="112.0.0" />
     <PackageReference Include="Serilog.AspNetCore" Version="9.0.0" />
     <PackageReference Include="Serilog.Sinks.Console" Version="6.0.0" />
     <PackageReference Include="Serilog.Sinks.File" Version="7.0.0" />

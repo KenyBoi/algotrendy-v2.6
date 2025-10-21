@@ -6,6 +6,22 @@
     <Nullable>enable</Nullable>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <NoWarn>$(NoWarn);1591</NoWarn>
+
+    <!-- Version Management (GitVersion) -->
+    <Version>$(GitVersion_SemVer)</Version>
+    <AssemblyVersion>$(GitVersion_AssemblySemVer)</AssemblyVersion>
+    <FileVersion>$(GitVersion_AssemblySemFileVer)</FileVersion>
+    <InformationalVersion>$(GitVersion_InformationalVersion)</InformationalVersion>
+
+    <!-- NuGet Package Metadata -->
+    <PackageId>AlgoTrendy.Core</PackageId>
+    <Authors>AlgoTrendy Team</Authors>
+    <Description>Core domain models, interfaces, and enums for AlgoTrendy trading platform</Description>
+    <PackageProjectUrl>https://github.com/KenyBoi/algotrendy-v2.6</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/KenyBoi/algotrendy-v2.6</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageTags>trading;crypto;stocks;algotrading;core</PackageTags>
+    <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
   </PropertyGroup>
 
   <ItemGroup>

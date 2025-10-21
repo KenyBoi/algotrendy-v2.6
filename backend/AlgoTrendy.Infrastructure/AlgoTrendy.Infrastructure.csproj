@@ -15,6 +15,8 @@
     <PackageReference Include="Microsoft.Extensions.Options" Version="9.0.10" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.4" />
     <PackageReference Include="Npgsql" Version="9.0.4" />
+    <!-- Security fix: Override vulnerable transitive RestSharp 111.0.0 from CryptoExchange.Net -->
+    <PackageReference Include="RestSharp" Version="112.0.0" />
     <PackageReference Include="Serilog" Version="4.3.0" />
     <PackageReference Include="Serilog.Sinks.Console" Version="6.0.0" />
     <PackageReference Include="Serilog.Sinks.File" Version="7.0.0" />
@@ -24,6 +26,22 @@
     <TargetFramework>net8.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+
+    <!-- Version Management (GitVersion) -->
+    <Version>$(GitVersion_SemVer)</Version>
+    <AssemblyVersion>$(GitVersion_AssemblySemVer)</AssemblyVersion>
+    <FileVersion>$(GitVersion_AssemblySemFileVer)</FileVersion>
+    <InformationalVersion>$(GitVersion_InformationalVersion)</InformationalVersion>
+
+    <!-- NuGet Package Metadata -->
+    <PackageId>AlgoTrendy.Infrastructure</PackageId>
+    <Authors>AlgoTrendy Team</Authors>
+    <Description>Infrastructure services including database repositories and external integrations</Description>
+    <PackageProjectUrl>https://github.com/KenyBoi/algotrendy-v2.6</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/KenyBoi/algotrendy-v2.6</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageTags>trading;infrastructure;repository;database</PackageTags>
+    <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
   </PropertyGroup>
 
 </Project>

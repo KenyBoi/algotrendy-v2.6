@@ -392,6 +392,7 @@ dotnet test --collect:"XPlat Code Coverage"
 
 ### 🔌 API Integration
 - **[API Usage Examples](docs/API_USAGE_EXAMPLES.md)** - Complete examples in 4 languages
+- **[Postman Collection](AlgoTrendy_API.postman_collection.json)** - 📮 Ready-to-import API collection (NEW!)
 - [API Documentation](docs/api/README.md) - Endpoint reference
 - [Swagger UI](http://localhost:5002/swagger) - Interactive API docs (when running)
 

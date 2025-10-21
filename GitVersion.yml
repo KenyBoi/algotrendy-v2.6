@@ -1,0 +1,14 @@
+mode: ContinuousDelivery
+branches:
+  main:
+    label: ''
+    increment: Patch
+    regex: ^main$
+  modular:
+    label: 'beta'
+    increment: Minor
+    regex: ^modular$
+increment: Inherit
+major-version-bump-message: '\+semver:\s?(breaking|major)'
+minor-version-bump-message: '\+semver:\s?(feature|minor)'
+patch-version-bump-message: '\+semver:\s?(fix|patch)'

@@ -852,6 +852,30 @@ class Program
 
 ## Postman Collection
 
+**Ready-to-use Postman collection available!**
+
+📮 **Download:** [AlgoTrendy_API.postman_collection.json](../AlgoTrendy_API.postman_collection.json)
+📖 **Guide:** [Postman Collection Guide](POSTMAN_COLLECTION_GUIDE.md)
+
+**Quick Import:**
+1. Open Postman
+2. Click **Import**
+3. Drag and drop `AlgoTrendy_API.postman_collection.json`
+4. Start testing immediately!
+
+The collection includes:
+- ✅ All API endpoints (market data, orders, backtesting, ML)
+- ✅ Pre-configured request examples
+- ✅ Environment variables (baseUrl, apiVersion)
+- ✅ Organized folders by feature
+- ✅ Ready for immediate use
+
+For detailed instructions, see the [Postman Collection Guide](POSTMAN_COLLECTION_GUIDE.md).
+
+---
+
+### Sample Collection Structure (Legacy Reference)
+
 Import this JSON into Postman to get started quickly:
 
 ```json
