@@ -96,6 +96,7 @@ services:
     image: algotrendy-api:v2.6-prod
     container_name: algotrendy-api-prod
     restart: always
+    user: "1000:1000"  # Security: Run as non-root user
     depends_on:
       - questdb
     networks:
@@ -177,6 +178,7 @@ services:
     image: algotrendy-frontend:v1.0-prod
     container_name: algotrendy-frontend-prod
     restart: always
+    user: "1000:1000"  # Security: Run as non-root user
     depends_on:
       - api
     networks:

@@ -15,6 +15,9 @@ secrets/
 *.pfx
 credentials.json
 appsettings.*.json
+certbot/conf/
+certbot/logs/
+certbot/archive/
 !appsettings.json
 !appsettings.Development.json.example
 *.secrets

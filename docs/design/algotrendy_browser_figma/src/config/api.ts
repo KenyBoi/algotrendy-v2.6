@@ -16,11 +16,12 @@ const getConfig = () => {
   }
 
   // Development fallback (when env-config.js not loaded)
+  const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
   return {
     API_BASE_URL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:5002/api',
-    WS_BASE_URL: window.location.protocol === 'https:'
+    WS_BASE_URL: window.location.protocol === 'https:' || !isLocalhost
       ? `wss://${window.location.host}`
-      : `ws://${window.location.host}`,
+      : `ws://${window.location.host}`,  // Only use ws:// for localhost development
     ENVIRONMENT: 'development' as const,
     VERSION: 'dev',
     ENABLE_DEBUG: true,

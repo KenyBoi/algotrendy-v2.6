@@ -16,6 +16,9 @@ namespace AlgoTrendy.Tests.Unit.Infrastructure;
 public class BybitBrokerTests
 {
     private readonly Mock<ILogger<BybitBroker>> _mockLogger;
+
+    // NOTE: These are fake test constants, not real credentials
+    // gitleaks:allow
     private const string TestApiKey = "test_api_key_12345";
     private const string TestApiSecret = "test_api_secret_67890";
 

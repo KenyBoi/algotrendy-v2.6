@@ -85,6 +85,7 @@ services:
     image: algotrendy-ml-service:v1.0
     container_name: algotrendy-ml-service
     restart: unless-stopped
+    user: "1000:1000"  # Security: Run as non-root user
     networks:
       algotrendy-network:
         ipv4_address: 172.20.0.50
@@ -117,6 +118,7 @@ services:
     image: algotrendy-backtesting-py:v1.0
     container_name: algotrendy-backtesting-py
     restart: unless-stopped
+    user: "1000:1000"  # Security: Run as non-root user
     depends_on:
       - questdb
     networks:
@@ -185,6 +187,7 @@ services:
     image: algotrendy-api:v2.6
     container_name: algotrendy-api
     restart: unless-stopped
+    user: "1000:1000"  # Security: Run as non-root user
     depends_on:
       - questdb
       - seq

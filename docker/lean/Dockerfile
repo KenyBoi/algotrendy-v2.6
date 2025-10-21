@@ -11,11 +11,17 @@ RUN mkdir -p /algorithms /results /data
 # Copy configuration
 COPY config.json /Lean/Launcher/bin/Debug/config.json
 
+# Create non-root user for security
+RUN addgroup -S leangroup && adduser -S leanuser -G leangroup
+
 # Set permissions
 RUN chmod -R 777 /algorithms /results /data
 
 # Expose ports (optional, for monitoring)
 EXPOSE 5678
+
+# Switch to non-root user
+USER leanuser
 
 # Default command - run LEAN engine
 # This will be overridden with specific algorithm paths
