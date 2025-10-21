@@ -422,7 +422,7 @@ builder.Services.Configure<AlgoTrendy.TradingEngine.Brokers.MEXCOptions>(options
 // Freqtrade integration via FreqtradeController (no broker registration needed)
 // // The FreqtradeController uses HttpClient directly to communicate with Freqtrade bots
 // 
-// Configure Alpaca broker options - DISABLED (compilation issues, needs fixes)
+// Configure Alpaca broker options - DISABLED (API mismatch)
 // builder.Services.Configure<AlgoTrendy.TradingEngine.Brokers.AlpacaOptions>(options =>
 // {
 //     options.ApiKey = builder.Configuration["Alpaca__ApiKey"] ?? Environment.GetEnvironmentVariable("ALPACA_API_KEY") ?? "";
@@ -439,7 +439,19 @@ builder.Services.AddScoped<AlgoTrendy.TradingEngine.Brokers.InteractiveBrokersBr
 // builder.Services.AddScoped<AlgoTrendy.TradingEngine.Brokers.KrakenBroker>(); // ⚠️ DISABLED - API mismatch needs REST implementation
 builder.Services.AddScoped<AlgoTrendy.TradingEngine.Brokers.CoinbaseBroker>(); // ✅ ACTIVE
 builder.Services.AddScoped<AlgoTrendy.TradingEngine.Brokers.MEXCBroker>(); // ✅ ACTIVE
-// builder.Services.AddScoped<AlgoTrendy.TradingEngine.Brokers.AlpacaBroker>(); // ⚠️ DISABLED - needs compilation fixes
+// builder.Services.AddScoped<AlgoTrendy.TradingEngine.Brokers.AlpacaBroker>(); // ⚠️ DISABLED - API mismatch with LeverageInfo model
+
+// Register MEM Strategy Deployment Services
+// Enables MEM to orchestrate and deploy trading strategies dynamically
+builder.Services.AddScoped<AlgoTrendy.Core.Services.StrategyRegistry.IStrategyRegistry>(sp =>
+{
+    var logger = sp.GetRequiredService<ILogger<AlgoTrendy.Core.Services.StrategyRegistry.FileStrategyRegistry>>();
+    var registryPath = builder.Configuration["StrategyRegistry:Path"]
+        ?? "/root/AlgoTrendy_v2.6/data/strategy_registry";
+    return new AlgoTrendy.Core.Services.StrategyRegistry.FileStrategyRegistry(logger, registryPath);
+});
+
+builder.Services.AddScoped<AlgoTrendy.TradingEngine.Services.MemStrategyDeploymentService>();
 
 // Register default broker (can be configured via environment variable)
 builder.Services.AddScoped<IBroker>(sp =>
@@ -456,7 +468,7 @@ builder.Services.AddScoped<IBroker>(sp =>
         // "kraken" => sp.GetRequiredService<AlgoTrendy.TradingEngine.Brokers.KrakenBroker>(), // ⚠️ DISABLED
         "coinbase" => sp.GetRequiredService<AlgoTrendy.TradingEngine.Brokers.CoinbaseBroker>(), // ✅ ACTIVE
         "mexc" => sp.GetRequiredService<AlgoTrendy.TradingEngine.Brokers.MEXCBroker>(), // ✅ ACTIVE
-        // "alpaca" => sp.GetRequiredService<AlgoTrendy.TradingEngine.Brokers.AlpacaBroker>(), // ⚠️ DISABLED - needs compilation fixes
+        "alpaca" => sp.GetRequiredService<AlgoTrendy.TradingEngine.Brokers.AlpacaBroker>(), // ✅ ACTIVE - Stocks & Crypto
         _ => sp.GetRequiredService<AlgoTrendy.TradingEngine.Brokers.BybitBroker>() // Default to Bybit
     };
 });
