@@ -397,7 +397,7 @@ builder.Services.Configure<AlgoTrendy.TradingEngine.Brokers.InteractiveBrokersOp
     options.UsePaperTrading = builder.Configuration.GetValue<bool>("IBKR_USE_PAPER", true);
 });
 
-// Configure Kraken broker options (DISABLED - Package API mismatch, needs REST API implementation)
+// Configure Kraken broker options - DISABLED (API mismatch)
 // builder.Services.Configure<AlgoTrendy.TradingEngine.Brokers.KrakenOptions>(options =>
 // {
 //     options.ApiKey = builder.Configuration["Kraken__ApiKey"] ?? Environment.GetEnvironmentVariable("KRAKEN_API_KEY") ?? "";
@@ -419,15 +419,27 @@ builder.Services.Configure<AlgoTrendy.TradingEngine.Brokers.MEXCOptions>(options
     options.UseTestnet = builder.Configuration.GetValue<bool>("MEXC__UseTestnet", true);
 });
 
+// Freqtrade integration via FreqtradeController (no broker registration needed)
+// // The FreqtradeController uses HttpClient directly to communicate with Freqtrade bots
+// 
+// Configure Alpaca broker options - DISABLED (compilation issues, needs fixes)
+// builder.Services.Configure<AlgoTrendy.TradingEngine.Brokers.AlpacaOptions>(options =>
+// {
+//     options.ApiKey = builder.Configuration["Alpaca__ApiKey"] ?? Environment.GetEnvironmentVariable("ALPACA_API_KEY") ?? "";
+//     options.ApiSecret = builder.Configuration["Alpaca__ApiSecret"] ?? Environment.GetEnvironmentVariable("ALPACA_API_SECRET") ?? "";
+//     options.UsePaper = builder.Configuration.GetValue<bool>("Alpaca__UsePaper", true); // Default to paper trading for safety
+// });
+
 // Register all brokers as named services
 builder.Services.AddScoped<AlgoTrendy.TradingEngine.Brokers.BinanceBroker>();
 builder.Services.AddScoped<AlgoTrendy.TradingEngine.Brokers.BybitBroker>();
 builder.Services.AddScoped<AlgoTrendy.TradingEngine.Brokers.TradeStationBroker>();
 builder.Services.AddScoped<AlgoTrendy.TradingEngine.Brokers.NinjaTraderBroker>();
 builder.Services.AddScoped<AlgoTrendy.TradingEngine.Brokers.InteractiveBrokersBroker>();
-// builder.Services.AddScoped<AlgoTrendy.TradingEngine.Brokers.KrakenBroker>(); // DISABLED - Package API mismatch
+// builder.Services.AddScoped<AlgoTrendy.TradingEngine.Brokers.KrakenBroker>(); // ⚠️ DISABLED - API mismatch needs REST implementation
 builder.Services.AddScoped<AlgoTrendy.TradingEngine.Brokers.CoinbaseBroker>(); // ✅ ACTIVE
 builder.Services.AddScoped<AlgoTrendy.TradingEngine.Brokers.MEXCBroker>(); // ✅ ACTIVE
+// builder.Services.AddScoped<AlgoTrendy.TradingEngine.Brokers.AlpacaBroker>(); // ⚠️ DISABLED - needs compilation fixes
 
 // Register default broker (can be configured via environment variable)
 builder.Services.AddScoped<IBroker>(sp =>
@@ -441,9 +453,10 @@ builder.Services.AddScoped<IBroker>(sp =>
         "tradestation" => sp.GetRequiredService<AlgoTrendy.TradingEngine.Brokers.TradeStationBroker>(),
         "ninjatrader" => sp.GetRequiredService<AlgoTrendy.TradingEngine.Brokers.NinjaTraderBroker>(),
         "interactivebrokers" or "ibkr" => sp.GetRequiredService<AlgoTrendy.TradingEngine.Brokers.InteractiveBrokersBroker>(),
-        // "kraken" => sp.GetRequiredService<AlgoTrendy.TradingEngine.Brokers.KrakenBroker>(), // DISABLED - Package API mismatch
+        // "kraken" => sp.GetRequiredService<AlgoTrendy.TradingEngine.Brokers.KrakenBroker>(), // ⚠️ DISABLED
         "coinbase" => sp.GetRequiredService<AlgoTrendy.TradingEngine.Brokers.CoinbaseBroker>(), // ✅ ACTIVE
         "mexc" => sp.GetRequiredService<AlgoTrendy.TradingEngine.Brokers.MEXCBroker>(), // ✅ ACTIVE
+        // "alpaca" => sp.GetRequiredService<AlgoTrendy.TradingEngine.Brokers.AlpacaBroker>(), // ⚠️ DISABLED - needs compilation fixes
         _ => sp.GetRequiredService<AlgoTrendy.TradingEngine.Brokers.BybitBroker>() // Default to Bybit
     };
 });

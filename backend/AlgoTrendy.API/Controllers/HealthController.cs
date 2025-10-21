@@ -207,10 +207,10 @@ public class HealthController : ControllerBase
         // This would ideally ping each configured broker
         var brokers = new[]
         {
-            new { name = "Bybit", status = "healthy", testnet = true },
-            new { name = "Binance", status = "healthy", testnet = true },
-            new { name = "MEXC", status = "healthy", testnet = true },
-            new { name = "Alpaca", status = "healthy", paper = true }
+            new { name = "Bybit", status = "healthy", testMode = true },
+            new { name = "Binance", status = "healthy", testMode = true },
+            new { name = "MEXC", status = "healthy", testMode = true },
+            new { name = "Alpaca", status = "healthy", testMode = true }
         };
 
         return Ok(new
