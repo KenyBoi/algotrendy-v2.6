@@ -158,6 +158,7 @@ builder.Services.AddHttpClient();
 builder.Services.AddHttpClient<IMLPredictionService, MLPredictionService>();
 builder.Services.AddScoped<AlgoTrendy.TradingEngine.Services.MLFeatureService>();
 builder.Services.AddScoped<AlgoTrendy.TradingEngine.Services.IndicatorService>();
+builder.Services.AddScoped<AlgoTrendy.TradingEngine.Services.AdvancedIndicatorService>();
 builder.Services.AddSingleton<AlgoTrendy.Core.Services.SymbolFormatterService>();
 
 // Register ML Model Service for Python ML API integration

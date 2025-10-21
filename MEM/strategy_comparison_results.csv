@@ -1,0 +1,6 @@
+strategy_name,total_return,total_trades,win_rate,profit_factor,sharpe_ratio,max_drawdown,final_equity,composite_score
+Conservative (80% confidence),0.0,0,0.0,0.0,0,0.0,10000.0,0.2
+Moderate (70% confidence),0.0,0,0.0,0.0,0,0.0,10000.0,0.2
+Balanced (60% confidence),0.0,0,0.0,0.0,0,0.0,10000.0,0.2
+Aggressive (50% confidence),0.0,0,0.0,0.0,0,0.0,10000.0,0.2
+Very Aggressive (40% confidence),-8.032857650223304,4,0.0,0.0,0,8.032857650223304,9196.71423497767,0.1518028540986602

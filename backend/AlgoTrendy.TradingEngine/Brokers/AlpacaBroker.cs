@@ -120,15 +120,15 @@ public class AlpacaBroker : BrokerBase
             {
                 positions.Add(new Position
                 {
+                    PositionId = $"alpaca-{pos.Symbol}",
                     Symbol = pos.Symbol,
-                    Size = pos.Quantity,
-                    Side = pos.Side == PositionSide.Long ? "buy" : "sell",
+                    Exchange = BrokerName,
+                    Side = pos.Side == Alpaca.Markets.PositionSide.Long ? Core.Enums.OrderSide.Buy : Core.Enums.OrderSide.Sell,
+                    Quantity = pos.Quantity,
                     EntryPrice = pos.AverageEntryPrice,
                     CurrentPrice = pos.AssetCurrentPrice ?? pos.AverageEntryPrice,
-                    UnrealizedPnl = pos.UnrealizedProfitLoss ?? 0m,
-                    RealizedPnl = 0m, // Alpaca doesn't provide this per position
                     Leverage = 1m, // Alpaca is primarily cash account (1x leverage)
-                    Broker = BrokerName
+                    OpenedAt = DateTime.UtcNow // Alpaca doesn't provide entry timestamp
                 });
             }
 
@@ -156,72 +156,71 @@ public class AlpacaBroker : BrokerBase
                 "Placing {OrderType} {Side} order: {Symbol} x {Quantity}",
                 request.Type, request.Side, request.Symbol, request.Quantity);
 
-            var orderSide = request.Side.ToLowerInvariant() == "buy"
-                ? OrderSide.Buy
-                : OrderSide.Sell;
+            var orderSide = request.Side == Core.Enums.OrderSide.Buy
+                ? Alpaca.Markets.OrderSide.Buy
+                : Alpaca.Markets.OrderSide.Sell;
 
-            // Create order request based on type
-            NewOrderRequest alpacaOrderRequest;
+            // Create order request based on type and submit
+            Alpaca.Markets.IOrder alpacaOrder;
 
             switch (request.Type)
             {
                 case Core.Enums.OrderType.Market:
-                    alpacaOrderRequest = orderSide == OrderSide.Buy
+                    var marketOrder = orderSide == Alpaca.Markets.OrderSide.Buy
                         ? MarketOrder.Buy(request.Symbol, OrderQuantity.Fractional(request.Quantity))
                         : MarketOrder.Sell(request.Symbol, OrderQuantity.Fractional(request.Quantity));
+                    alpacaOrder = await _tradingClient!.PostOrderAsync(marketOrder, cancellationToken);
                     break;
 
                 case Core.Enums.OrderType.Limit:
                     if (!request.Price.HasValue)
                         throw new ArgumentException("Limit orders require a price");
 
-                    alpacaOrderRequest = orderSide == OrderSide.Buy
+                    var limitOrder = orderSide == Alpaca.Markets.OrderSide.Buy
                         ? LimitOrder.Buy(request.Symbol, OrderQuantity.Fractional(request.Quantity), request.Price.Value)
                         : LimitOrder.Sell(request.Symbol, OrderQuantity.Fractional(request.Quantity), request.Price.Value);
+                    alpacaOrder = await _tradingClient!.PostOrderAsync(limitOrder, cancellationToken);
                     break;
 
                 case Core.Enums.OrderType.StopLoss:
                     if (!request.StopPrice.HasValue)
                         throw new ArgumentException("Stop loss orders require a stop price");
 
-                    alpacaOrderRequest = orderSide == OrderSide.Buy
+                    var stopOrder = orderSide == Alpaca.Markets.OrderSide.Buy
                         ? StopOrder.Buy(request.Symbol, OrderQuantity.Fractional(request.Quantity), request.StopPrice.Value)
                         : StopOrder.Sell(request.Symbol, OrderQuantity.Fractional(request.Quantity), request.StopPrice.Value);
+                    alpacaOrder = await _tradingClient!.PostOrderAsync(stopOrder, cancellationToken);
                     break;
 
                 case Core.Enums.OrderType.StopLimit:
                     if (!request.Price.HasValue || !request.StopPrice.HasValue)
                         throw new ArgumentException("Stop limit orders require both price and stop price");
 
-                    alpacaOrderRequest = orderSide == OrderSide.Buy
+                    var stopLimitOrder = orderSide == Alpaca.Markets.OrderSide.Buy
                         ? StopLimitOrder.Buy(request.Symbol, OrderQuantity.Fractional(request.Quantity), request.StopPrice.Value, request.Price.Value)
                         : StopLimitOrder.Sell(request.Symbol, OrderQuantity.Fractional(request.Quantity), request.StopPrice.Value, request.Price.Value);
+                    alpacaOrder = await _tradingClient!.PostOrderAsync(stopLimitOrder, cancellationToken);
                     break;
 
                 default:
                     throw new ArgumentException($"Unsupported order type: {request.Type}");
             }
 
-            // Set time in force (default to day order)
-            alpacaOrderRequest.Duration = TimeInForce.Day;
-
-            // Submit the order
-            var alpacaOrder = await _tradingClient!.PostOrderAsync(alpacaOrderRequest, cancellationToken);
-
             _logger.LogInformation("Order placed successfully: {OrderId}", alpacaOrder.OrderId);
 
             return new Order
             {
                 OrderId = alpacaOrder.OrderId.ToString(),
+                ClientOrderId = alpacaOrder.ClientOrderId ?? alpacaOrder.OrderId.ToString(),
                 Symbol = alpacaOrder.Symbol,
-                Side = alpacaOrder.OrderSide == OrderSide.Buy ? "buy" : "sell",
+                Exchange = BrokerName,
+                Side = alpacaOrder.OrderSide == Alpaca.Markets.OrderSide.Buy ? Core.Enums.OrderSide.Buy : Core.Enums.OrderSide.Sell,
                 Type = MapOrderType(alpacaOrder.OrderType),
                 Quantity = alpacaOrder.Quantity ?? 0m,
                 Price = alpacaOrder.LimitPrice,
                 Status = MapOrderStatus(alpacaOrder.OrderStatus),
-                FilledQuantity = alpacaOrder.FilledQuantity ?? 0m,
-                Timestamp = alpacaOrder.CreatedAtUtc ?? DateTime.UtcNow,
-                Broker = BrokerName
+                FilledQuantity = alpacaOrder.FilledQuantity,
+                CreatedAt = alpacaOrder.CreatedAtUtc ?? DateTime.UtcNow
             };
         }
         catch (Exception ex)
@@ -247,9 +246,9 @@ public class AlpacaBroker : BrokerBase
             var alpacaOrder = await _tradingClient!.GetOrderAsync(orderGuid, cancellationToken);
 
             // Cancel the order
-            var success = await _tradingClient.DeleteOrderAsync(orderGuid, cancellationToken);
+            await _tradingClient.CancelOrderAsync(orderGuid, cancellationToken);
 
-            _logger.LogInformation("Order {OrderId} cancelled: {Success}", orderId, success);
+            _logger.LogInformation("Order {OrderId} cancellation requested", orderId);
 
             // Fetch the updated order status
             var cancelledOrder = await _tradingClient.GetOrderAsync(orderGuid, cancellationToken);
@@ -257,15 +256,16 @@ public class AlpacaBroker : BrokerBase
             return new Order
             {
                 OrderId = cancelledOrder.OrderId.ToString(),
+                ClientOrderId = cancelledOrder.ClientOrderId ?? cancelledOrder.OrderId.ToString(),
                 Symbol = cancelledOrder.Symbol,
-                Side = cancelledOrder.OrderSide == OrderSide.Buy ? "buy" : "sell",
+                Exchange = BrokerName,
+                Side = cancelledOrder.OrderSide == Alpaca.Markets.OrderSide.Buy ? Core.Enums.OrderSide.Buy : Core.Enums.OrderSide.Sell,
                 Type = MapOrderType(cancelledOrder.OrderType),
                 Quantity = cancelledOrder.Quantity ?? 0m,
                 Price = cancelledOrder.LimitPrice,
                 Status = Core.Enums.OrderStatus.Cancelled,
-                FilledQuantity = cancelledOrder.FilledQuantity ?? 0m,
-                Timestamp = cancelledOrder.CreatedAtUtc ?? DateTime.UtcNow,
-                Broker = BrokerName
+                FilledQuantity = cancelledOrder.FilledQuantity,
+                CreatedAt = cancelledOrder.CreatedAtUtc ?? DateTime.UtcNow
             };
         }
         catch (Exception ex)
@@ -291,15 +291,16 @@ public class AlpacaBroker : BrokerBase
             return new Order
             {
                 OrderId = alpacaOrder.OrderId.ToString(),
+                ClientOrderId = alpacaOrder.ClientOrderId ?? alpacaOrder.OrderId.ToString(),
                 Symbol = alpacaOrder.Symbol,
-                Side = alpacaOrder.OrderSide == OrderSide.Buy ? "buy" : "sell",
+                Exchange = BrokerName,
+                Side = alpacaOrder.OrderSide == Alpaca.Markets.OrderSide.Buy ? Core.Enums.OrderSide.Buy : Core.Enums.OrderSide.Sell,
                 Type = MapOrderType(alpacaOrder.OrderType),
                 Quantity = alpacaOrder.Quantity ?? 0m,
                 Price = alpacaOrder.LimitPrice,
                 Status = MapOrderStatus(alpacaOrder.OrderStatus),
-                FilledQuantity = alpacaOrder.FilledQuantity ?? 0m,
-                Timestamp = alpacaOrder.CreatedAtUtc ?? DateTime.UtcNow,
-                Broker = BrokerName
+                FilledQuantity = alpacaOrder.FilledQuantity,
+                CreatedAt = alpacaOrder.CreatedAtUtc ?? DateTime.UtcNow
             };
         }
         catch (Exception ex)
@@ -387,17 +388,31 @@ public class AlpacaBroker : BrokerBase
             // Calculate effective leverage based on buying power vs equity
             var equity = account.Equity ?? 0m;
             var buyingPower = account.BuyingPower ?? 0m;
+            var initialMargin = account.InitialMargin ?? 0m;
+
             var effectiveLeverage = equity > 0
                 ? buyingPower / equity
                 : 1m;
 
+            // Calculate collateral and borrowed amounts
+            var collateral = equity;
+            var borrowed = Math.Max(0m, buyingPower - equity);
+
+            // Calculate margin health ratio
+            var marginHealth = initialMargin > 0
+                ? Math.Min(1m, Math.Max(0m, (equity - (initialMargin * 0.25m)) / (initialMargin * 0.25m)))
+                : 1m;
+
             return new LeverageInfo
             {
-                Symbol = symbol,
-                Leverage = effectiveLeverage,
+                CurrentLeverage = effectiveLeverage,
                 MaxLeverage = effectiveLeverage, // Alpaca doesn't provide max leverage per symbol
                 MarginType = MarginType.Cross, // Alpaca uses cross margin for margin accounts
-                Broker = BrokerName
+                CollateralAmount = collateral,
+                BorrowedAmount = borrowed,
+                InterestRate = 0m, // Alpaca doesn't expose interest rate via API
+                LiquidationPrice = null, // Not provided for stock positions
+                MarginHealthRatio = marginHealth
             };
         }
         catch (Exception ex)
@@ -407,11 +422,14 @@ public class AlpacaBroker : BrokerBase
             // Return default values on error
             return new LeverageInfo
             {
-                Symbol = symbol,
-                Leverage = 1m,
+                CurrentLeverage = 1m,
                 MaxLeverage = 1m,
                 MarginType = MarginType.Cross,
-                Broker = BrokerName
+                CollateralAmount = 0m,
+                BorrowedAmount = 0m,
+                InterestRate = 0m,
+                LiquidationPrice = null,
+                MarginHealthRatio = 1m
             };
         }
     }
@@ -439,17 +457,21 @@ public class AlpacaBroker : BrokerBase
             // Calculate health ratio based on equity vs buying power
             // For cash accounts, this will be 1.0
             // For margin accounts, buying power > equity indicates healthy margin
-            if (account.BuyingPower <= 0)
+            var buyingPower = account.BuyingPower ?? 0m;
+            var equity = account.Equity ?? 0m;
+            var initialMargin = account.InitialMargin ?? 0m;
+
+            if (buyingPower <= 0)
                 return 0m;
 
             // Maintenance margin requirement (Alpaca uses ~25% for stocks)
-            var maintenanceMargin = account.InitialMargin * 0.25m;
+            var maintenanceMargin = initialMargin * 0.25m;
 
             if (maintenanceMargin <= 0)
                 return 1m; // Cash account, always healthy
 
             // Health ratio = (Equity - Maintenance Margin) / Maintenance Margin
-            var healthRatio = (account.Equity - maintenanceMargin) / maintenanceMargin;
+            var healthRatio = (equity - maintenanceMargin) / maintenanceMargin;
 
             return Math.Max(0m, Math.Min(1m, healthRatio)); // Clamp between 0 and 1
         }

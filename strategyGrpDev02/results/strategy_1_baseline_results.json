@@ -1,0 +1,18 @@
+{
+  "strategy_name": "Strategy 1",
+  "backtest_date": "2025-10-21T04:25:17.424088",
+  "version": "baseline_1.0",
+  "results": {
+    "total_return": 4.898129875287948,
+    "cagr": 0.1329770396069465,
+    "annual_volatility": 0.10937618717803933,
+    "sharpe_ratio": 1.196689300007123,
+    "sortino_ratio": 1.8469737732186937,
+    "max_drawdown": -0.15554828806790366,
+    "calmar_ratio": 0.8548923376700629,
+    "win_rate": 0.4716981132075472,
+    "num_trades": 106,
+    "final_equity": 589812.9875287948,
+    "total_periods": 3582
+  }
+}

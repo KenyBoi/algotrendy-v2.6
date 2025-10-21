@@ -7,7 +7,7 @@
   <ItemGroup>
     <!-- Exclude incomplete broker implementations from compilation -->
     <Compile Remove="Brokers\KrakenBroker.cs" />
-    <Compile Remove="Brokers\AlpacaBroker.cs" /> <!-- Has API mismatches with new LeverageInfo model -->
+    <!-- AlpacaBroker.cs is now ACTIVE and compiling successfully -->
     <Compile Remove="Brokers\FreqtradeBroker.cs" />
   </ItemGroup>
 

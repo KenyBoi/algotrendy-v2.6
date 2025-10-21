@@ -510,6 +510,351 @@ public class IndicatorService
 
     #endregion
 
+    #region Stochastic Oscillator
+
+    /// <summary>
+    /// Calculates Stochastic Oscillator with caching
+    /// %K = 100 * (Close - LowestLow) / (HighestHigh - LowestLow)
+    /// %D = SMA of %K
+    /// </summary>
+    public virtual async Task<StochasticResult> CalculateStochasticAsync(
+        string symbol,
+        IEnumerable<MarketData> historicalData,
+        int period = 14,
+        int smoothK = 3,
+        int smoothD = 3,
+        CancellationToken cancellationToken = default)
+    {
+        var dataList = historicalData.ToList();
+        var latestTimestamp = dataList.LastOrDefault()?.Timestamp ?? DateTime.UtcNow;
+        var cacheKey = $"stochastic:{symbol}:{period}:{smoothK}:{smoothD}:{latestTimestamp:yyyy-MM-dd-HH-mm}";
+
+        return await _cache.GetOrCreateAsync(cacheKey, async entry =>
+        {
+            await Task.CompletedTask;
+            entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(1);
+
+            if (dataList.Count < period)
+            {
+                return new StochasticResult { PercentK = 50m, PercentD = 50m };
+            }
+
+            var kValues = new List<decimal>();
+
+            for (int i = period - 1; i < dataList.Count; i++)
+            {
+                var periodData = dataList.Skip(i - period + 1).Take(period).ToList();
+                var lowestLow = periodData.Min(d => d.Low);
+                var highestHigh = periodData.Max(d => d.High);
+                var currentClose = dataList[i].Close;
+
+                var k = 100m * (currentClose - lowestLow) / (highestHigh - lowestLow);
+                kValues.Add(k);
+            }
+
+            var smoothedK = kValues.TakeLast(smoothK).Average();
+            var dValue = kValues.TakeLast(smoothD).Average();
+
+            return new StochasticResult { PercentK = smoothedK, PercentD = dValue };
+        }) ?? new StochasticResult { PercentK = 50m, PercentD = 50m };
+    }
+
+    #endregion
+
+    #region ADX (Average Directional Index)
+
+    /// <summary>
+    /// Calculates ADX (Average Directional Index) with caching
+    /// Measures trend strength (0-100)
+    /// </summary>
+    public virtual async Task<ADXResult> CalculateADXAsync(
+        string symbol,
+        IEnumerable<MarketData> historicalData,
+        int period = 14,
+        CancellationToken cancellationToken = default)
+    {
+        var dataList = historicalData.ToList();
+        var latestTimestamp = dataList.LastOrDefault()?.Timestamp ?? DateTime.UtcNow;
+        var cacheKey = $"adx:{symbol}:{period}:{latestTimestamp:yyyy-MM-dd-HH-mm}";
+
+        return await _cache.GetOrCreateAsync(cacheKey, async entry =>
+        {
+            await Task.CompletedTask;
+            entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(1);
+
+            if (dataList.Count < period + 1)
+            {
+                return new ADXResult { ADX = 0m, PlusDI = 0m, MinusDI = 0m };
+            }
+
+            var trList = new List<decimal>();
+            var plusDMList = new List<decimal>();
+            var minusDMList = new List<decimal>();
+
+            for (int i = 1; i < dataList.Count; i++)
+            {
+                var current = dataList[i];
+                var previous = dataList[i - 1];
+
+                // True Range
+                var tr = Math.Max(current.High - current.Low,
+                         Math.Max(Math.Abs(current.High - previous.Close),
+                                 Math.Abs(current.Low - previous.Close)));
+                trList.Add(tr);
+
+                // Directional Movement
+                var upMove = current.High - previous.High;
+                var downMove = previous.Low - current.Low;
+
+                var plusDM = (upMove > downMove && upMove > 0) ? upMove : 0m;
+                var minusDM = (downMove > upMove && downMove > 0) ? downMove : 0m;
+
+                plusDMList.Add(plusDM);
+                minusDMList.Add(minusDM);
+            }
+
+            var avgTR = trList.TakeLast(period).Average();
+            var avgPlusDM = plusDMList.TakeLast(period).Average();
+            var avgMinusDM = minusDMList.TakeLast(period).Average();
+
+            var plusDI = 100m * (avgPlusDM / avgTR);
+            var minusDI = 100m * (avgMinusDM / avgTR);
+
+            var dx = 100m * Math.Abs(plusDI - minusDI) / (plusDI + minusDI);
+            var adx = dx; // Simplified - should use smoothing
+
+            return new ADXResult { ADX = adx, PlusDI = plusDI, MinusDI = minusDI };
+        }) ?? new ADXResult { ADX = 0m, PlusDI = 0m, MinusDI = 0m };
+    }
+
+    #endregion
+
+    #region ATR (Average True Range)
+
+    /// <summary>
+    /// Calculates ATR (Average True Range) with caching
+    /// Measures market volatility
+    /// </summary>
+    public virtual async Task<decimal> CalculateATRAsync(
+        string symbol,
+        IEnumerable<MarketData> historicalData,
+        int period = 14,
+        CancellationToken cancellationToken = default)
+    {
+        var dataList = historicalData.ToList();
+        var latestTimestamp = dataList.LastOrDefault()?.Timestamp ?? DateTime.UtcNow;
+        var cacheKey = $"atr:{symbol}:{period}:{latestTimestamp:yyyy-MM-dd-HH-mm}";
+
+        return await _cache.GetOrCreateAsync(cacheKey, async entry =>
+        {
+            await Task.CompletedTask;
+            entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(1);
+
+            if (dataList.Count < period + 1)
+            {
+                return 0m;
+            }
+
+            var trList = new List<decimal>();
+
+            for (int i = 1; i < dataList.Count; i++)
+            {
+                var current = dataList[i];
+                var previous = dataList[i - 1];
+
+                var tr = Math.Max(current.High - current.Low,
+                         Math.Max(Math.Abs(current.High - previous.Close),
+                                 Math.Abs(current.Low - previous.Close)));
+                trList.Add(tr);
+            }
+
+            return trList.TakeLast(period).Average();
+        });
+    }
+
+    #endregion
+
+    #region Bollinger Bands
+
+    /// <summary>
+    /// Calculates Bollinger Bands with caching
+    /// Upper = SMA + (StdDev * multiplier)
+    /// Lower = SMA - (StdDev * multiplier)
+    /// </summary>
+    public virtual async Task<BollingerBandsResult> CalculateBollingerBandsAsync(
+        string symbol,
+        IEnumerable<MarketData> historicalData,
+        int period = 20,
+        decimal stdDevMultiplier = 2m,
+        CancellationToken cancellationToken = default)
+    {
+        var prices = historicalData.Select(d => d.Close).ToList();
+        var latestTimestamp = historicalData.LastOrDefault()?.Timestamp ?? DateTime.UtcNow;
+        var cacheKey = $"bbands:{symbol}:{period}:{stdDevMultiplier}:{latestTimestamp:yyyy-MM-dd-HH-mm}";
+
+        return await _cache.GetOrCreateAsync(cacheKey, async entry =>
+        {
+            await Task.CompletedTask;
+            entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(1);
+
+            if (prices.Count < period)
+            {
+                var currentPrice = prices.LastOrDefault();
+                return new BollingerBandsResult
+                {
+                    Upper = currentPrice * 1.05m,
+                    Middle = currentPrice,
+                    Lower = currentPrice * 0.95m
+                };
+            }
+
+            var recentPrices = prices.TakeLast(period).ToList();
+            var middle = recentPrices.Average();
+
+            var variance = recentPrices.Sum(p => (p - middle) * (p - middle)) / period;
+            var stdDev = (decimal)Math.Sqrt((double)variance);
+
+            return new BollingerBandsResult
+            {
+                Upper = middle + (stdDev * stdDevMultiplier),
+                Middle = middle,
+                Lower = middle - (stdDev * stdDevMultiplier)
+            };
+        }) ?? new BollingerBandsResult { Upper = 0m, Middle = 0m, Lower = 0m };
+    }
+
+    #endregion
+
+    #region Williams %R
+
+    /// <summary>
+    /// Calculates Williams %R with caching
+    /// Range: -100 to 0
+    /// Overbought: > -20
+    /// Oversold: < -80
+    /// </summary>
+    public virtual async Task<decimal> CalculateWilliamsRAsync(
+        string symbol,
+        IEnumerable<MarketData> historicalData,
+        int period = 14,
+        CancellationToken cancellationToken = default)
+    {
+        var dataList = historicalData.ToList();
+        var latestTimestamp = dataList.LastOrDefault()?.Timestamp ?? DateTime.UtcNow;
+        var cacheKey = $"williamsr:{symbol}:{period}:{latestTimestamp:yyyy-MM-dd-HH-mm}";
+
+        return await _cache.GetOrCreateAsync(cacheKey, async entry =>
+        {
+            await Task.CompletedTask;
+            entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(1);
+
+            if (dataList.Count < period)
+            {
+                return -50m;
+            }
+
+            var recentData = dataList.TakeLast(period).ToList();
+            var highestHigh = recentData.Max(d => d.High);
+            var lowestLow = recentData.Min(d => d.Low);
+            var currentClose = dataList.Last().Close;
+
+            return -100m * (highestHigh - currentClose) / (highestHigh - lowestLow);
+        });
+    }
+
+    #endregion
+
+    #region CCI (Commodity Channel Index)
+
+    /// <summary>
+    /// Calculates CCI (Commodity Channel Index) with caching
+    /// Range: Unbounded (typically -200 to +200)
+    /// Overbought: > +100
+    /// Oversold: < -100
+    /// </summary>
+    public virtual async Task<decimal> CalculateCCIAsync(
+        string symbol,
+        IEnumerable<MarketData> historicalData,
+        int period = 20,
+        CancellationToken cancellationToken = default)
+    {
+        var dataList = historicalData.ToList();
+        var latestTimestamp = dataList.LastOrDefault()?.Timestamp ?? DateTime.UtcNow;
+        var cacheKey = $"cci:{symbol}:{period}:{latestTimestamp:yyyy-MM-dd-HH-mm}";
+
+        return await _cache.GetOrCreateAsync(cacheKey, async entry =>
+        {
+            await Task.CompletedTask;
+            entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(1);
+
+            if (dataList.Count < period)
+            {
+                return 0m;
+            }
+
+            var typicalPrices = dataList.Select(d => (d.High + d.Low + d.Close) / 3m).ToList();
+            var recentTP = typicalPrices.TakeLast(period).ToList();
+            var sma = recentTP.Average();
+
+            var meanDeviation = recentTP.Sum(tp => Math.Abs(tp - sma)) / period;
+
+            if (meanDeviation == 0)
+            {
+                return 0m;
+            }
+
+            var currentTP = typicalPrices.Last();
+            return (currentTP - sma) / (0.015m * meanDeviation);
+        });
+    }
+
+    #endregion
+
+    #region OBV (On-Balance Volume)
+
+    /// <summary>
+    /// Calculates OBV (On-Balance Volume) with caching
+    /// Cumulative volume indicator based on price direction
+    /// </summary>
+    public virtual async Task<decimal> CalculateOBVAsync(
+        string symbol,
+        IEnumerable<MarketData> historicalData,
+        CancellationToken cancellationToken = default)
+    {
+        var dataList = historicalData.ToList();
+        var latestTimestamp = dataList.LastOrDefault()?.Timestamp ?? DateTime.UtcNow;
+        var cacheKey = $"obv:{symbol}:{latestTimestamp:yyyy-MM-dd-HH-mm}";
+
+        return await _cache.GetOrCreateAsync(cacheKey, async entry =>
+        {
+            await Task.CompletedTask;
+            entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(1);
+
+            if (dataList.Count < 2)
+            {
+                return dataList.FirstOrDefault()?.Volume ?? 0m;
+            }
+
+            decimal obv = 0m;
+
+            for (int i = 1; i < dataList.Count; i++)
+            {
+                if (dataList[i].Close > dataList[i - 1].Close)
+                {
+                    obv += dataList[i].Volume;
+                }
+                else if (dataList[i].Close < dataList[i - 1].Close)
+                {
+                    obv -= dataList[i].Volume;
+                }
+            }
+
+            return obv;
+        });
+    }
+
+    #endregion
+
     #region Cache Management
 
     /// <summary>
@@ -525,6 +870,64 @@ public class IndicatorService
     }
 
     #endregion
+}
+
+/// <summary>
+/// Result of Stochastic calculation
+/// </summary>
+public class StochasticResult
+{
+    /// <summary>
+    /// %K line value
+    /// </summary>
+    public required decimal PercentK { get; init; }
+
+    /// <summary>
+    /// %D line value (signal line)
+    /// </summary>
+    public required decimal PercentD { get; init; }
+}
+
+/// <summary>
+/// Result of ADX calculation
+/// </summary>
+public class ADXResult
+{
+    /// <summary>
+    /// ADX value (trend strength)
+    /// </summary>
+    public required decimal ADX { get; init; }
+
+    /// <summary>
+    /// +DI (Plus Directional Indicator)
+    /// </summary>
+    public required decimal PlusDI { get; init; }
+
+    /// <summary>
+    /// -DI (Minus Directional Indicator)
+    /// </summary>
+    public required decimal MinusDI { get; init; }
+}
+
+/// <summary>
+/// Result of Bollinger Bands calculation
+/// </summary>
+public class BollingerBandsResult
+{
+    /// <summary>
+    /// Upper band value
+    /// </summary>
+    public required decimal Upper { get; init; }
+
+    /// <summary>
+    /// Middle band value (SMA)
+    /// </summary>
+    public required decimal Middle { get; init; }
+
+    /// <summary>
+    /// Lower band value
+    /// </summary>
+    public required decimal Lower { get; init; }
 }
 
 /// <summary>

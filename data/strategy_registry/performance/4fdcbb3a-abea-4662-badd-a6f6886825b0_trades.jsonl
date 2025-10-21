@@ -1,0 +1,1 @@
+{"trade_id": "test-trade-001", "symbol": "BTC/USD", "signal_action": "BUY", "signal_confidence": 0.85, "entry_price": 50000.0, "exit_price": 52000.0, "entry_timestamp": "2025-10-21T05:11:50.590225", "exit_timestamp": "2025-10-21T05:11:50.590252", "pnl": 200.0, "pnl_pct": 0.04, "is_win": true, "was_mem_enhanced": false, "mem_confidence_boost": 0.0, "learned_pattern_applied": null}

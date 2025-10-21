@@ -1,5 +1,6 @@
 using AlgoTrendy.API.Middleware;
 using Microsoft.AspNetCore.Mvc;
+using System.Diagnostics;
 
 namespace AlgoTrendy.API.Controllers;
 
@@ -81,8 +82,9 @@ public class MetricsController : ControllerBase
                         endpoint = m.Key.Replace("request_total_", ""),
                         requests = m.Value.Count,
                         avgDurationMs = durationMetrics
-                            .FirstOrDefault(d => d.Key.Replace("request_duration_ms_", "") == m.Key.Replace("request_total_", ""))
-                            ?.Value.AverageValue ?? 0
+                            .Where(d => d.Key.Replace("request_duration_ms_", "") == m.Key.Replace("request_total_", ""))
+                            .Select(d => d.Value.AverageValue)
+                            .FirstOrDefault()
                     })
                     .ToList(),
                 slowestEndpoints = durationMetrics

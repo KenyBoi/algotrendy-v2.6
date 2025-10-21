@@ -25,7 +25,7 @@ export default function BacktestPanel({ onRunBacktest, results }: Props) {
 
   return (
     <div className="backtest-panel">
-      <h2 style={{ marginTop: 0 }}>Backtest Configuration</h2>
+      <h2 className="mt-0">Backtest Configuration</h2>
 
       <div className="backtest-config">
         <div className="form-grid">
@@ -118,9 +118,8 @@ export default function BacktestPanel({ onRunBacktest, results }: Props) {
         </div>
 
         <button
-          className="btn-primary"
+          className="btn-primary mt-lg"
           onClick={handleRunBacktest}
-          style={{ marginTop: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}
         >
           <Play size={18} />
           Run Backtest
@@ -186,65 +185,22 @@ export default function BacktestPanel({ onRunBacktest, results }: Props) {
           )}
         </div>
       )}
-
-      <style>{`
-        .backtest-panel {
-          max-width: 1000px;
-        }
-
-        .backtest-config {
-          background: var(--background);
-          border: 1px solid var(--border);
-          border-radius: 8px;
-          padding: 1.5rem;
-          margin-bottom: 2rem;
-        }
-
-        .backtest-results {
-          margin-top: 2rem;
-        }
-
-        .metrics-grid {
-          display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-          gap: 1rem;
-          margin-bottom: 2rem;
-        }
-
-        .equity-chart {
-          background: var(--background);
-          border: 1px solid var(--border);
-          border-radius: 8px;
-          padding: 1.5rem;
-        }
-
-        .equity-chart h3 {
-          margin-top: 0;
-        }
-      `}</style>
     </div>
   );
 }
 
 function MetricCard({ label, value, trend }: { label: string; value: string; trend: 'up' | 'down' | 'neutral' }) {
-  const trendColor = trend === 'up' ? 'var(--success)' : trend === 'down' ? 'var(--error)' : 'var(--text-secondary)';
   const TrendIcon = trend === 'up' ? TrendingUp : trend === 'down' ? TrendingDown : null;
+  const trendClass = trend === 'up' ? 'positive' : trend === 'down' ? 'negative' : 'neutral';
 
   return (
-    <div style={{
-      background: 'var(--background)',
-      border: '1px solid var(--border)',
-      borderRadius: '8px',
-      padding: '1.5rem',
-    }}>
-      <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '0.5rem' }}>
-        {label}
-      </div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-        <span style={{ fontSize: '1.5rem', fontWeight: 600, color: trendColor }}>
+    <div className="metric-card">
+      <div className="metric-label">{label}</div>
+      <div className="metric-value">
+        <span className={`metric-value-text ${trendClass}`}>
           {value}
         </span>
-        {TrendIcon && <TrendIcon size={20} color={trendColor} />}
+        {TrendIcon && <TrendIcon size={20} className={`text-${trend === 'up' ? 'success' : trend === 'down' ? 'error' : 'secondary'}`} />}
       </div>
     </div>
   );

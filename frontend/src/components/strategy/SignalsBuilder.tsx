@@ -30,21 +30,22 @@ export default function SignalsBuilder({ signals, onChange }: Props) {
 
   return (
     <div className="signals-builder">
-      <h2 style={{ marginTop: 0 }}>Entry & Exit Signals</h2>
+      <h2 className="mt-0">Entry & Exit Signals</h2>
 
       {/* Entry Signals */}
       <section>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+        <div className="flex justify-between items-center mb-md">
           <h3>Entry Signals</h3>
-          <button className="btn-primary" onClick={() => addSignal('entry')} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <button className="btn-primary" onClick={() => addSignal('entry')}>
             <Plus size={18} />
             Add Entry Signal
           </button>
         </div>
 
         {signals.entry.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: '2rem', background: 'var(--background)', borderRadius: '8px', color: 'var(--text-secondary)' }}>
-            No entry signals defined. Click "Add Entry Signal" to create one.
+          <div className="empty-state">
+            <div className="empty-state-title">No entry signals defined</div>
+            <div className="empty-state-description">Click "Add Entry Signal" to create one.</div>
           </div>
         ) : (
           <div className="signals-list">
@@ -52,11 +53,11 @@ export default function SignalsBuilder({ signals, onChange }: Props) {
               <div key={index} className="signal-card">
                 <div className="signal-header">
                   <h4>Entry Signal #{index + 1}</h4>
-                  <button onClick={() => removeSignal('entry', index)} className="btn-icon" style={{ color: 'var(--error)' }}>
+                  <button onClick={() => removeSignal('entry', index)} className="btn-icon text-error">
                     <Trash2 size={18} />
                   </button>
                 </div>
-                <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginBottom: '1rem' }}>
+                <p className="text-secondary mb-md" style={{ fontSize: '0.9rem' }}>
                   Configure conditions for entering a {signal.side} position
                 </p>
                 <div className="signal-config">
@@ -71,18 +72,19 @@ export default function SignalsBuilder({ signals, onChange }: Props) {
       </section>
 
       {/* Exit Signals */}
-      <section style={{ marginTop: '2rem' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+      <section className="mt-xl">
+        <div className="flex justify-between items-center mb-md">
           <h3>Exit Signals</h3>
-          <button className="btn-primary" onClick={() => addSignal('exit')} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <button className="btn-primary" onClick={() => addSignal('exit')}>
             <Plus size={18} />
             Add Exit Signal
           </button>
         </div>
 
         {signals.exit.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: '2rem', background: 'var(--background)', borderRadius: '8px', color: 'var(--text-secondary)' }}>
-            No exit signals defined. Click "Add Exit Signal" to create one.
+          <div className="empty-state">
+            <div className="empty-state-title">No exit signals defined</div>
+            <div className="empty-state-description">Click "Add Exit Signal" to create one.</div>
           </div>
         ) : (
           <div className="signals-list">
@@ -90,11 +92,11 @@ export default function SignalsBuilder({ signals, onChange }: Props) {
               <div key={index} className="signal-card">
                 <div className="signal-header">
                   <h4>Exit Signal #{index + 1}</h4>
-                  <button onClick={() => removeSignal('exit', index)} className="btn-icon" style={{ color: 'var(--error)' }}>
+                  <button onClick={() => removeSignal('exit', index)} className="btn-icon text-error">
                     <Trash2 size={18} />
                   </button>
                 </div>
-                <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginBottom: '1rem' }}>
+                <p className="text-secondary mb-md" style={{ fontSize: '0.9rem' }}>
                   Configure conditions for exiting a position
                 </p>
                 <div className="signal-config">
@@ -107,43 +109,6 @@ export default function SignalsBuilder({ signals, onChange }: Props) {
           </div>
         )}
       </section>
-
-      <style>{`
-        .signals-builder {
-          max-width: 1000px;
-        }
-
-        .signals-list {
-          display: flex;
-          flex-direction: column;
-          gap: 1rem;
-        }
-
-        .signal-card {
-          background: var(--background);
-          border: 1px solid var(--border);
-          border-radius: 8px;
-          padding: 1.5rem;
-        }
-
-        .signal-header {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          margin-bottom: 0.5rem;
-        }
-
-        .signal-header h4 {
-          margin: 0;
-        }
-
-        .signal-config {
-          padding: 1rem;
-          background: var(--card-bg);
-          border-radius: 6px;
-          border: 1px dashed var(--border);
-        }
-      `}</style>
     </div>
   );
 }

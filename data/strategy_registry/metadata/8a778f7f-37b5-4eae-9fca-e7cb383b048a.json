@@ -1,0 +1,104 @@
+{
+  "schema_version": "1.0.0",
+  "strategy": {
+    "id": "8a778f7f-37b5-4eae-9fca-e7cb383b048a",
+    "name": "freqtrade_aggressive_rsi",
+    "display_name": "Freqtrade Aggressive RSI",
+    "description": "Aggressive RSI-based scalping strategy via Freqtrade. Uses tighter RSI thresholds and faster exits for quick profits. Optimized for high-frequency trading in volatile markets.",
+    "version": "1.0.0",
+    "status": "active",
+    "classification": {
+      "category": "mean_reversion",
+      "sub_category": "rsi_scalping",
+      "complexity": "moderate",
+      "tags": [
+        "freqtrade",
+        "rsi",
+        "scalping",
+        "aggressive",
+        "high_frequency"
+      ],
+      "asset_classes": [
+        "crypto"
+      ]
+    },
+    "implementation": {
+      "language": "freqtrade",
+      "file_path": "/freqtrade/user_data/strategies/RSI_Aggressive.py",
+      "class_name": "RSI_Aggressive",
+      "entry_point": "RSI_Aggressive.generate_signal",
+      "dependencies": [
+        "freqtrade>=2023.8",
+        "ta-lib"
+      ],
+      "minimum_python_version": "3.10"
+    },
+    "academic_foundation": {},
+    "parameters": {
+      "rsi_period": 9,
+      "rsi_overbought": 75,
+      "rsi_oversold": 25,
+      "minimal_roi": {
+        "0": 0.08,
+        "15": 0.04,
+        "30": 0.01
+      },
+      "stoploss": -0.06
+    },
+    "performance": {
+      "backtest": {
+        "sharpe_ratio": 1.28,
+        "win_rate": 0.65,
+        "num_trades": 387,
+        "total_return": 0.35,
+        "max_drawdown": -0.1,
+        "avg_trade_duration": "1h 42m",
+        "best_pair": "BNB/USDT",
+        "timeframe": "1m"
+      },
+      "live_trading": {
+        "start_date": null,
+        "total_trades": 0,
+        "live_sharpe": null,
+        "live_win_rate": null
+      }
+    },
+    "mem_integration": {
+      "enabled": true,
+      "enhancement_type": "recommendation",
+      "learned_patterns_count": 0,
+      "mem_version": "baseline_1.0",
+      "estimated_improvement": {
+        "expected_sharpe_boost": 0.18,
+        "expected_win_rate_improvement": 0.06
+      }
+    },
+    "requirements": {
+      "minimum_capital": 1500,
+      "supported_exchanges": [
+        "binance",
+        "kraken",
+        "coinbase"
+      ],
+      "minimum_liquidity": 150000,
+      "market_hours": "24/7",
+      "preferred_volatility": "high"
+    },
+    "risk_profile": {
+      "risk_level": "high",
+      "max_position_size_pct": 0.2,
+      "max_leverage": 3.0,
+      "stop_loss_pct": 0.06,
+      "requires_margin": false,
+      "recommended_capital": 2500
+    },
+    "metadata": {
+      "created_by": "system_migration_v2.5",
+      "created_at": "2025-10-21T06:30:28.120295Z",
+      "last_updated": "2025-10-21T06:30:28.120301Z",
+      "last_backtest": null,
+      "deprecation_date": null,
+      "replacement_strategy_id": null
+    }
+  }
+}

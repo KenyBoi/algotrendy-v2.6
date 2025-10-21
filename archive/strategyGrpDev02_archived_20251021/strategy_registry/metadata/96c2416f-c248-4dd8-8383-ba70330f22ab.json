@@ -1,0 +1,78 @@
+{
+  "schema_version": "1.0.0",
+  "strategy": {
+    "id": "96c2416f-c248-4dd8-8383-ba70330f22ab",
+    "name": "currency_carry_trade",
+    "display_name": "Currency Carry Trade",
+    "description": "Interest rate differential exploitation from Daniel, Hodrick & Lu (2017)",
+    "version": "1.0.0",
+    "status": "experimental",
+    "classification": {
+      "category": "carry",
+      "sub_category": "",
+      "complexity": "moderate",
+      "tags": [
+        "carry",
+        "fx",
+        "interest_rate",
+        "academic",
+        "published"
+      ],
+      "asset_classes": []
+    },
+    "implementation": {
+      "language": "python",
+      "file_path": "../implementations/strategy3_carry_trade.py",
+      "class_name": "CurrencyCarryTrade",
+      "entry_point": "CurrencyCarryTrade.generate_signal",
+      "dependencies": [],
+      "minimum_python_version": "3.10"
+    },
+    "academic_foundation": {
+      "paper_title": "The carry trade: Risks and drawdowns",
+      "authors": "Daniel, K., Hodrick, R. J., & Lu, Z.",
+      "year": 2017,
+      "journal": "Critical Finance Review",
+      "published_sharpe": 1.07
+    },
+    "parameters": {
+      "num_long": 3,
+      "num_short": 3,
+      "rebalance_frequency": "monthly",
+      "position_size": 0.1
+    },
+    "performance": {
+      "backtest": {
+        "sharpe_ratio": 0.25,
+        "cagr": 0.013,
+        "max_drawdown": -0.102,
+        "annual_volatility": 0.059,
+        "num_trades": 6,
+        "note": "Low performance expected with synthetic interest rate data"
+      },
+      "live_trading": {
+        "start_date": null,
+        "total_trades": 0,
+        "live_sharpe": null,
+        "live_win_rate": null
+      }
+    },
+    "mem_integration": {
+      "enabled": true,
+      "enhancement_type": "full",
+      "learned_patterns_count": 0,
+      "mem_version": "baseline_1.0",
+      "estimated_improvement": {}
+    },
+    "requirements": {},
+    "risk_profile": {},
+    "metadata": {
+      "created_by": "system",
+      "created_at": "2025-10-21T04:53:22.268734Z",
+      "last_updated": "2025-10-21T04:53:22.268741Z",
+      "last_backtest": null,
+      "deprecation_date": null,
+      "replacement_strategy_id": null
+    }
+  }
+}

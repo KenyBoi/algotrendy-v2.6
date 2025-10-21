@@ -1,0 +1,77 @@
+{
+  "schema_version": "1.0.0",
+  "strategy": {
+    "id": "4fdcbb3a-abea-4662-badd-a6f6886825b0",
+    "name": "volatility_managed_momentum",
+    "display_name": "Volatility-Managed Momentum",
+    "description": "Academic momentum strategy with volatility scaling from Barroso & Santa-Clara (2015)",
+    "version": "1.0.0",
+    "status": "experimental",
+    "classification": {
+      "category": "momentum",
+      "sub_category": "",
+      "complexity": "moderate",
+      "tags": [
+        "momentum",
+        "volatility_scaling",
+        "academic",
+        "published"
+      ],
+      "asset_classes": []
+    },
+    "implementation": {
+      "language": "python",
+      "file_path": "/root/AlgoTrendy_v2.6/strategies/development/strategy_research_2025_q4/strategy_1_volatility_managed_momentum/strategy1_vol_managed_momentum.py",
+      "class_name": "VolatilityManagedMomentum",
+      "entry_point": "VolatilityManagedMomentum.generate_signal",
+      "dependencies": [],
+      "minimum_python_version": "3.10"
+    },
+    "academic_foundation": {
+      "paper_title": "Momentum has its moments",
+      "authors": "Barroso, P., & Santa-Clara, P.",
+      "year": 2015,
+      "journal": "Journal of Financial Economics",
+      "published_sharpe": 0.97
+    },
+    "parameters": {
+      "momentum_lookback": 252,
+      "skip_period": 21,
+      "volatility_lookback": 126,
+      "target_volatility": 0.12
+    },
+    "performance": {
+      "backtest": {
+        "sharpe_ratio": 1.197,
+        "cagr": 0.133,
+        "max_drawdown": -0.156,
+        "annual_volatility": 0.109,
+        "win_rate": 0.472,
+        "num_trades": 106
+      },
+      "live_trading": {
+        "total_trades": 1,
+        "live_sharpe": 0.0,
+        "live_win_rate": 1.0,
+        "total_pnl": 200.0
+      }
+    },
+    "mem_integration": {
+      "enabled": true,
+      "enhancement_type": "full",
+      "learned_patterns_count": 0,
+      "mem_version": "baseline_1.0",
+      "estimated_improvement": {}
+    },
+    "requirements": {},
+    "risk_profile": {},
+    "metadata": {
+      "created_by": "system",
+      "created_at": "2025-10-21T05:11:50.588396Z",
+      "last_updated": "2025-10-21T05:11:50.590601Z",
+      "last_backtest": null,
+      "deprecation_date": null,
+      "replacement_strategy_id": null
+    }
+  }
+}

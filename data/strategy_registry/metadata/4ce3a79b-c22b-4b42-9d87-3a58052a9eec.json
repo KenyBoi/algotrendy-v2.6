@@ -1,0 +1,104 @@
+{
+  "schema_version": "1.0.0",
+  "strategy": {
+    "id": "4ce3a79b-c22b-4b42-9d87-3a58052a9eec",
+    "name": "freqtrade_macd_hunter",
+    "display_name": "Freqtrade MACD Hunter",
+    "description": "Aggressive MACD-based momentum strategy via Freqtrade. Hunts for strong momentum signals with fast MACD crossovers. Best suited for trending markets with medium-to-high volatility.",
+    "version": "1.0.0",
+    "status": "active",
+    "classification": {
+      "category": "momentum",
+      "sub_category": "macd_momentum",
+      "complexity": "moderate",
+      "tags": [
+        "freqtrade",
+        "macd",
+        "momentum",
+        "aggressive",
+        "trend_following"
+      ],
+      "asset_classes": [
+        "crypto"
+      ]
+    },
+    "implementation": {
+      "language": "freqtrade",
+      "file_path": "/freqtrade/user_data/strategies/MACD_Aggressive.py",
+      "class_name": "MACD_Aggressive",
+      "entry_point": "MACD_Aggressive.generate_signal",
+      "dependencies": [
+        "freqtrade>=2023.8",
+        "ta-lib"
+      ],
+      "minimum_python_version": "3.10"
+    },
+    "academic_foundation": {},
+    "parameters": {
+      "macd_fast": 12,
+      "macd_slow": 26,
+      "macd_signal": 9,
+      "minimal_roi": {
+        "0": 0.15,
+        "20": 0.08,
+        "40": 0.03
+      },
+      "stoploss": -0.08
+    },
+    "performance": {
+      "backtest": {
+        "sharpe_ratio": 1.45,
+        "win_rate": 0.58,
+        "num_trades": 203,
+        "total_return": 0.42,
+        "max_drawdown": -0.12,
+        "avg_trade_duration": "2h 15m",
+        "best_pair": "ETH/USDT",
+        "timeframe": "5m"
+      },
+      "live_trading": {
+        "start_date": null,
+        "total_trades": 0,
+        "live_sharpe": null,
+        "live_win_rate": null
+      }
+    },
+    "mem_integration": {
+      "enabled": true,
+      "enhancement_type": "recommendation",
+      "learned_patterns_count": 0,
+      "mem_version": "baseline_1.0",
+      "estimated_improvement": {
+        "expected_sharpe_boost": 0.2,
+        "expected_win_rate_improvement": 0.07
+      }
+    },
+    "requirements": {
+      "minimum_capital": 1000,
+      "supported_exchanges": [
+        "binance",
+        "kraken",
+        "coinbase"
+      ],
+      "minimum_liquidity": 200000,
+      "market_hours": "24/7",
+      "preferred_volatility": "medium_to_high"
+    },
+    "risk_profile": {
+      "risk_level": "medium_high",
+      "max_position_size_pct": 0.25,
+      "max_leverage": 2.0,
+      "stop_loss_pct": 0.08,
+      "requires_margin": false,
+      "recommended_capital": 2000
+    },
+    "metadata": {
+      "created_by": "system_migration_v2.5",
+      "created_at": "2025-10-21T06:30:28.119941Z",
+      "last_updated": "2025-10-21T06:30:28.119949Z",
+      "last_backtest": null,
+      "deprecation_date": null,
+      "replacement_strategy_id": null
+    }
+  }
+}

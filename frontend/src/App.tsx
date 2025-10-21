@@ -1,5 +1,5 @@
 import { BrowserRouter as Router, Routes, Route, Link, useLocation } from 'react-router-dom'
-import { Home, TrendingUp, Briefcase, BarChart3, FileText, Activity, Brain, Cpu, TestTube } from 'lucide-react'
+import { Home, TrendingUp, Briefcase, BarChart3, FileText, Activity, Brain, Cpu, TestTube, LineChart } from 'lucide-react'
 import MLTrainingDashboard from './app/MLTrainingDashboard'
 import TradingDashboard from './pages/TradingDashboard'
 import PortfolioPage from './pages/PortfolioPage'
@@ -7,6 +7,7 @@ import BacktestingPage from './pages/BacktestingPage'
 import OrdersPage from './pages/OrdersPage'
 import StrategyBuilderPage from './pages/StrategyBuilderPage'
 import ModelTestingPanel from './components/testing/ModelTestingPanel'
+import AdvancedIndicatorsPage from './pages/AdvancedIndicators'
 import './styles/App.css'
 
 function Navigation() {
@@ -17,6 +18,7 @@ function Navigation() {
     { path: '/portfolio', label: 'Portfolio', icon: Briefcase },
     { path: '/orders', label: 'Orders', icon: FileText },
     { path: '/strategies', label: 'Strategy Builder', icon: Cpu },
+    { path: '/indicators', label: 'Advanced Indicators', icon: LineChart },
     { path: '/backtesting', label: 'Backtesting', icon: BarChart3 },
     { path: '/testing', label: 'Model Testing', icon: TestTube },
     { path: '/ml', label: 'AI/ML', icon: Brain },
@@ -66,6 +68,7 @@ function App() {
             <Route path="/portfolio" element={<PortfolioPage />} />
             <Route path="/orders" element={<OrdersPage />} />
             <Route path="/strategies" element={<StrategyBuilderPage />} />
+            <Route path="/indicators" element={<AdvancedIndicatorsPage />} />
             <Route path="/backtesting" element={<BacktestingPage />} />
             <Route path="/testing" element={<ModelTestingPanel />} />
             <Route path="/ml" element={<MLTrainingDashboard />} />

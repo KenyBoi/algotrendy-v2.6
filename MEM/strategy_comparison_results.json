@@ -1,0 +1,193 @@
+{
+  "timestamp": "2025-10-21T06:00:02.673566",
+  "total_strategies": 5,
+  "execution_time": 1.825972080230713,
+  "statistics": {
+    "mean_return": -1.6065715300446608,
+    "median_return": 0.0,
+    "std_return": 3.2131430600893216,
+    "min_return": -8.032857650223304,
+    "max_return": 0.0
+  },
+  "rankings": {
+    "by_return": [
+      "Conservative (80% confidence)",
+      "Moderate (70% confidence)",
+      "Balanced (60% confidence)",
+      "Aggressive (50% confidence)",
+      "Very Aggressive (40% confidence)"
+    ],
+    "by_sharpe": [
+      "Conservative (80% confidence)",
+      "Moderate (70% confidence)",
+      "Balanced (60% confidence)",
+      "Aggressive (50% confidence)",
+      "Very Aggressive (40% confidence)"
+    ],
+    "by_win_rate": [
+      "Very Aggressive (40% confidence)"
+    ],
+    "by_profit_factor": [
+      "Very Aggressive (40% confidence)"
+    ],
+    "by_composite": [
+      "Conservative (80% confidence)",
+      "Moderate (70% confidence)",
+      "Balanced (60% confidence)",
+      "Aggressive (50% confidence)",
+      "Very Aggressive (40% confidence)"
+    ]
+  },
+  "strategies": [
+    {
+      "name": "Conservative (80% confidence)",
+      "composite_score": 0.2,
+      "results": {
+        "total_trades": 0,
+        "win_rate": 0,
+        "total_return": 0,
+        "max_drawdown": 0,
+        "symbol": "BTC-USD",
+        "start_date": "2024-10-21 00:00:00+00:00",
+        "end_date": "2025-10-21 00:00:00+00:00",
+        "initial_capital": 10000.0,
+        "final_equity": 10000.0,
+        "calculation_time": 1.4927892684936523,
+        "backtest_time": 0.039627790451049805,
+        "total_time": 1.5324170589447021,
+        "trades": []
+      }
+    },
+    {
+      "name": "Moderate (70% confidence)",
+      "composite_score": 0.2,
+      "results": {
+        "total_trades": 0,
+        "win_rate": 0,
+        "total_return": 0,
+        "max_drawdown": 0,
+        "symbol": "BTC-USD",
+        "start_date": "2024-10-21 00:00:00+00:00",
+        "end_date": "2025-10-21 00:00:00+00:00",
+        "initial_capital": 10000.0,
+        "final_equity": 10000.0,
+        "calculation_time": 0.056940317153930664,
+        "backtest_time": 0.04131770133972168,
+        "total_time": 0.09825801849365234,
+        "trades": []
+      }
+    },
+    {
+      "name": "Balanced (60% confidence)",
+      "composite_score": 0.2,
+      "results": {
+        "total_trades": 0,
+        "win_rate": 0,
+        "total_return": 0,
+        "max_drawdown": 0,
+        "symbol": "BTC-USD",
+        "start_date": "2024-10-21 00:00:00+00:00",
+        "end_date": "2025-10-21 00:00:00+00:00",
+        "initial_capital": 10000.0,
+        "final_equity": 10000.0,
+        "calculation_time": 0.04000401496887207,
+        "backtest_time": 0.020421504974365234,
+        "total_time": 0.060425519943237305,
+        "trades": []
+      }
+    },
+    {
+      "name": "Aggressive (50% confidence)",
+      "composite_score": 0.2,
+      "results": {
+        "total_trades": 0,
+        "win_rate": 0,
+        "total_return": 0,
+        "max_drawdown": 0,
+        "symbol": "BTC-USD",
+        "start_date": "2024-10-21 00:00:00+00:00",
+        "end_date": "2025-10-21 00:00:00+00:00",
+        "initial_capital": 10000.0,
+        "final_equity": 10000.0,
+        "calculation_time": 0.0387570858001709,
+        "backtest_time": 0.021129608154296875,
+        "total_time": 0.05988669395446777,
+        "trades": []
+      }
+    },
+    {
+      "name": "Very Aggressive (40% confidence)",
+      "composite_score": 0.1518028540986602,
+      "results": {
+        "total_trades": 4,
+        "winning_trades": 0,
+        "losing_trades": 4,
+        "win_rate": 0.0,
+        "total_pnl": -803.2857650223273,
+        "total_return": -8.032857650223304,
+        "avg_win": 0,
+        "avg_loss": -200.82144125558182,
+        "profit_factor": 0.0,
+        "max_drawdown": 8.032857650223304,
+        "symbol": "BTC-USD",
+        "start_date": "2024-10-21 00:00:00+00:00",
+        "end_date": "2025-10-21 00:00:00+00:00",
+        "initial_capital": 10000.0,
+        "final_equity": 9196.71423497767,
+        "calculation_time": 0.03560161590576172,
+        "backtest_time": 0.034338951110839844,
+        "total_time": 0.06994056701660156,
+        "trades": [
+          {
+            "entry_time": "2025-02-27 00:00:00+00:00",
+            "exit_time": "2025-03-11 00:00:00+00:00",
+            "side": "BUY",
+            "entry_price": 84704.2265625,
+            "exit_price": 77357.03403159829,
+            "size": 0.02722128202831434,
+            "pnl": -204.41151528049616,
+            "pnl_pct": -8.865264575617154,
+            "exit_reason": "STOP_LOSS",
+            "equity_after": 9795.588484719503
+          },
+          {
+            "entry_time": "2025-05-17 00:00:00+00:00",
+            "exit_time": "2025-05-21 00:00:00+00:00",
+            "side": "SELL",
+            "entry_price": 103191.0859375,
+            "exit_price": 108340.94213315238,
+            "size": 0.03804218258750274,
+            "pnl": -203.9589097293585,
+            "pnl_pct": -5.195592405113631,
+            "exit_reason": "STOP_LOSS",
+            "equity_after": 9591.629574990144
+          },
+          {
+            "entry_time": "2025-05-27 00:00:00+00:00",
+            "exit_time": "2025-07-10 00:00:00+00:00",
+            "side": "SELL",
+            "entry_price": 108994.640625,
+            "exit_price": 114851.92813906519,
+            "size": 0.03275109699483809,
+            "pnl": -199.16381218535665,
+            "pnl_pct": -5.579296420409896,
+            "exit_reason": "STOP_LOSS",
+            "equity_after": 9392.465762804786
+          },
+          {
+            "entry_time": "2025-07-23 00:00:00+00:00",
+            "exit_time": "2025-10-05 00:00:00+00:00",
+            "side": "SELL",
+            "entry_price": 118754.9609375,
+            "exit_price": 124538.46823570908,
+            "size": 0.032480172596006794,
+            "pnl": -195.751527827116,
+            "pnl_pct": -5.074988598206147,
+            "exit_reason": "STOP_LOSS",
+            "equity_after": 9196.71423497767
+          }
+        ]
+      }
+    }
+  ]
+}

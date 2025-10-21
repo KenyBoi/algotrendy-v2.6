@@ -46,7 +46,7 @@ export default function MetadataForm({ metadata, onChange }: Props) {
 
   return (
     <div className="metadata-form">
-      <h2 style={{ marginTop: 0 }}>Strategy Information</h2>
+      <h2 className="mt-0">Strategy Information</h2>
 
       <div className="form-grid">
         <div className="form-group">
@@ -146,117 +146,16 @@ export default function MetadataForm({ metadata, onChange }: Props) {
                 onChange={e => setNewTag(e.target.value)}
                 onKeyPress={e => e.key === 'Enter' && handleAddTag()}
                 placeholder="Add a tag..."
-                className="form-input"
-                style={{ marginBottom: 0 }}
+                className="form-input mb-0"
               />
-              <button onClick={handleAddTag} className="btn-secondary" style={{ padding: '0.6rem 1rem' }}>
-                <Plus size={18} />
+              <button onClick={handleAddTag} className="btn-icon">
+                <Plus size={20} />
               </button>
             </div>
           </div>
           <small>Press Enter or click + to add tags</small>
         </div>
       </div>
-
-      <style>{`
-        .metadata-form {
-          max-width: 1000px;
-        }
-
-        .form-grid {
-          display: grid;
-          grid-template-columns: 1fr 1fr;
-          gap: 1.5rem;
-        }
-
-        .form-group {
-          display: flex;
-          flex-direction: column;
-        }
-
-        .form-group.full-width {
-          grid-column: 1 / -1;
-        }
-
-        .form-group label {
-          margin-bottom: 0.5rem;
-          font-weight: 500;
-          color: var(--text);
-        }
-
-        .form-input {
-          padding: 0.75rem;
-          border: 1px solid var(--border);
-          border-radius: 6px;
-          background: var(--background);
-          color: var(--text);
-          font-size: 0.95rem;
-          font-family: inherit;
-        }
-
-        .form-input:focus {
-          outline: none;
-          border-color: var(--primary);
-        }
-
-        .form-input::placeholder {
-          color: var(--text-secondary);
-        }
-
-        .form-group small {
-          margin-top: 0.25rem;
-          color: var(--text-secondary);
-          font-size: 0.85rem;
-        }
-
-        textarea.form-input {
-          resize: vertical;
-          min-height: 100px;
-        }
-
-        .tags-input-wrapper {
-          display: flex;
-          flex-direction: column;
-          gap: 0.75rem;
-        }
-
-        .tags-display {
-          display: flex;
-          flex-wrap: wrap;
-          gap: 0.5rem;
-          min-height: 2rem;
-        }
-
-        .tag {
-          display: inline-flex;
-          align-items: center;
-          gap: 0.5rem;
-          padding: 0.4rem 0.75rem;
-          background: var(--primary);
-          color: white;
-          border-radius: 4px;
-          font-size: 0.85rem;
-        }
-
-        .tag-remove {
-          background: none;
-          border: none;
-          color: white;
-          cursor: pointer;
-          padding: 0;
-          display: flex;
-          align-items: center;
-        }
-
-        .tags-add {
-          display: flex;
-          gap: 0.5rem;
-        }
-
-        .tags-add input {
-          flex: 1;
-        }
-      `}</style>
     </div>
   );
 }

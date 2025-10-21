@@ -1,0 +1,31 @@
+{
+  "capital": 10000.0,
+  "positions": {
+    "BTCUSDT": {
+      "symbol": "BTCUSDT",
+      "entry_time": "2025-10-21T09:17:01.373817",
+      "side": "SELL",
+      "confidence": 0.7681817420805814,
+      "entry_price": 58335.471426403856,
+      "target_price": 54813.88729703584,
+      "stop_loss": 57460.439355007795,
+      "margin": 100.0,
+      "position_value": 2500.0,
+      "leverage": 25
+    },
+    "TIAUSDT": {
+      "symbol": "TIAUSDT",
+      "entry_time": "2025-10-21T09:17:01.375214",
+      "side": "SELL",
+      "confidence": 0.7264792512931016,
+      "entry_price": 74079.9491625419,
+      "target_price": 69144.19352969124,
+      "stop_loss": 72968.74992510378,
+      "margin": 100.0,
+      "position_value": 2500.0,
+      "leverage": 25
+    }
+  },
+  "trades": [],
+  "last_update": "2025-10-21T09:17:01.375244"
+}

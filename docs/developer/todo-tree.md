@@ -1,9 +1,37 @@
 # AlgoTrendy v2.6 - TODO Tree
 
-**Last Updated:** October 21, 2025, 15:30 UTC
+**Last Updated:** October 21, 2025, 17:00 UTC
 **Project Status:** 98/100 Production Ready ⬆️ +2
-**Overall Progress:** 23/55 tasks completed (41.8%)
+**Overall Progress:** 23/65 tasks completed (35.4%)
 **Priority Legend:** 🔴 Critical | 🟠 High | 🟡 Medium | 🟢 Low
+
+---
+
+## 📊 **Competitive Analysis Added (October 21, 2025)**
+
+**NEW:** Comprehensive competitive feature gap analysis completed. See `/devtools/mkt_bld_reqs-10.20.2025/` for full reports.
+
+### ✅ **Features AlgoTrendy Already Has (Often Overlooked):**
+1. ✅ **Paper Trading** - ALL 6 brokers support testnet/simulation (Bybit, Binance, TradeStation, IBKR, NinjaTrader, TradingView)
+2. ✅ **Advanced Charting** - Complete TradingView integration with MemGPT AI, custom Pine Scripts, webhooks
+3. ✅ **Webhooks** - TradingView webhook bridge for automated trading
+4. ✅ **MEM AI** - 78% ML accuracy, self-learning system (UNIQUE - no competitor has this!)
+5. ✅ **Zero-Cost Data** - 300K+ symbols, $0/month (saving $61K+/year)
+6. ✅ **Enterprise Security** - 98.5/100 score (better than most retail platforms)
+
+### ❌ **Critical Gaps Identified (Added to Critical Priority Section):**
+1. 🔴 **Mobile Application** - HIGHEST PRIORITY (6-8 weeks, $5K-$15K/month revenue)
+2. 🔴 **Strategy Marketplace** - HIGH PRIORITY (8-12 weeks, $5K-$20K/month revenue)
+3. 🔴 **News Feed & Sentiment** - MEDIUM-HIGH PRIORITY (2-3 weeks, $3K-$10K/month revenue)
+
+### 🎯 **Total Revenue Potential from New Features:** $38K-$135K/month in Year 1
+
+**Documents Created:**
+- `COMPETITIVE_FEATURE_GAP_ANALYSIS.md` (25 KB) - Full 35-page analysis
+- `COMPETITIVE_ANALYSIS_SUMMARY.md` (9 KB) - Executive summary
+- `ACTUAL_MISSING_FEATURES.md` (11 KB) - Corrected feature assessment
+
+**Key Insight:** AlgoTrendy is much stronger than initially thought. Main gap is mobile app - 3-6 months to full competitiveness!
 
 ---
 
@@ -66,6 +94,82 @@
 ---
 
 ## 🔴 Critical Priority (Do First)
+
+### Competitive Feature Gaps (Market Requirements - Oct 2025)
+
+- [ ] **Mobile Application Development** 🔴 HIGHEST PRIORITY
+  - Platform: React Native (iOS + Android from one codebase)
+  - Features Required:
+    - [ ] View portfolio & positions
+    - [ ] Execute trades (market, limit, stop)
+    - [ ] Real-time price alerts
+    - [ ] Push notifications
+    - [ ] Basic charting (simplified)
+    - [ ] Account management
+  - Deliverables:
+    - [ ] MVP design & wireframes (Week 1-2)
+    - [ ] React Native setup & development (Week 3-6)
+    - [ ] Beta testing (TestFlight/Google Play) (Week 7-10)
+    - [ ] Production launch (Week 11-12)
+  - Success Metrics:
+    - [ ] 1,000+ beta testers by EOY 2025
+    - [ ] 4+ star rating
+    - [ ] 5,000+ active users by Q1 2026
+  - Revenue Impact: $5K-$15K/month
+  - Competitive Gap: ALL major platforms have mobile (MT5, TradeStation, ThinkorSwim, TradingView, QuantConnect)
+  - Estimated Time: 6-8 weeks (240-320 hours)
+  - Status: Not started
+  - Priority: CRITICAL - Cannot compete without this in 2025
+
+- [ ] **Strategy Marketplace** 🔴 HIGH PRIORITY
+  - Features Required:
+    - [ ] Upload/download strategies
+    - [ ] Ratings and reviews system
+    - [ ] Backtest results display
+    - [ ] Search and filter capabilities
+    - [ ] Free + paid strategies (revenue share model: 20% platform fee)
+    - [ ] One-click strategy deployment
+  - Deliverables:
+    - [ ] Database schema for marketplace (Week 1-2)
+    - [ ] Upload/download API endpoints (Week 3-4)
+    - [ ] Rating/review system (Week 5-6)
+    - [ ] Frontend UI for marketplace (Week 7-8)
+    - [ ] Payment integration (Week 9-10)
+    - [ ] Beta launch with 100+ strategies (Week 11-12)
+  - Success Metrics:
+    - [ ] 100+ strategies listed by Q1 2026
+    - [ ] 500+ downloads in first month
+    - [ ] User-generated content growth
+  - Revenue Impact: $5K-$20K/month
+  - Competitive Gap: MT5 (massive marketplace), TradingView (100K+ scripts), QuantConnect (Alpha marketplace)
+  - Network Effects: More users = more strategies = more users
+  - Estimated Time: 8-12 weeks (320-480 hours)
+  - Status: Not started
+  - Priority: CRITICAL for community engagement
+
+- [ ] **News Feed & Sentiment Analysis Integration** 🔴 MEDIUM-HIGH PRIORITY
+  - Features Required:
+    - [ ] Real-time news aggregation (100+ sources)
+    - [ ] AI sentiment scoring (bullish/bearish/neutral)
+    - [ ] Impact scoring (1-5 scale)
+    - [ ] News-driven alerts
+    - [ ] Integration with trading signals
+    - [ ] Filtering by ticker/sector/keywords
+  - Implementation Plan:
+    - [ ] Integrate NewsAPI or Alpha Vantage (free tier) (Week 1)
+    - [ ] Add basic sentiment analysis using MEM AI (Week 2)
+    - [ ] Create news feed UI component (Week 2-3)
+    - [ ] Link news to trading signals (Week 3)
+    - [ ] Add news-based alerts (Week 3)
+  - Success Metrics:
+    - [ ] 70%+ user engagement with news feed
+    - [ ] News-driven signal accuracy improvement
+  - Revenue Impact: $3K-$10K/month (premium tier)
+  - Strategic Advantage: Can leverage MEM AI for UNIQUE sentiment analysis!
+  - Competitive Gap: Benzinga Pro ($299/mo), Stock Titan ($59/mo), TrendSpider
+  - Estimated Time: 2-3 weeks (80-120 hours)
+  - Status: Not started
+  - Priority: CRITICAL for fundamental analysis layer
 
 ### Security
 - [ ] **Review 5 Dependabot security alerts**
@@ -171,6 +275,113 @@
 
 ## 🟡 Medium Priority (Should Do)
 
+### Competitive Feature Gaps (Important Features - Oct 2025)
+
+- [ ] **Copy Trading / Social Trading Platform** 🟡
+  - Features Required:
+    - [ ] Follow traders automatically
+    - [ ] Copy their trades in real-time
+    - [ ] Performance stats for traders to follow
+    - [ ] Risk parameter customization
+    - [ ] Revenue sharing model (subscription + commissions)
+  - Implementation Plan:
+    - [ ] Design copy trading architecture (Week 1-2)
+    - [ ] Trader performance tracking system (Week 3-4)
+    - [ ] Copy trade execution engine (Week 5-6)
+    - [ ] Risk parameter controls (Week 7-8)
+    - [ ] Frontend UI for following/copying (Week 9-10)
+    - [ ] Payment/revenue sharing integration (Week 11-12)
+  - Success Metrics:
+    - [ ] 50+ top traders signed up
+    - [ ] 500+ followers in first quarter
+  - Revenue Impact: $10K-$50K/month
+  - Competitive Gap: eToro (pioneered this), MetaTrader 5, TradingView
+  - Estimated Time: 12+ weeks (480+ hours)
+  - Status: Not started
+  - Priority: MEDIUM - Revenue + retention opportunity
+
+- [ ] **Walk-Forward Optimization for Backtesting** 🟡
+  - Features Required:
+    - [ ] Multiple out-of-sample tests
+    - [ ] Configurable optimization windows
+    - [ ] Rolling optimization
+    - [ ] Performance degradation detection
+    - [ ] Integration with existing backtest engine
+  - Implementation Plan:
+    - [ ] Design walk-forward framework (Week 1-2)
+    - [ ] Implement optimization window logic (Week 3-4)
+    - [ ] Add out-of-sample testing (Week 5)
+    - [ ] Performance tracking and reports (Week 6)
+  - Benefits:
+    - Prevents strategy overfitting
+    - More realistic backtest results
+    - Industry best practice for serious traders
+  - Competitive Gap: TradeStation, AmiBroker
+  - Estimated Time: 4-6 weeks (160-240 hours)
+  - Status: Not started
+  - Priority: MEDIUM - Credibility with serious algo traders
+
+- [ ] **Monte Carlo Simulation for Backtesting** 🟡
+  - Features Required:
+    - [ ] Randomized trade sequence simulation
+    - [ ] Confidence intervals for metrics
+    - [ ] Maximum drawdown probability
+    - [ ] Position sizing recommendations
+    - [ ] Visualizations (distribution plots)
+  - Implementation Plan:
+    - [ ] Implement bootstrapping method (Week 1)
+    - [ ] Add statistical analysis (Week 1-2)
+    - [ ] Create visualization components (Week 2)
+    - [ ] Integrate with backtest results (Week 2-3)
+  - Benefits:
+    - Better risk assessment than simple backtests
+    - Detects if good results were just luck
+    - Provides probability distributions
+  - Competitive Gap: TradeStation, AmiBroker, TradingView (plugins)
+  - Estimated Time: 2-3 weeks (80-120 hours)
+  - Status: Not started
+  - Priority: MEDIUM - Better backtesting accuracy
+
+- [ ] **Market Scanners / Screeners** 🟡
+  - Features Required:
+    - [ ] Technical screeners (RSI, MACD, volume spikes, moving average crosses)
+    - [ ] Fundamental screeners (P/E, market cap, sector)
+    - [ ] Unusual activity alerts (volume, price action)
+    - [ ] Custom scan formulas
+    - [ ] Real-time alerts from scans
+  - Implementation Plan:
+    - [ ] Design scanner architecture (Week 1)
+    - [ ] Implement 20+ pre-built scans (Week 2)
+    - [ ] Add custom scan builder (Week 3)
+    - [ ] Real-time alert integration (Week 3-4)
+    - [ ] Frontend UI for scan results (Week 4)
+  - Success Metrics:
+    - [ ] Users discover 2x more trading opportunities
+    - [ ] High engagement with scan alerts
+  - Competitive Gap: Trade Ideas (AI-driven, $100+/mo), TrendSpider, Finviz (free)
+  - Estimated Time: 3-4 weeks (120-160 hours)
+  - Status: Not started
+  - Priority: MEDIUM - Opportunity discovery
+
+- [ ] **Advanced Risk Analytics** 🟡
+  - Currently Have: Basic position sizing, simple drawdown tracking
+  - Missing Features:
+    - [ ] Portfolio optimization (efficient frontier, risk parity)
+    - [ ] VaR (Value at Risk) calculations
+    - [ ] Scenario analysis (what-if simulations)
+    - [ ] Risk circuit breakers (auto-reduce positions on losses)
+    - [ ] Correlation analysis (portfolio diversification)
+    - [ ] Dynamic rebalancing (AI-driven portfolio adjustments)
+  - Implementation Plan:
+    - [ ] VaR calculations (Week 1-2)
+    - [ ] Portfolio optimization algorithms (Week 3-4)
+    - [ ] Scenario analysis engine (Week 5-6)
+    - [ ] Risk circuit breakers (Week 7-8)
+  - Competitive Gap: TradeStation, Interactive Brokers, Blueshift (institutional)
+  - Estimated Time: 6-8 weeks (240-320 hours)
+  - Status: Not started
+  - Priority: MEDIUM - Professional/institutional features
+
 ### Development Environment
 - [ ] **Create Docker Compose setup**
   - PostgreSQL container
@@ -237,6 +448,40 @@
 ---
 
 ## 🟢 Low Priority (Nice to Have)
+
+### Competitive Feature Gaps (Nice-to-Have Features - Oct 2025)
+
+- [ ] **Desktop Application** 🟢
+  - Platform: Electron or .NET MAUI
+  - Features:
+    - [ ] Better performance for complex charting
+    - [ ] Works offline (limited functionality)
+    - [ ] Multi-monitor support
+    - [ ] Faster execution (local processing)
+  - Why Low Priority:
+    - Web-based interface is sufficient for most users
+    - Mobile app is higher priority
+    - Heavy resource investment for marginal benefit
+  - Competitive Context: MT5, TradeStation, NinjaTrader have desktop apps
+  - Estimated Time: 12+ weeks (480+ hours)
+  - Status: Not started
+  - Priority: LOW - Web + Mobile covers 95% of use cases
+
+- [ ] **Expanded Indicator Library** 🟢
+  - Currently Have: Basic indicators only
+  - Could Add:
+    - [ ] 50+ TA-Lib indicators
+    - [ ] Template strategies (10-20 pre-built)
+    - [ ] Indicator marketplace (user-created)
+    - [ ] Easy indicator customization
+    - [ ] Indicator backtesting
+  - Why Low Priority:
+    - TradingView integration already provides 100K+ indicators
+    - Custom indicators can be added via TradingView Pine Scripts
+  - Competitive Context: TradingView (100K+ scripts), MT5 (1000s of indicators)
+  - Estimated Time: 2-3 weeks (80-120 hours)
+  - Status: Not started
+  - Priority: LOW - TradingView integration covers this gap
 
 ### Additional Features
 - [ ] **Implement rate limiting middleware**
@@ -456,9 +701,14 @@ Based on priority and impact, here's what to tackle first:
 | **Integration** | 1 | 0 | 7 | 8 |
 | **Monitoring** | 0 | 0 | 3 | 3 |
 | **Features** | 0 | 0 | 8 | 8 |
-| **TOTAL** | **23** | **0** | **32** | **55** |
+| **Competitive Gaps - Critical** | 0 | 0 | 3 | 3 |
+| **Competitive Gaps - Important** | 0 | 0 | 5 | 5 |
+| **Competitive Gaps - Nice-to-Have** | 0 | 0 | 2 | 2 |
+| **TOTAL** | **23** | **0** | **42** | **65** |
 
-**Completion Rate:** 41.8% (23/55 tasks)
+**Completion Rate:** 35.4% (23/65 tasks)
+
+**New Items Added (Oct 21, 2025):** 10 competitive feature gap tasks based on market analysis
 
 ---
 
@@ -485,14 +735,41 @@ Based on priority and impact, here's what to tackle first:
 - ⏳ Monitoring pending
 - ❌ Automated strategies not started
 
-### Milestone 3: Scale & Optimize
-**Target:** Q2 2026
+### Milestone 3: Market Competitiveness (NEW - Oct 2025)
+**Target:** Q4 2025 - Q1 2026
+**Status:** 0% complete (Planning phase)
+
+**Q4 2025 Deliverables (Oct-Dec 2025):**
+- ⏳ Mobile app MVP development (React Native)
+- ⏳ News feed integration (basic with free APIs)
+- ⏳ Market scanner (basic technical screeners)
+- Target: Mobile app in beta testing, news feed operational
+
+**Q1 2026 Deliverables (Jan-Mar 2026):**
+- ⏳ Mobile app launch (production)
+- ⏳ Strategy marketplace (beta with 100+ strategies)
+- ⏳ Walk-forward optimization
+- ⏳ Monte Carlo simulation
+- Target: 5,000+ mobile users, marketplace live
+
+**Success Metrics:**
+- Mobile beta: 1,000+ testers, 4+ star rating (Q4 2025)
+- News engagement: 70%+ users (Q4 2025)
+- Mobile users: 5,000+ active (Q1 2026)
+- Marketplace: 100+ strategies, 500+ downloads (Q1 2026)
+- Revenue: $20K+/month from new features (Q1 2026)
+
+**Revenue Impact:** $38K-$135K/month potential in Year 1
+
+### Milestone 4: Scale & Optimize
+**Target:** Q2 2026+
 **Status:** 20% complete
 
 - ✅ Architecture designed
 - ⏳ Performance optimization pending
-- ❌ Advanced features not started
-- ❌ Mobile app not started
+- ⏳ Copy trading platform (Q2 2026)
+- ⏳ Advanced risk analytics (Q2 2026)
+- ❌ Desktop app (optional, low priority)
 
 ---
 
@@ -518,6 +795,30 @@ Based on priority and impact, here's what to tackle first:
 
 ---
 
-**Last Updated:** October 21, 2025, 15:30 UTC
-**Next Review:** October 27, 2025
+## 📁 **Related Documents**
+
+### Competitive Analysis (October 21, 2025)
+All competitive analysis documents are in: `/devtools/mkt_bld_reqs-10.20.2025/`
+
+- **README.md** - Start here! Quick reference guide (8.5 KB)
+- **COMPETITIVE_FEATURE_GAP_ANALYSIS.md** - Full 35-page analysis (25 KB)
+- **ACTUAL_MISSING_FEATURES.md** - Corrected feature assessment (11 KB)
+- **COMPETITIVE_ANALYSIS_SUMMARY.md** - Executive summary (9 KB)
+
+**Key Findings:**
+- ✅ AlgoTrendy has paper trading, TradingView charting, webhooks (better than expected!)
+- ❌ Missing mobile app (highest priority), strategy marketplace, news feed
+- 🎯 Gap to competitiveness: 3-6 months (mainly mobile app)
+- 💰 Revenue potential: $38K-$135K/month in Year 1
+
+### Project Documentation
+- Main README: `/README.md`
+- Architecture: `/docs/ARCHITECTURE.md`
+- Contributing: `/CONTRIBUTING.md`
+- Security: `/SECURITY.md`
+
+---
+
+**Last Updated:** October 21, 2025, 17:00 UTC
+**Next Review:** October 28, 2025
 **Maintainer:** AlgoTrendy Development Team

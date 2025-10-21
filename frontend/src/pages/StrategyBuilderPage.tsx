@@ -12,6 +12,7 @@ import {
   BarChart3,
   Plus,
   X,
+  Loader2,
 } from 'lucide-react';
 import type {
   Strategy,
@@ -30,6 +31,7 @@ import SignalsBuilder from '../components/strategy/SignalsBuilder';
 import RiskManagementForm from '../components/strategy/RiskManagementForm';
 import BacktestPanel from '../components/strategy/BacktestPanel';
 import StrategyCodeViewer from '../components/strategy/StrategyCodeViewer';
+import '../styles/StrategyBuilder.css';
 
 type BuilderTab = 'metadata' | 'parameters' | 'signals' | 'risk' | 'backtest' | 'code';
 
@@ -58,6 +60,8 @@ export default function StrategyBuilderPage() {
   });
 
   const [isSaving, setIsSaving] = useState(false);
+  const [isGeneratingCode, setIsGeneratingCode] = useState(false);
+  const [isValidating, setIsValidating] = useState(false);
   const [validation, setValidation] = useState<{
     valid: boolean;
     errors: string[];
@@ -65,6 +69,7 @@ export default function StrategyBuilderPage() {
   } | null>(null);
   const [backtestResults, setBacktestResults] = useState<BacktestResults | null>(null);
   const [generatedCode, setGeneratedCode] = useState<string>('');
+  const [saveSuccess, setSaveSuccess] = useState(false);
 
   const tabs: Array<{ id: BuilderTab; label: string; icon: any }> = [
     { id: 'metadata', label: 'Strategy Info', icon: Settings },
@@ -83,16 +88,21 @@ export default function StrategyBuilderPage() {
   }, [strategy]);
 
   const validateStrategy = async () => {
+    setIsValidating(true);
     try {
       const result = await strategyApi.validateStrategy(strategy);
       setValidation(result);
     } catch (error) {
       console.error('Error validating strategy:', error);
+      setValidation({ valid: false, errors: ['Validation failed'], warnings: [] });
+    } finally {
+      setIsValidating(false);
     }
   };
 
   const handleSave = async () => {
     setIsSaving(true);
+    setSaveSuccess(false);
     try {
       if (!strategy.metadata) return;
 
@@ -105,8 +115,12 @@ export default function StrategyBuilderPage() {
       };
 
       const response = await strategyApi.createStrategy(createRequest);
-      alert(`Strategy "${response.strategy.metadata.displayName}" saved successfully!`);
+      setSaveSuccess(true);
+
+      // Success toast will be shown via saveSuccess state
+      setTimeout(() => setSaveSuccess(false), 3000);
     } catch (error: any) {
+      // Error will be shown via alert for now (will be replaced with toast in next phase)
       alert(`Error saving strategy: ${error.message}`);
     } finally {
       setIsSaving(false);
@@ -114,6 +128,7 @@ export default function StrategyBuilderPage() {
   };
 
   const handleGenerateCode = async () => {
+    setIsGeneratingCode(true);
     try {
       const response = await strategyApi.generateCode(
         strategy as Strategy,
@@ -123,6 +138,8 @@ export default function StrategyBuilderPage() {
       setActiveTab('code');
     } catch (error: any) {
       alert(`Error generating code: ${error.message}`);
+    } finally {
+      setIsGeneratingCode(false);
     }
   };
 
@@ -162,26 +179,27 @@ export default function StrategyBuilderPage() {
       {/* Header */}
       <div className="strategy-builder-header">
         <div>
-          <h1 style={{ margin: 0, marginBottom: '0.5rem' }}>Strategy Builder</h1>
-          <p style={{ color: 'var(--text-secondary)', margin: 0 }}>
-            Create and customize your trading strategies
-          </p>
+          <h1>Strategy Builder</h1>
+          <p>Create and customize your trading strategies</p>
         </div>
-        <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+        <div className="sb-header-actions">
           {/* Validation Status */}
           {validation && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              {validation.valid ? (
+            <div className={`sb-validation-status ${validation.valid ? 'valid' : 'invalid'} ${isValidating ? 'validating' : ''}`}>
+              {isValidating ? (
                 <>
-                  <CheckCircle size={20} color="var(--success)" />
-                  <span style={{ color: 'var(--success)' }}>Valid</span>
+                  <Loader2 size={20} className="spinner" />
+                  <span>Validating...</span>
+                </>
+              ) : validation.valid ? (
+                <>
+                  <CheckCircle size={20} />
+                  <span>Valid</span>
                 </>
               ) : (
                 <>
-                  <AlertCircle size={20} color="var(--warning)" />
-                  <span style={{ color: 'var(--warning)' }}>
-                    {validation.errors.length} errors
-                  </span>
+                  <AlertCircle size={20} />
+                  <span>{validation.errors.length} error{validation.errors.length !== 1 ? 's' : ''}</span>
                 </>
               )}
             </div>
@@ -189,21 +207,21 @@ export default function StrategyBuilderPage() {
 
           {/* Action Buttons */}
           <button
-            className="btn-secondary"
+            className={`btn-secondary ${isGeneratingCode ? 'btn-loading' : ''}`}
             onClick={handleGenerateCode}
-            style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}
+            disabled={isGeneratingCode}
           >
-            <Code size={18} />
-            Generate Code
+            {!isGeneratingCode && <Code size={18} />}
+            {isGeneratingCode ? 'Generating...' : 'Generate Code'}
           </button>
           <button
-            className="btn-primary"
+            className={`btn-primary ${isSaving ? 'btn-loading' : ''} ${saveSuccess ? 'success' : ''}`}
             onClick={handleSave}
             disabled={isSaving || !validation?.valid}
-            style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}
           >
-            <Save size={18} />
-            {isSaving ? 'Saving...' : 'Save Strategy'}
+            {!isSaving && !saveSuccess && <Save size={18} />}
+            {!isSaving && saveSuccess && <CheckCircle size={18} />}
+            {isSaving ? 'Saving...' : saveSuccess ? 'Saved!' : 'Save Strategy'}
           </button>
         </div>
       </div>
@@ -213,21 +231,8 @@ export default function StrategyBuilderPage() {
         {tabs.map(({ id, label, icon: Icon }) => (
           <button
             key={id}
-            className={`tab ${activeTab === id ? 'active' : ''}`}
+            className={`sb-tab ${activeTab === id ? 'active' : ''}`}
             onClick={() => setActiveTab(id)}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.5rem',
-              padding: '1rem 1.5rem',
-              background: activeTab === id ? 'var(--card-bg)' : 'transparent',
-              border: 'none',
-              borderBottom: activeTab === id ? '2px solid var(--primary)' : '2px solid transparent',
-              color: activeTab === id ? 'var(--primary)' : 'var(--text-secondary)',
-              cursor: 'pointer',
-              fontSize: '0.95rem',
-              fontWeight: 500,
-            }}
           >
             <Icon size={18} />
             {label}
@@ -285,102 +290,32 @@ export default function StrategyBuilderPage() {
         <div className="validation-panel">
           {validation.errors.length > 0 && (
             <div className="errors">
-              <h3 style={{ margin: 0, marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <AlertCircle size={20} color="var(--error)" />
+              <h3 className="flex items-center gap-sm mt-0 mb-sm">
+                <AlertCircle size={20} className="text-error" />
                 Errors
               </h3>
-              <ul style={{ margin: 0, paddingLeft: '1.5rem' }}>
+              <ul>
                 {validation.errors.map((error, i) => (
-                  <li key={i} style={{ color: 'var(--error)' }}>{error}</li>
+                  <li key={i}>{error}</li>
                 ))}
               </ul>
             </div>
           )}
           {validation.warnings.length > 0 && (
-            <div className="warnings" style={{ marginTop: validation.errors.length > 0 ? '1rem' : 0 }}>
-              <h3 style={{ margin: 0, marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <AlertCircle size={20} color="var(--warning)" />
+            <div className={`warnings ${validation.errors.length > 0 ? 'mt-md' : ''}`}>
+              <h3 className="flex items-center gap-sm mt-0 mb-sm">
+                <AlertCircle size={20} className="text-warning" />
                 Warnings
               </h3>
-              <ul style={{ margin: 0, paddingLeft: '1.5rem' }}>
+              <ul>
                 {validation.warnings.map((warning, i) => (
-                  <li key={i} style={{ color: 'var(--warning)' }}>{warning}</li>
+                  <li key={i}>{warning}</li>
                 ))}
               </ul>
             </div>
           )}
         </div>
       )}
-
-      <style>{`
-        .strategy-builder {
-          padding: 2rem;
-          max-width: 1400px;
-          margin: 0 auto;
-        }
-
-        .strategy-builder-header {
-          display: flex;
-          justify-content: space-between;
-          align-items: flex-start;
-          margin-bottom: 2rem;
-        }
-
-        .strategy-builder-tabs {
-          display: flex;
-          border-bottom: 1px solid var(--border);
-          margin-bottom: 2rem;
-          overflow-x: auto;
-        }
-
-        .strategy-builder-content {
-          background: var(--card-bg);
-          border-radius: 8px;
-          padding: 2rem;
-          min-height: 500px;
-        }
-
-        .validation-panel {
-          margin-top: 2rem;
-          padding: 1.5rem;
-          background: var(--card-bg);
-          border-radius: 8px;
-          border-left: 4px solid var(--warning);
-        }
-
-        .btn-primary, .btn-secondary {
-          padding: 0.75rem 1.5rem;
-          border-radius: 6px;
-          border: none;
-          cursor: pointer;
-          font-weight: 500;
-          transition: all 0.2s;
-        }
-
-        .btn-primary {
-          background: var(--primary);
-          color: white;
-        }
-
-        .btn-primary:hover:not(:disabled) {
-          opacity: 0.9;
-        }
-
-        .btn-primary:disabled {
-          opacity: 0.5;
-          cursor: not-allowed;
-        }
-
-        .btn-secondary {
-          background: var(--card-bg);
-          color: var(--text);
-          border: 1px solid var(--border);
-        }
-
-        .btn-secondary:hover {
-          background: var(--background);
-        }
-      `}</style>
     </div>
   );
 }

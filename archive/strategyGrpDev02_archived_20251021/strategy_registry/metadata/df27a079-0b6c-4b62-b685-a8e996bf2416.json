@@ -1,0 +1,74 @@
+{
+  "schema_version": "1.0.0",
+  "strategy": {
+    "id": "df27a079-0b6c-4b62-b685-a8e996bf2416",
+    "name": "statistical_arbitrage_pairs",
+    "display_name": "Statistical Arbitrage Pairs Trading",
+    "description": "Cointegration-based pairs trading using Ornstein-Uhlenbeck process",
+    "version": "1.0.0",
+    "status": "experimental",
+    "classification": {
+      "category": "mean_reversion",
+      "sub_category": "",
+      "complexity": "moderate",
+      "tags": [
+        "mean_reversion",
+        "statistical_arbitrage",
+        "cointegration",
+        "academic"
+      ],
+      "asset_classes": []
+    },
+    "implementation": {
+      "language": "python",
+      "file_path": "../implementations/strategy2_pairs_trading.py",
+      "class_name": "PairsTradingStrategy",
+      "entry_point": "PairsTradingStrategy.generate_signal",
+      "dependencies": [],
+      "minimum_python_version": "3.10"
+    },
+    "academic_foundation": {
+      "paper_title": "Statistical Arbitrage and Pairs Trading",
+      "authors": "Multiple researchers",
+      "year": 2010,
+      "note": "Based on Ornstein-Uhlenbeck process literature",
+      "expected_sharpe": 1.5
+    },
+    "parameters": {
+      "cointegration_pvalue": 0.05,
+      "entry_zscore": 2.0,
+      "exit_zscore": 0.5,
+      "stop_loss_zscore": 4.0,
+      "lookback_period": 252
+    },
+    "performance": {
+      "backtest": {
+        "note": "Requires real market data for cointegrated pair discovery",
+        "num_trades": 0
+      },
+      "live_trading": {
+        "start_date": null,
+        "total_trades": 0,
+        "live_sharpe": null,
+        "live_win_rate": null
+      }
+    },
+    "mem_integration": {
+      "enabled": true,
+      "enhancement_type": "full",
+      "learned_patterns_count": 0,
+      "mem_version": "baseline_1.0",
+      "estimated_improvement": {}
+    },
+    "requirements": {},
+    "risk_profile": {},
+    "metadata": {
+      "created_by": "system",
+      "created_at": "2025-10-21T04:53:22.268094Z",
+      "last_updated": "2025-10-21T04:53:22.268101Z",
+      "last_backtest": null,
+      "deprecation_date": null,
+      "replacement_strategy_id": null
+    }
+  }
+}

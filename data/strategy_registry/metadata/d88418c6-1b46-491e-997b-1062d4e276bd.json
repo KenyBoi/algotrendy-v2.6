@@ -1,0 +1,74 @@
+{
+  "schema_version": "1.0.0",
+  "strategy": {
+    "id": "d88418c6-1b46-491e-997b-1062d4e276bd",
+    "name": "statistical_arbitrage_pairs",
+    "display_name": "Statistical Arbitrage Pairs Trading",
+    "description": "Cointegration-based pairs trading using Ornstein-Uhlenbeck process",
+    "version": "1.0.0",
+    "status": "experimental",
+    "classification": {
+      "category": "mean_reversion",
+      "sub_category": "",
+      "complexity": "moderate",
+      "tags": [
+        "mean_reversion",
+        "statistical_arbitrage",
+        "cointegration",
+        "academic"
+      ],
+      "asset_classes": []
+    },
+    "implementation": {
+      "language": "python",
+      "file_path": "/root/AlgoTrendy_v2.6/strategies/development/strategy_research_2025_q4/strategy_2_pairs_trading/strategy2_pairs_trading.py",
+      "class_name": "PairsTradingStrategy",
+      "entry_point": "PairsTradingStrategy.generate_signal",
+      "dependencies": [],
+      "minimum_python_version": "3.10"
+    },
+    "academic_foundation": {
+      "paper_title": "Statistical Arbitrage and Pairs Trading",
+      "authors": "Multiple researchers",
+      "year": 2010,
+      "note": "Based on Ornstein-Uhlenbeck process literature",
+      "expected_sharpe": 1.5
+    },
+    "parameters": {
+      "cointegration_pvalue": 0.05,
+      "entry_zscore": 2.0,
+      "exit_zscore": 0.5,
+      "stop_loss_zscore": 4.0,
+      "lookback_period": 252
+    },
+    "performance": {
+      "backtest": {
+        "note": "Requires real market data for cointegrated pair discovery",
+        "num_trades": 0
+      },
+      "live_trading": {
+        "start_date": null,
+        "total_trades": 0,
+        "live_sharpe": null,
+        "live_win_rate": null
+      }
+    },
+    "mem_integration": {
+      "enabled": true,
+      "enhancement_type": "full",
+      "learned_patterns_count": 0,
+      "mem_version": "baseline_1.0",
+      "estimated_improvement": {}
+    },
+    "requirements": {},
+    "risk_profile": {},
+    "metadata": {
+      "created_by": "system",
+      "created_at": "2025-10-21T05:11:50.588878Z",
+      "last_updated": "2025-10-21T05:11:50.588885Z",
+      "last_backtest": null,
+      "deprecation_date": null,
+      "replacement_strategy_id": null
+    }
+  }
+}
