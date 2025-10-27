@@ -24,7 +24,7 @@
     <!-- Security fix: Override vulnerable transitive RestSharp 111.0.0 from CryptoExchange.Net -->
     <PackageReference Include="RestSharp" Version="112.0.0" />
     <PackageReference Include="xunit" Version="2.9.3" />
-    <PackageReference Include="xunit.runner.visualstudio" Version="2.5.3" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="3.1.5" />
     <PackageReference Include="Xunit.SkippableFact" Version="1.5.23" />
   </ItemGroup>
 
