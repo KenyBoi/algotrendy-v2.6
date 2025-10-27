@@ -33,6 +33,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="QRCoder" Version="1.7.0" />
     <ProjectReference Include="..\AlgoTrendy.Core\AlgoTrendy.Core.csproj" />
   </ItemGroup>
 
