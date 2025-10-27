@@ -13,7 +13,7 @@
 
   <ItemGroup>
     <PackageReference Include="Alpaca.Markets" Version="7.2.0" />
-    <PackageReference Include="Binance.Net" Version="10.1.0" />
+    <PackageReference Include="Binance.Net" Version="10.20.0" />
     <PackageReference Include="Coinbase.AdvancedTrade" Version="1.4.0" />
     <PackageReference Include="CryptoExchange.Net" Version="9.10.0" />
     <PackageReference Include="Bybit.Net" Version="5.10.1" />
